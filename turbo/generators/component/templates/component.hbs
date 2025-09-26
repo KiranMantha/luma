@@ -1,0 +1,10 @@
+import styles from './{{pascalCase name}}.module.scss';
+import { {{pascalCase name}}Props } from './{{pascalCase name}}.model';
+
+export const {{pascalCase name}} = ({ title }: {{pascalCase name}}Props) => {
+  return (
+    <div className={styles.wrapper}>
+      <h1>{title}</h1>
+    </div>
+  );
+};
