@@ -1,14 +1,5 @@
-# Turborepo starter
-
-This Turborepo starter is maintained by the Turborepo core team.
-
-## Using this example
-
-Run the following command:
-
-```sh
-npx create-turbo@latest
-```
+# luma
+a simple components &amp; template driven cms. inspired by strapi, contentful and aem
 
 ## What's inside?
 
