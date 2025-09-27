@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "firsttris.vscode-jest-runner",
+    "damms005.devdb",
+    "arturock.gitstash",
+    "codeandstuff.package-json-upgrade",
+    "bradlc.vscode-tailwindcss"
+  ]
+}
