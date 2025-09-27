@@ -10,7 +10,7 @@ function run(cmd) {
 }
 
 const root = process.cwd();
-const webAppDist = join(root, 'apps/web/dist');
+const webAppDist = join(root, 'apps/admin/dist');
 const standaloneDist = join(webAppDist, 'standalone');
 
 // 1️⃣ Run build command
@@ -24,15 +24,15 @@ if (!existsSync(standaloneDist)) {
 
 // 3️⃣ Copy static and public into standalone build
 const staticSrc = join(webAppDist, 'static');
-const staticDest = join(standaloneDist, 'apps/web/dist');
+const staticDest = join(standaloneDist, 'apps/admin/dist/static');
 
 if (existsSync(staticSrc)) {
   console.log('📂 Copying static files...');
   cpSync(staticSrc, staticDest, { recursive: true });
 }
 
-const publicSrc = join(root, 'apps/web/public');
-const publicDest = join(standaloneDist, 'apps/web/public');
+const publicSrc = join(root, 'apps/admin/public');
+const publicDest = join(standaloneDist, 'apps/admin/public');
 
 if (existsSync(publicSrc)) {
   console.log('📂 Copying public files...');
@@ -43,5 +43,5 @@ if (existsSync(publicSrc)) {
 console.log('Completed build');
 console.log('\n🚀 Starting dev server...');
 chdir(standaloneDist); // switch into dist/standalone
-run('node apps/web/server.js');
+run('node apps/admin/server.js');
 // run('pnpm dev');
