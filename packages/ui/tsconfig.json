@@ -1,7 +1,13 @@
 {
   "extends": "@repo/typescript-config/react-library.json",
   "compilerOptions": {
-    "outDir": "dist"
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "paths": {
+      "#atoms": ["./src/atoms/index.ts"],
+      "#molecules": ["./src/molecules/index.ts"],
+      "#organisms": ["./src/organisms/index.ts"]
+    }
   },
   "include": ["src", "../../types.d.ts"],
   "exclude": ["node_modules", "dist"]
