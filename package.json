@@ -10,6 +10,7 @@
     "gen": "turbo gen"
   },
   "devDependencies": {
+    "@chakra-ui/cli": "^3.27.0",
     "@turbo/gen": "^2.5.8",
     "prettier": "^3.6.2",
     "sass": "^1.93.2",
@@ -19,5 +20,8 @@
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@chakra-ui/react": "^3.27.0"
   }
 }
