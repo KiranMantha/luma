@@ -8,6 +8,9 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // adjust this so it points to your repository root (where your workspace package.json is)
   outputFileTracingRoot: path.join(__dirname, '../../'), // <-- example for apps/web -> repoRoot
+  experimental: {
+    optimizePackageImports: ['@chakra-ui/react'],
+  },
 };
 
 export default nextConfig;
