@@ -1,6 +1,64 @@
-# luma
+# Luma CMS
 
-a simple components &amp; template driven cms. inspired by strapi, contentful and aem
+Luma is a component & template-driven CMS inspired by Strapi, Contentful, and AEM. It delivers content agnostic to any frontend framework and supports both CSR and SSR.
+
+## Architecture
+
+- **Monorepo managed by Turborepo**: Apps and packages organized under `apps/` and `packages/`.
+- **Frontend**: Next.js App Router (admin UI) in `apps/admin`.
+- **UI Library**: All UI components are built in `packages/ui` using Chakra UI and organized by atomic design (atoms, molecules, organisms). No components live in app folders.
+- **Backend**: Separate backend app (e.g., Hono) for API and SQLite database.
+- **Database**: SQLite for fast, embedded storage (scales to 10,000+ pages easily).
+
+## Atomic UI Pattern
+
+- Components are grouped as atoms, molecules, and organisms in `packages/ui/src/`.
+- Each component has its own folder with:
+  - `index.ts` (barrel file)
+  - `[Component].tsx` (main file)
+  - `[Component].module.scss` (SCSS module)
+- Barrel files in each group export their components, and the root `index.ts` exports all.
+- Chakra UI is used for all styling and layout. The default font is Roboto.
+
+## Content Model & Output
+
+- User-defined components are saved as JSON with `:type` and `model` attributes at the root.
+- Supports primitives, objects (nestable), and lists for flexible composition.
+- Example output:
+  ```json
+  {
+    ":type": "BlogPost",
+    "model": {
+      "title": "Hello World",
+      "tags": ["cms", "nextjs"],
+      "author": { "name": "Jane Doe", "bio": "Content architect" }
+    }
+  }
+  ```
+
+## Developer Workflow
+
+- Build: `pnpm exec turbo build` or `turbo build`
+- Develop: `pnpm exec turbo dev` or `turbo dev`
+- All UI imports must come from `@repo/ui`.
+- Backend API handles all data persistence and business logic.
+
+## Why SQLite?
+
+- Embedded, zero-config, and fast for most CMS use cases.
+- Can handle thousands of pages with ease.
+- Easy to migrate to Postgres or MongoDB if needed.
+
+## Useful Links
+
+- [Turborepo Docs](https://turborepo.com/docs)
+- [Chakra UI](https://chakra-ui.com/)
+- [Next.js](https://nextjs.org/)
+- [SQLite](https://www.sqlite.org/index.html)
+
+---
+
+For more details, see `.github/copilot-instructions.md` and the `ui` package README.
 
 ## What's inside?
 
@@ -8,8 +66,7 @@ This Turborepo includes the following packages/apps:
 
 ### Apps and Packages
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
+- `admin`: another [Next.js](https://nextjs.org/) admin
 - `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
 - `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
 - `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
