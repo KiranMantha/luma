@@ -1,3 +1,5 @@
+import { Card } from '@repo/ui';
+
 const atomicComponents = [
   { name: 'Text', description: 'Primitive text field.' },
   { name: 'Image', description: 'Primitive image field.' },
@@ -17,10 +19,10 @@ export default function ComponentsPage() {
       </p>
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
         {atomicComponents.map((comp) => (
-          <div key={comp.name} style={{ border: '1px solid #ccc', borderRadius: 8, padding: 24, minWidth: 200 }}>
+          <Card key={comp.name}>
             <h2>{comp.name}</h2>
             <p>{comp.description}</p>
-          </div>
+          </Card>
         ))}
       </div>
       <section style={{ marginTop: 32 }}>

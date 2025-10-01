@@ -1,3 +1,4 @@
+import { Card } from '@repo/ui';
 import Link from 'next/link';
 
 const componentCards = [{ name: 'Components', description: 'Reusable building blocks for content.' }];
@@ -9,10 +10,10 @@ export default function Home() {
       <div style={{ display: 'flex', gap: 24 }}>
         {componentCards.map((card) => (
           <Link key={card.name} href="/components">
-            <div style={{ border: '1px solid #ccc', borderRadius: 8, padding: 24, minWidth: 200, cursor: 'pointer' }}>
+            <Card>
               <h2>{card.name}</h2>
               <p>{card.description}</p>
-            </div>
+            </Card>
           </Link>
         ))}
       </div>

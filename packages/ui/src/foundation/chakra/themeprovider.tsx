@@ -1,11 +1,6 @@
-'use client';
-import { ChakraProvider, createSystem, defaultConfig } from '@chakra-ui/react';
+import { Theme } from '@radix-ui/themes';
 import { ReactNode } from 'react';
 
-const customTheme = createSystem(defaultConfig);
-
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  return <ChakraProvider value={customTheme}>{children}</ChakraProvider>;
+  return <Theme>{children}</Theme>;
 };
-
-export default customTheme;

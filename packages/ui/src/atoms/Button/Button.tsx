@@ -1,6 +1,6 @@
-import { ButtonProps, Button as ChakraButton } from '@chakra-ui/react';
+import { ButtonProps, Button as RadixButton } from '@radix-ui/themes';
 import styles from './Button.module.scss';
 
 export function Button(props: ButtonProps) {
-  return <ChakraButton className={styles.root} {...props} />;
+  return <RadixButton className={styles.root} {...props} />;
 }
