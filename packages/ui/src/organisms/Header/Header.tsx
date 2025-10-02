@@ -1,12 +1,17 @@
-import { Flex, FlexProps, Heading } from '@chakra-ui/react';
+import { Link } from '#atoms';
+import { Heading } from '@radix-ui/themes';
 import { ReactNode } from 'react';
 import styles from './Header.module.scss';
 
-export function Header({ children, ...props }: FlexProps & { children?: ReactNode }) {
+export function Header({ children }: { children?: ReactNode }) {
   return (
-    <Flex as="header" className={styles.root} align="center" justify="space-between" p={4} bg="gray.50" {...props}>
-      <Heading size="md">Luma CMS</Heading>
-      {children}
-    </Flex>
+    <header className={styles.header}>
+      <div className={styles.cmsName}>
+        <Heading>
+          <Link href="/">Luma</Link>
+        </Heading>
+      </div>
+      <div className={styles.content}>{children}</div>
+    </header>
   );
 }

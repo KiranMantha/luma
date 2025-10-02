@@ -1,3 +1,6 @@
-.root {
-  /* Add custom card styles here */
+.card {
+  border-radius: var(--radius-3);
+  background: white;
+  padding: var(--space-4);
+  box-shadow: var(--shadow-2);
 }

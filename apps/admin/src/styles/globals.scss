@@ -1,0 +1,49 @@
+@import '@radix-ui/themes/styles.css';
+
+body {
+  margin: 0;
+  background-color: var(--slate-1);
+  color: var(--slate-12);
+  height: 100vh;
+
+  .app-shell {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: minmax(clamp(240px, 18vw, 400px), auto) 1fr;
+    height: 100vh;
+
+    .app-header {
+      grid-column: 1 / span 2;
+      grid-row: 1;
+    }
+
+    .app-sidebar {
+      grid-column: 1;
+      grid-row: 2;
+      background: var(--indigo-12);
+      color: var(--slate-1);
+      border-right: 1px solid #e2e8f0;
+      padding: var(--space-4);
+
+      nav {
+        ul {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+
+          li a {
+            display: block;
+            padding-block: var(--space-2);
+            color: var(--slate-1);
+          }
+        }
+      }
+    }
+
+    .app-main {
+      grid-column: 2;
+      grid-row: 2;
+      overflow-y: auto;
+    }
+  }
+}
