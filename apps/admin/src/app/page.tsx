@@ -1,11 +1,11 @@
-import { Card } from '@repo/ui';
-import Link from 'next/link';
+import { Box } from '@radix-ui/themes';
+import { Card, Link } from '@repo/ui';
 
 const componentCards = [{ name: 'Components', description: 'Reusable building blocks for content.' }];
 
 export default function Home() {
   return (
-    <main style={{ padding: 32 }}>
+    <Box p={'4'}>
       <h1>Dashboard</h1>
       <div style={{ display: 'flex', gap: 24 }}>
         {componentCards.map((card) => (
@@ -17,6 +17,6 @@ export default function Home() {
           </Link>
         ))}
       </div>
-    </main>
+    </Box>
   );
 }

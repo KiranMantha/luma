@@ -1,3 +1,4 @@
+import { Box } from '@radix-ui/themes';
 import { Card } from '@repo/ui';
 
 const atomicComponents = [
@@ -11,7 +12,7 @@ const atomicComponents = [
 
 export default function ComponentsPage() {
   return (
-    <main style={{ padding: 32 }}>
+    <Box px={'4'}>
       <h1>Create Component</h1>
       <p>
         Compose new components by combining atomic fields below. Only user-defined components will have{' '}
@@ -47,6 +48,6 @@ export default function ComponentsPage() {
           <code>:type</code> and <code>model</code>.
         </p>
       </section>
-    </main>
+    </Box>
   );
 }

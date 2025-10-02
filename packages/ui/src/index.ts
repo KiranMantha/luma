@@ -1,4 +1,4 @@
 export * from './atoms';
-export * from './foundation/chakra';
+export * from './foundation/theme';
 export * from './molecules';
 export * from './organisms';

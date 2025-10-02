@@ -1,9 +1,7 @@
-import { ThemeProvider } from '@repo/ui';
+import { Header, Link, ThemeProvider } from '@repo/ui';
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
-import '../styles/globals.css';
-
-console.log('hio');
+import '../styles/globals.scss';
 
 const geistSans = localFont({
   src: '../../public/fonts/GeistVF.woff',
@@ -27,7 +25,28 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <div className="app-shell">
+            <div className="app-header">
+              <Header />
+            </div>
+            <aside className="app-sidebar">
+              <nav>
+                <ul>
+                  <li>
+                    <Link href="/">Dashboard</Link>
+                  </li>
+                  <li>
+                    <Link href="/components">Components</Link>
+                  </li>
+                  <li>Pages</li>
+                  <li>Templates</li>
+                </ul>
+              </nav>
+            </aside>
+            <main className="app-main">{children}</main>
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );
