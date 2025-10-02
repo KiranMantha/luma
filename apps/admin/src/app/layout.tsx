@@ -39,8 +39,12 @@ export default function RootLayout({
                   <li>
                     <Link href="/components">Components</Link>
                   </li>
-                  <li>Pages</li>
-                  <li>Templates</li>
+                  <li>
+                    <Link href="/Pages">Pages</Link>
+                  </li>
+                  <li>
+                    <Link href="/Templates">Templates</Link>
+                  </li>
                 </ul>
               </nav>
             </aside>
