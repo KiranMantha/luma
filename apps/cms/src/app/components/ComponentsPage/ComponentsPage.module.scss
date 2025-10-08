@@ -1,0 +1,10 @@
+.componentsPage {
+  height: 100%;
+  display: flex;
+
+  .libraryPanel {
+    width: 400px;
+    min-width: 400px;
+    flex-shrink: 0;
+  }
+}

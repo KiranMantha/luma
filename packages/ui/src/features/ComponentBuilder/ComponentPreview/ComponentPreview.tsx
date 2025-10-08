@@ -1,0 +1,104 @@
+'use client';
+
+import { Button } from '#atoms';
+import styles from './ComponentPreview.module.scss';
+
+export interface ControlInstance {
+  id: string;
+  controlType: string;
+  label?: string;
+  config: Record<string, unknown>;
+  order: number;
+}
+
+export interface Component {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  type: 'primitive' | 'user-defined';
+  isPrimitive?: boolean;
+  controls?: ControlInstance[];
+}
+
+export interface ComponentPreviewProps {
+  component: Component | null;
+  onAddControl?: () => void;
+  onEditControl?: (control: ControlInstance) => void;
+}
+
+interface TextBoxConfig {
+  label: string;
+  multiline: boolean;
+  placeholder?: string;
+  required?: boolean;
+}
+
+export const ComponentPreview = ({ component, onAddControl, onEditControl }: ComponentPreviewProps) => {
+  if (!component) {
+    return <div className={styles.componentPreviewContainer} />;
+  }
+
+  return (
+    <div className={styles.componentPreviewContainer}>
+      <div className={styles.header}>
+        <h2 className={styles.title}>{component.name} Preview</h2>
+
+        {onAddControl && (
+          <Button onClick={onAddControl} size="2">
+            + Add Control
+          </Button>
+        )}
+      </div>
+
+      <div className={styles.compositionArea}>
+        <div className={styles.controlsList}>
+          {component.controls && component.controls.length > 0 ? (
+            component.controls.map((control) => (
+              <div key={control.id} className={styles.controlItem}>
+                {renderControlPreview(control, onEditControl)}
+              </div>
+            ))
+          ) : (
+            <div className={styles.emptyControls}>
+              <p className={styles.emptyText}>
+                No controls added yet. Click &quot;Add Control&quot; to start building your component.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const renderControlPreview = (control: ControlInstance, onEditControl?: (control: ControlInstance) => void) => {
+  switch (control.controlType) {
+    case 'textbox': {
+      const config = control.config as unknown as TextBoxConfig;
+      return (
+        <div
+          className={styles.controlPreview}
+          onClick={() => onEditControl?.(control)}
+          style={{ cursor: onEditControl ? 'pointer' : 'default' }}
+        >
+          <div className={styles.controlHeader}>
+            <span className={styles.controlLabel}>{config.label}</span>
+            <div className={styles.controlActions}>
+              <span className={styles.controlMeta}>{config.multiline ? 'Textarea' : 'Text Input'}</span>
+              {config.required && <span className={styles.requiredIndicator}>Required</span>}
+              {onEditControl && <span className={styles.editIndicator}>Edit</span>}
+            </div>
+          </div>
+          {config.placeholder && <p className={styles.placeholderText}>Placeholder: {config.placeholder}</p>}
+        </div>
+      );
+    }
+    default:
+      return (
+        <div className={styles.unknownControl}>
+          <span>Unknown control type: {control.controlType}</span>
+        </div>
+      );
+  }
+};

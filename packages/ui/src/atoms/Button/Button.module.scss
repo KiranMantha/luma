@@ -1,3 +1,5 @@
-.root {
-  /* Add custom button styles here */
+.button {
+  &:hover {
+    cursor: pointer;
+  }
 }
