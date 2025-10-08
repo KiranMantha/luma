@@ -1,11 +1,18 @@
-import { Box, BoxProps } from '@radix-ui/themes';
 import { ReactNode } from 'react';
 import styles from './Card.module.scss';
 
-export function Card({ children, ...props }: BoxProps & { children: ReactNode }) {
+export interface CardProps {
+  children: ReactNode;
+  className?: string;
+  onClick?: () => void;
+}
+
+export function Card({ children, className, onClick, ...props }: CardProps) {
+  const cardClassName = className ? `${styles.card} ${className}` : styles.card;
+
   return (
-    <Box className={styles.card} {...props}>
+    <div className={cardClassName} onClick={onClick} {...props}>
       {children}
-    </Box>
+    </div>
   );
 }

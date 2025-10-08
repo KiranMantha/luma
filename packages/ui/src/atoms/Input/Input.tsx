@@ -1,13 +1,16 @@
-import { Box, TextField } from '@radix-ui/themes';
-import { Label } from 'radix-ui';
+import { Box, Text, TextField } from '@radix-ui/themes';
 import { InputProps } from './Input.model';
 import styles from './Input.module.scss';
 
-export const Input = ({ invalid, label, ...rest }: InputProps) => {
+export const Input = ({ label, ...rest }: InputProps) => {
   return (
     <Box>
-      {label && <Label.Root>{label}</Label.Root>}
-      <TextField.Root size="3" className={styles.root} {...rest}></TextField.Root>
+      {label && (
+        <Text as="label" size="2" style={{ display: 'block', marginBottom: '4px' }}>
+          {label}
+        </Text>
+      )}
+      <TextField.Root size="3" className={styles.root} {...rest} />
     </Box>
   );
 };

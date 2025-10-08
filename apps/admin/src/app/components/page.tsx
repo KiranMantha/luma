@@ -1,53 +1,11 @@
-import { Box } from '@radix-ui/themes';
-import { Card } from '@repo/ui';
+import { getComponents } from './actions';
+import { ComponentsPage as ComponentsPageClient } from './ComponentsPage';
 
-const atomicComponents = [
-  { name: 'Text', description: 'Primitive text field.' },
-  { name: 'Image', description: 'Primitive image field.' },
-  { name: 'Number', description: 'Primitive number field.' },
-  { name: 'Boolean', description: 'Primitive boolean field.' },
-  { name: 'List', description: 'List of primitives or objects.' },
-  { name: 'Object', description: 'Nestable object for composition.' },
-];
+export default async function ComponentsPage() {
+  // Get user-created components from the server/database
+  const userComponents = await getComponents();
 
-export default function ComponentsPage() {
-  return (
-    <Box px={'4'}>
-      <h1>Create Component</h1>
-      <p>
-        Compose new components by combining atomic fields below. Only user-defined components will have{' '}
-        <code>:type</code> and <code>model</code> attributes in their output.
-      </p>
-      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-        {atomicComponents.map((comp) => (
-          <Card key={comp.name}>
-            <h2>{comp.name}</h2>
-            <p>{comp.description}</p>
-          </Card>
-        ))}
-      </div>
-      <section style={{ marginTop: 32 }}>
-        <h3>Component Composition Example</h3>
-        <pre style={{ background: '#f6f8fa', padding: 16, borderRadius: 8 }}>
-          {`
-{
-  ":type": "BlogPost",
-  "model": {
-    "title": "Hello World",
-    "tags": ["cms", "nextjs"],
-    "author": {
-      "name": "Jane Doe",
-      "bio": "Content architect"
-    }
-  }
-}
-`}
-        </pre>
-        <p>
-          You can nest objects and lists to build complex layouts. Only the root user-defined component includes{' '}
-          <code>:type</code> and <code>model</code>.
-        </p>
-      </section>
-    </Box>
-  );
+  // Only show user-defined components in the list
+  // Primitive components will be available through the "Add Control" dialog
+  return <ComponentsPageClient initialComponents={userComponents} />;
 }

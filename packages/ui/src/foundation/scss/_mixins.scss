@@ -1,0 +1,4 @@
+// Convert px to rem (accepts unitless numbers)
+@function pxToRem($px, $base: 16) {
+  @return #{calc($px / $base)}rem;
+}
