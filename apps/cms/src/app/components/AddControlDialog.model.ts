@@ -1,4 +1,4 @@
-import type { ControlInstance } from './controls.model';
+import { ControlInstance } from './controls';
 
 export type AddControlDialogProps = {
   open: boolean;

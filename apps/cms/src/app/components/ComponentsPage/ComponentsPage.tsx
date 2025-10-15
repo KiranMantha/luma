@@ -1,11 +1,10 @@
 'use client';
 
-import { ComponentLibrary, ComponentPreview, ComponentType, type Component } from '@repo/ui';
+import { Component, ComponentLibrary, ComponentPreview, ComponentType, ControlInstance } from '@repo/ui';
 import { useEffect, useState } from 'react';
 import { deleteComponent, saveComponent, updateComponent } from '../actions';
 import { AddComponentDialog } from '../AddComponentDialog';
 import { AddControlDialog } from '../AddControlDialog';
-import { ControlInstance } from '../controls';
 import { EditComponentDialog } from '../EditComponentDialog';
 import {
   loadComponentsFromLocalStorage,

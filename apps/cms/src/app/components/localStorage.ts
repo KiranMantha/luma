@@ -2,7 +2,7 @@
  * Utility functions for localStorage interaction
  */
 
-import { ComponentType, type Component } from '@repo/ui';
+import { Component, ComponentType } from '@repo/ui';
 
 export const loadComponentsFromLocalStorage = (): Component[] => {
   if (typeof window === 'undefined') {

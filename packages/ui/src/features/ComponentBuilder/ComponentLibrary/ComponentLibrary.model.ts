@@ -1,4 +1,4 @@
-import type { Component, ControlInstance } from '../models';
+import { Component } from '../models';
 
 export type ComponentLibraryProps = {
   components: Component[];
@@ -8,6 +8,3 @@ export type ComponentLibraryProps = {
   onDeleteComponent?: (componentId: string) => void;
   onSelectComponent?: (component: Component) => void;
 };
-
-// Re-export shared types for convenience
-export type { Component, ControlInstance };

@@ -1,4 +1,4 @@
-import type { Component, ControlInstance } from '../models';
+import { Component, ControlInstance } from '../models';
 
 export type ComponentPreviewProps = {
   component: Component | null;
@@ -12,6 +12,3 @@ export type TextBoxConfig = {
   placeholder?: string;
   required?: boolean;
 };
-
-// Re-export shared types for convenience
-export type { Component, ControlInstance };

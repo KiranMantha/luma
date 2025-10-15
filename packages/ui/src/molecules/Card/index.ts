@@ -1,2 +1,2 @@
-export { Card } from './Card';
-export type { CardProps } from './Card.model';
+export * from './Card';
+export * from './Card.model';
