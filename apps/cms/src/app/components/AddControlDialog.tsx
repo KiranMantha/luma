@@ -130,9 +130,11 @@ export const AddControlDialog = ({
       return (
         <Box>
           <Flex align="center" gap="2" style={{ marginBottom: '16px' }}>
-            <Button variant="outline" size="1" onClick={() => setStep('select')}>
-              ← Back
-            </Button>
+            {mode === 'add' ? (
+              <Button variant="outline" size="1" onClick={() => setStep('select')}>
+                ← Back
+              </Button>
+            ) : null}
             <Text size="3" weight="bold">
               Configure {selectedControl.name}
             </Text>
