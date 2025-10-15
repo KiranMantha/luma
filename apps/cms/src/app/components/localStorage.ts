@@ -2,7 +2,7 @@
  * Utility functions for localStorage interaction
  */
 
-import { Component } from './actions';
+import { Component, ComponentType } from '@repo/ui';
 
 export const loadComponentsFromLocalStorage = (): Component[] => {
   if (typeof window === 'undefined') {
@@ -15,7 +15,7 @@ export const loadComponentsFromLocalStorage = (): Component[] => {
 
     // Ensure backward compatibility and filter out primitive components
     // (primitive components should not be stored in localStorage)
-    return components.filter((comp: Component) => comp.type === 'user-defined');
+    return components.filter((comp: Component) => comp.type === ComponentType.USER_DEFINED);
   } catch (error) {
     console.error('Error loading components from localStorage:', error);
     return [];
@@ -29,7 +29,7 @@ export const saveComponentsToLocalStorage = (components: Component[]): void => {
 
   try {
     // Only save user-defined components to localStorage
-    const userDefinedComponents = components.filter((comp) => comp.type === 'user-defined');
+    const userDefinedComponents = components.filter((comp) => comp.type === ComponentType.USER_DEFINED);
     localStorage.setItem('components', JSON.stringify(userDefinedComponents));
   } catch (error) {
     console.error('Error saving components to localStorage:', error);
@@ -38,7 +38,7 @@ export const saveComponentsToLocalStorage = (components: Component[]): void => {
 
 export const syncComponentWithLocalStorage = (component: Component): void => {
   // Don't save primitive components to localStorage
-  if (component.type === 'primitive') {
+  if (component.type === ComponentType.PRIMITIVE) {
     return;
   }
 

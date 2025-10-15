@@ -3,25 +3,8 @@
 import { Box, Flex, Grid, Text } from '@radix-ui/themes';
 import { Button, Input, Modal } from '@repo/ui';
 import { ChangeEvent, useEffect, useState } from 'react';
+import { AddControlDialogProps, ConfigStep } from './AddControlDialog.model';
 import { BUILT_IN_CONTROLS, ControlDefinition, TextBoxConfig } from './controls';
-
-export interface ControlInstance {
-  id: string;
-  controlType: string;
-  label?: string;
-  config: Record<string, unknown>;
-  order: number;
-}
-
-interface AddControlDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onAddControl: (controlType: string, config: unknown) => void;
-  initialControl?: ControlInstance | null;
-  mode?: 'add' | 'edit';
-}
-
-type ConfigStep = 'select' | 'configure';
 
 export const AddControlDialog = ({
   open,

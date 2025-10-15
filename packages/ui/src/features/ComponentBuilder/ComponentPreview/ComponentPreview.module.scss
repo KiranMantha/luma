@@ -3,15 +3,12 @@
 .componentPreviewContainer {
   flex: 1;
   padding: var(--space-4);
-  background: var(--gray-1);
 
   .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: var(--space-4);
-    padding-bottom: var(--space-3);
-    border-bottom: 1px solid var(--gray-6);
 
     .title {
       margin: 0;
@@ -22,12 +19,7 @@
   }
 
   .compositionArea {
-    border: 2px dashed var(--violet-6);
-    border-radius: var(--radius-3);
-    padding: var(--space-4);
-    background: var(--violet-1);
     min-height: pxToRem(400);
-    position: relative;
 
     .controlsList {
       .controlItem {

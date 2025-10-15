@@ -1,22 +1,18 @@
 'use client';
 
-import { ComponentLibrary, ComponentPreview } from '@repo/ui';
+import { Component, ComponentLibrary, ComponentPreview, ComponentType, ControlInstance } from '@repo/ui';
 import { useEffect, useState } from 'react';
-import { Component, deleteComponent, saveComponent, updateComponent } from '../actions';
+import { deleteComponent, saveComponent, updateComponent } from '../actions';
 import { AddComponentDialog } from '../AddComponentDialog';
 import { AddControlDialog } from '../AddControlDialog';
-import { ControlInstance } from '../controls';
 import { EditComponentDialog } from '../EditComponentDialog';
 import {
   loadComponentsFromLocalStorage,
   removeComponentFromLocalStorage,
   syncComponentWithLocalStorage,
 } from '../localStorage';
+import type { ComponentsPageProps } from './ComponentsPage.model';
 import styles from './ComponentsPage.module.scss';
-
-interface ComponentsPageProps {
-  initialComponents: Component[];
-}
 
 export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
   const [components, setComponents] = useState<Component[]>(initialComponents);
@@ -118,7 +114,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
 
   const handleEditComponent = (component: Component) => {
     // Only allow editing user-defined components
-    if (component.type !== 'user-defined') {
+    if (component.type !== ComponentType.USER_DEFINED) {
       console.warn('Cannot edit primitive components');
       return;
     }
@@ -144,7 +140,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
   const handleDeleteComponent = async (componentId: string) => {
     // Find the component to check if it's user-defined
     const component = components.find((comp) => comp.id === componentId);
-    if (!component || component.type !== 'user-defined') {
+    if (!component || component.type !== ComponentType.USER_DEFINED) {
       console.warn('Cannot delete primitive components');
       return;
     }

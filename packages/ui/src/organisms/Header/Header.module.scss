@@ -1,21 +1,24 @@
 .header {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
+  display: flex;
   align-items: center;
-  padding: 1rem;
-  background: var(--indigo-12);
-  box-shadow: var(--shadow-1);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--slate-7);
 
   .cmsName {
-    grid-column: 1 / span 3;
+    flex: 1;
 
     a {
-      color: var(--slate-1);
+      color: var(--indigo-12);
+      text-decoration: none;
+
+      &:hover {
+        color: var(--indigo-11);
+      }
     }
   }
 
   .content {
-    grid-column: 4 / span 9;
     display: flex;
     align-items: center;
     justify-content: flex-end;

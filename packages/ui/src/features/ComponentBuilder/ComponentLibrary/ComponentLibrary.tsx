@@ -2,34 +2,9 @@
 
 import { Button, Text } from '#atoms';
 import { Card } from '#molecules';
+import { ComponentType } from '../models';
+import type { ComponentLibraryProps } from './ComponentLibrary.model';
 import styles from './ComponentLibrary.module.scss';
-
-export interface Component {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-  type: 'primitive' | 'user-defined';
-  isPrimitive?: boolean;
-  controls?: ControlInstance[];
-}
-
-export interface ControlInstance {
-  id: string;
-  controlType: string;
-  label?: string;
-  config: Record<string, unknown>;
-  order: number;
-}
-
-export interface ComponentLibraryProps {
-  components: Component[];
-  selectedComponent?: Component | null;
-  onAddComponent?: () => void;
-  onEditComponent?: (component: Component) => void;
-  onDeleteComponent?: (componentId: string) => void;
-  onSelectComponent?: (component: Component) => void;
-}
 
 export const ComponentLibrary = ({
   components,
@@ -57,7 +32,7 @@ export const ComponentLibrary = ({
           components.map((component) => {
             const isSelected = selectedComponent?.id === component.id;
             const cardClassName = `${styles.componentCard} ${
-              component.type === 'primitive' ? styles.primitive : styles.userDefined
+              component.type === ComponentType.PRIMITIVE ? styles.primitive : styles.userDefined
             } ${isSelected ? styles.selected : ''}`;
 
             return (
@@ -72,24 +47,17 @@ export const ComponentLibrary = ({
                         {component.description}
                       </Text>
                     )}
-                    <Text size="1" color="gray" style={{ display: 'block', marginTop: '8px' }}>
-                      {component.type === 'primitive'
-                        ? 'Primitive Component'
-                        : `Created: ${new Date(component.createdAt).toLocaleDateString()}`}
-                    </Text>
                   </div>
-                  <div className={styles.cardActions}>
-                    {onEditComponent && component.type === 'user-defined' && (
-                      <Button size="1" variant="outline" onClick={() => onEditComponent(component)}>
+                  {component.type === ComponentType.USER_DEFINED ? (
+                    <div className={styles.cardActions}>
+                      <Button size="1" variant="outline" onClick={() => onEditComponent?.(component)}>
                         Edit
                       </Button>
-                    )}
-                    {onDeleteComponent && component.type === 'user-defined' && (
-                      <Button size="1" variant="outline" color="red" onClick={() => onDeleteComponent(component.id)}>
+                      <Button size="1" variant="outline" color="red" onClick={() => onDeleteComponent?.(component.id)}>
                         Delete
                       </Button>
-                    )}
-                  </div>
+                    </div>
+                  ) : null}
                 </div>
               </Card>
             );

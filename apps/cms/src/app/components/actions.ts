@@ -4,18 +4,8 @@
 
 'use server';
 
+import { ComponentType, type Component } from '@repo/ui';
 import { revalidatePath } from 'next/cache';
-import { ControlInstance } from './controls';
-
-export interface Component {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-  type: 'primitive' | 'user-defined';
-  isPrimitive?: boolean; // For backward compatibility
-  controls?: ControlInstance[]; // Controls/fields within this component
-}
 
 // For now, we'll simulate localStorage on the server side
 // In a real implementation, this would connect to a database
@@ -27,7 +17,7 @@ export async function saveComponent(name: string, description?: string): Promise
     name,
     description,
     createdAt: new Date().toISOString(),
-    type: 'user-defined',
+    type: ComponentType.USER_DEFINED,
     controls: [], // Start with empty controls array
   };
 
@@ -49,7 +39,7 @@ export async function deleteComponent(id: string): Promise<void> {
   const component = componentsStore.find((comp) => comp.id === id);
 
   // Prevent deletion of primitive components
-  if (!component || component.type === 'primitive') {
+  if (!component || component.type === ComponentType.PRIMITIVE) {
     throw new Error('Cannot delete primitive components');
   }
 
@@ -73,7 +63,7 @@ export async function updateComponent(id: string, name: string, description?: st
   }
 
   // Prevent editing of primitive components
-  if (existingComponent.type === 'primitive') {
+  if (existingComponent.type === ComponentType.PRIMITIVE) {
     throw new Error('Cannot edit primitive components');
   }
 

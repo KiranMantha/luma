@@ -1,2 +1,2 @@
-export { ComponentPreview } from './ComponentPreview';
-export type { ComponentPreviewProps } from './ComponentPreview';
+export * from './ComponentPreview';
+export * from './ComponentPreview.model';

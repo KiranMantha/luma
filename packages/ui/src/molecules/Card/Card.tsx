@@ -1,11 +1,5 @@
-import { ReactNode } from 'react';
+import type { CardProps } from './Card.model';
 import styles from './Card.module.scss';
-
-export interface CardProps {
-  children: ReactNode;
-  className?: string;
-  onClick?: () => void;
-}
 
 export function Card({ children, className, onClick, ...props }: CardProps) {
   const cardClassName = className ? `${styles.card} ${className}` : styles.card;

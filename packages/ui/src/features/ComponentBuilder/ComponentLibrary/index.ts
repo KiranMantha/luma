@@ -1,2 +1,2 @@
-export { ComponentLibrary } from './ComponentLibrary';
-export type { ComponentLibraryProps } from './ComponentLibrary';
+export * from './ComponentLibrary';
+export * from './ComponentLibrary.model';
