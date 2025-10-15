@@ -1,15 +1,9 @@
 'use client';
 
 import { Box, Flex } from '@radix-ui/themes';
-import { Button, Input, Modal, type Component } from '@repo/ui';
+import { Button, Input, Modal } from '@repo/ui';
 import { ChangeEvent, useEffect, useState } from 'react';
-
-type EditComponentDialogProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSave: (id: string, name: string, description?: string) => Promise<void>;
-  component: Component | null;
-};
+import type { EditComponentDialogProps } from './EditComponentDialog.model';
 
 export const EditComponentDialog = ({ open, onOpenChange, onSave, component }: EditComponentDialogProps) => {
   const [name, setName] = useState('');

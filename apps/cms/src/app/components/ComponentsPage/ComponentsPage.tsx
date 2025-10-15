@@ -12,11 +12,8 @@ import {
   removeComponentFromLocalStorage,
   syncComponentWithLocalStorage,
 } from '../localStorage';
+import type { ComponentsPageProps } from './ComponentsPage.model';
 import styles from './ComponentsPage.module.scss';
-
-type ComponentsPageProps = {
-  initialComponents: Component[];
-};
 
 export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
   const [components, setComponents] = useState<Component[]>(initialComponents);
