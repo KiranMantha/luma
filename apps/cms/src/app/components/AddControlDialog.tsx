@@ -5,21 +5,21 @@ import { Button, Input, Modal } from '@repo/ui';
 import { ChangeEvent, useEffect, useState } from 'react';
 import { BUILT_IN_CONTROLS, ControlDefinition, TextBoxConfig } from './controls';
 
-export interface ControlInstance {
+export type ControlInstance = {
   id: string;
   controlType: string;
   label?: string;
   config: Record<string, unknown>;
   order: number;
-}
+};
 
-interface AddControlDialogProps {
+type AddControlDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddControl: (controlType: string, config: unknown) => void;
   initialControl?: ControlInstance | null;
   mode?: 'add' | 'edit';
-}
+};
 
 type ConfigStep = 'select' | 'configure';
 

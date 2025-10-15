@@ -2,21 +2,9 @@
 
 import { Button } from '#atoms';
 import { Card } from '#molecules';
-import { type Component, type ControlInstance } from '../ComponentLibrary';
+import type { ControlInstance } from '../models';
+import type { ComponentPreviewProps, TextBoxConfig } from './ComponentPreview.model';
 import styles from './ComponentPreview.module.scss';
-
-export interface ComponentPreviewProps {
-  component: Component | null;
-  onAddControl?: () => void;
-  onEditControl?: (control: ControlInstance) => void;
-}
-
-interface TextBoxConfig {
-  label: string;
-  multiline: boolean;
-  placeholder?: string;
-  required?: boolean;
-}
 
 export const ComponentPreview = ({ component, onAddControl, onEditControl }: ComponentPreviewProps) => {
   if (!component) {

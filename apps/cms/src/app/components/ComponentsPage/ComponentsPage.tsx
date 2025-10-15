@@ -14,9 +14,9 @@ import {
 } from '../localStorage';
 import styles from './ComponentsPage.module.scss';
 
-interface ComponentsPageProps {
+type ComponentsPageProps = {
   initialComponents: Component[];
-}
+};
 
 export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
   const [components, setComponents] = useState<Component[]>(initialComponents);

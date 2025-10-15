@@ -1,19 +1,19 @@
 import type { Context } from 'hono';
 
-export interface ApiResponse<T = any> {
+export type ApiResponse<T = any> = {
   data: T | null;
   error: string | null;
-}
+};
 
-export interface ApiErrorResponse {
+export type ApiErrorResponse = {
   data: null;
   error: string;
-}
+};
 
-export interface ApiSuccessResponse<T = any> {
+export type ApiSuccessResponse<T = any> = {
   data: T;
   error: null;
-}
+};
 
 // Success response helper
 export function successResponse<T>(c: Context, data: T, status?: 200 | 201) {

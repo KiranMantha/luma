@@ -4,11 +4,11 @@ import { Box, Flex } from '@radix-ui/themes';
 import { Button, Input, Modal } from '@repo/ui';
 import { ChangeEvent, useState } from 'react';
 
-interface AddComponentDialogProps {
+type AddComponentDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (name: string, description?: string) => Promise<void>;
-}
+};
 
 export const AddComponentDialog = ({ open, onOpenChange, onSave }: AddComponentDialogProps) => {
   const [name, setName] = useState('');

@@ -2,35 +2,9 @@
 
 import { Button, Text } from '#atoms';
 import { Card } from '#molecules';
-import { ComponentType } from '../types';
+import { ComponentType } from '../models';
+import type { ComponentLibraryProps } from './ComponentLibrary.model';
 import styles from './ComponentLibrary.module.scss';
-
-export interface Component {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-  type: ComponentType;
-  isPrimitive?: boolean;
-  controls?: ControlInstance[];
-}
-
-export interface ControlInstance {
-  id: string;
-  controlType: string;
-  label?: string;
-  config: Record<string, unknown>;
-  order: number;
-}
-
-export interface ComponentLibraryProps {
-  components: Component[];
-  selectedComponent?: Component | null;
-  onAddComponent?: () => void;
-  onEditComponent?: (component: Component) => void;
-  onDeleteComponent?: (componentId: string) => void;
-  onSelectComponent?: (component: Component) => void;
-}
 
 export const ComponentLibrary = ({
   components,
