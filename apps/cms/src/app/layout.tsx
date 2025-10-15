@@ -1,4 +1,5 @@
-import { Header, Link, ThemeProvider } from '@repo/ui';
+import { Header, ThemeProvider } from '@repo/ui';
+import { Navigation } from '../components/Navigation';
 import '../styles/globals.scss';
 
 export default function RootLayout({
@@ -11,26 +12,9 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ThemeProvider>
           <div className="app-shell">
-            <div className="app-header">
-              <Header />
-            </div>
             <aside className="app-sidebar">
-              <nav>
-                <ul>
-                  <li>
-                    <Link href="/">Dashboard</Link>
-                  </li>
-                  <li>
-                    <Link href="/components">Components</Link>
-                  </li>
-                  <li>
-                    <Link href="/Pages">Pages</Link>
-                  </li>
-                  <li>
-                    <Link href="/Templates">Templates</Link>
-                  </li>
-                </ul>
-              </nav>
+              <Header />
+              <Navigation />
             </aside>
             <main className="app-main">{children}</main>
           </div>

@@ -12,24 +12,20 @@ body {
 
   .app-shell {
     display: grid;
-    grid-template-rows: auto 1fr;
-    grid-template-columns: minmax(clamp(240px, 18vw, 400px), auto) 1fr;
+    grid-template-columns: 300px 1fr;
     height: 100vh;
 
-    .app-header {
-      grid-column: 1 / span 2;
-      grid-row: 1;
-    }
-
     .app-sidebar {
-      grid-column: 1;
-      grid-row: 2;
-      background: var(--indigo-12);
-      color: var(--slate-1);
-      border-right: 1px solid #e2e8f0;
+      background: var(--slate-2);
+      color: var(--indigo-1);
+      border-right: 1px solid var(--slate-6);
       padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
 
       nav {
+        flex: 1;
+
         ul {
           list-style: none;
           margin: 0;
@@ -37,16 +33,33 @@ body {
 
           li a {
             display: block;
-            padding-block: var(--space-2);
-            color: var(--slate-1);
+            padding: var(--space-2) var(--space-3);
+            color: var(--indigo-12);
+            text-decoration: none;
+            border-radius: var(--radius-2);
+            margin-bottom: var(--space-1);
+
+            &:hover {
+              background: var(--slate-3);
+              color: var(--indigo-11);
+            }
+
+            &:active,
+            &[aria-current='page'] {
+              background: var(--indigo-3);
+              color: var(--indigo-12);
+
+              &:hover {
+                background: var(--slate-3);
+                color: var(--indigo-11);
+              }
+            }
           }
         }
       }
     }
 
     .app-main {
-      grid-column: 2;
-      grid-row: 2;
       overflow-y: auto;
     }
   }
