@@ -1,21 +1,25 @@
 'use client';
 
 import { Component, ComponentLibrary, ComponentPreview, ComponentType, ControlInstance } from '@repo/ui';
-import { useEffect, useState } from 'react';
-import { deleteComponent, saveComponent, updateComponent } from '../actions';
+import { use, useState } from 'react';
+import {
+  addControlToComponent,
+  deleteComponent,
+  deleteControl,
+  saveComponent,
+  updateComponent,
+  updateControl,
+} from '../actions';
 import { AddComponentDialog } from '../AddComponentDialog';
 import { AddControlDialog } from '../AddControlDialog';
 import { EditComponentDialog } from '../EditComponentDialog';
-import {
-  loadComponentsFromLocalStorage,
-  removeComponentFromLocalStorage,
-  syncComponentWithLocalStorage,
-} from '../localStorage';
 import type { ComponentsPageProps } from './ComponentsPage.model';
 import styles from './ComponentsPage.module.scss';
 
 export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
-  const [components, setComponents] = useState<Component[]>(initialComponents);
+  const initialComponentsData = use(initialComponents);
+  const [components, setComponents] = useState<Component[]>(initialComponentsData);
+  const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddControlDialogOpen, setIsAddControlDialogOpen] = useState(false);
@@ -23,21 +27,6 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
   const [componentToEdit, setComponentToEdit] = useState<Component | null>(null);
   const [controlToEdit, setControlToEdit] = useState<ControlInstance | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
-
-  // Load and merge localStorage components on mount
-  useEffect(() => {
-    const localComponents = loadComponentsFromLocalStorage();
-    if (localComponents.length > 0) {
-      // Merge with initial components, avoiding duplicates
-      const mergedComponents = [...initialComponents];
-      localComponents.forEach((localComp) => {
-        if (!mergedComponents.find((comp) => comp.id === localComp.id)) {
-          mergedComponents.push(localComp);
-        }
-      });
-      setComponents(mergedComponents);
-    }
-  }, [initialComponents]);
 
   const handleAddComponent = () => {
     setIsDialogOpen(true);
@@ -57,48 +46,86 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     setIsEditControlDialogOpen(true);
   };
 
-  const handleUpdateControlInComponent = (controlType: string, config: unknown) => {
+  const handleUpdateControlInComponent = async (controlType: string, config: unknown) => {
     if (!selectedComponent || !controlToEdit) return;
 
-    const updatedControls =
-      selectedComponent.controls?.map((control) =>
-        control.id === controlToEdit.id ? { ...control, config: config as Record<string, unknown> } : control,
-      ) || [];
+    try {
+      setError(null); // Clear any previous errors
 
-    const updatedComponent: Component = {
-      ...selectedComponent,
-      controls: updatedControls,
-    };
+      // Update control in database
+      const updatedControl = await updateControl(selectedComponent.id, controlToEdit.id, {
+        controlType,
+        config: config as Record<string, unknown>,
+      });
 
-    // Update local state
-    setComponents((prev) => prev.map((comp) => (comp.id === selectedComponent.id ? updatedComponent : comp)));
-    setSelectedComponent(updatedComponent);
+      // Update local state with the updated control
+      const updatedControls =
+        selectedComponent.controls?.map((control) => (control.id === controlToEdit.id ? updatedControl : control)) ||
+        [];
 
-    // Save to localStorage
-    syncComponentWithLocalStorage(updatedComponent);
+      const updatedComponent: Component = {
+        ...selectedComponent,
+        controls: updatedControls,
+      };
+
+      setComponents((prev) => prev.map((comp) => (comp.id === selectedComponent.id ? updatedComponent : comp)));
+      setSelectedComponent(updatedComponent);
+    } catch (error) {
+      console.error('Failed to update control:', error);
+      setError('Failed to update control');
+    }
   };
 
-  const handleAddControlToComponent = (controlType: string, config: unknown) => {
+  const handleDeleteControl = async (controlId: string) => {
     if (!selectedComponent) return;
 
-    const newControl: ControlInstance = {
-      id: `control-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      controlType,
-      config: config as Record<string, unknown>,
-      order: (selectedComponent.controls?.length || 0) + 1,
-    };
+    try {
+      // Delete control from database
+      await deleteControl(selectedComponent.id, controlId);
 
-    const updatedComponent: Component = {
-      ...selectedComponent,
-      controls: [...(selectedComponent.controls || []), newControl],
-    };
+      // Update local state by removing the control
+      const updatedControls = selectedComponent.controls?.filter((control) => control.id !== controlId) || [];
 
-    // Update local state
-    setComponents((prev) => prev.map((comp) => (comp.id === selectedComponent.id ? updatedComponent : comp)));
-    setSelectedComponent(updatedComponent);
+      const updatedComponent: Component = {
+        ...selectedComponent,
+        controls: updatedControls,
+      };
 
-    // Save to localStorage
-    syncComponentWithLocalStorage(updatedComponent);
+      setComponents((prev) => prev.map((comp) => (comp.id === selectedComponent.id ? updatedComponent : comp)));
+      setSelectedComponent(updatedComponent);
+    } catch (error) {
+      console.error('Failed to delete control:', error);
+      setError('Failed to delete control');
+    }
+  };
+
+  const handleAddControlToComponent = async (controlType: string, config: unknown) => {
+    if (!selectedComponent) return;
+
+    try {
+      setError(null); // Clear any previous errors
+
+      // Save control to database
+      const newControl = await addControlToComponent(
+        selectedComponent.id,
+        controlType,
+        '', // label - can be empty for now
+        config as Record<string, unknown>,
+        (selectedComponent.controls?.length || 0) + 1, // orderIndex
+      );
+
+      // Update local state with the control returned from the API
+      const updatedComponent: Component = {
+        ...selectedComponent,
+        controls: [...(selectedComponent.controls || []), newControl],
+      };
+
+      setComponents((prev) => prev.map((comp) => (comp.id === selectedComponent.id ? updatedComponent : comp)));
+      setSelectedComponent(updatedComponent);
+    } catch (error) {
+      console.error('Failed to add control:', error);
+      setError('Failed to add control to component');
+    }
   };
 
   const handleSaveComponent = async (name: string, description?: string) => {
@@ -108,8 +135,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     // Update local state
     setComponents((prev) => [...prev, newComponent]);
 
-    // Save to localStorage
-    syncComponentWithLocalStorage(newComponent);
+    // Note: API actions handle revalidation via revalidatePath
   };
 
   const handleEditComponent = (component: Component) => {
@@ -124,13 +150,12 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
 
   const handleUpdateComponent = async (id: string, name: string, description?: string) => {
     try {
-      const updatedComponent = await updateComponent(id, name, description);
+      const updatedComponent = await updateComponent(id, { name, description });
       if (updatedComponent) {
         // Update local state
         setComponents((prev) => prev.map((comp) => (comp.id === id ? updatedComponent : comp)));
 
-        // Update localStorage
-        syncComponentWithLocalStorage(updatedComponent);
+        // Note: API actions handle revalidation via revalidatePath
       }
     } catch (error) {
       console.error('Failed to update component:', error);
@@ -152,8 +177,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
       // Update local state
       setComponents((prev) => prev.filter((comp) => comp.id !== componentId));
 
-      // Remove from localStorage
-      removeComponentFromLocalStorage(componentId);
+      // Note: API actions handle revalidation via revalidatePath
     } catch (error) {
       console.error('Failed to delete component:', error);
     }
@@ -161,6 +185,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
 
   return (
     <div className={styles.componentsPage}>
+      {error && <div className={styles.error}>Error: {error}</div>}
       <div className={styles.libraryPanel}>
         <ComponentLibrary
           components={components}
