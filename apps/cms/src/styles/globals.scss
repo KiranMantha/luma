@@ -6,7 +6,6 @@
 
 body {
   margin: 0;
-  background-color: var(--slate-1);
   color: var(--slate-12);
   height: 100vh;
 
@@ -16,7 +15,7 @@ body {
     height: 100vh;
 
     .app-sidebar {
-      background: var(--slate-2);
+      background-color: var(--slate-3);
       color: var(--indigo-1);
       border-right: 1px solid var(--slate-6);
       padding: var(--space-4);
@@ -44,9 +43,8 @@ body {
               color: var(--indigo-11);
             }
 
-            &:active,
-            &[aria-current='page'] {
-              background: var(--indigo-3);
+            &.active {
+              background: var(--indigo-5);
               color: var(--indigo-12);
 
               &:hover {
@@ -60,6 +58,7 @@ body {
     }
 
     .app-main {
+      background: var(--slate-2);
       overflow-y: auto;
     }
   }

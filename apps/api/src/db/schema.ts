@@ -1,12 +1,13 @@
 import { sql } from 'drizzle-orm';
 import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { ComponentType } from '../types/component';
 
 // Components table
 export const components = sqliteTable('components', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description'),
-  type: text('type', { enum: ['primitive', 'user-defined'] }).notNull(),
+  type: text('type', { enum: [ComponentType.PRIMITIVE, ComponentType.USER_DEFINED] }).notNull(),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
   teamId: text('team_id'), // for future teams feature

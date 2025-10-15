@@ -1,8 +1,8 @@
 'use client';
 
-import { ComponentLibrary, ComponentPreview } from '@repo/ui';
+import { ComponentLibrary, ComponentPreview, ComponentType, type Component } from '@repo/ui';
 import { useEffect, useState } from 'react';
-import { Component, deleteComponent, saveComponent, updateComponent } from '../actions';
+import { deleteComponent, saveComponent, updateComponent } from '../actions';
 import { AddComponentDialog } from '../AddComponentDialog';
 import { AddControlDialog } from '../AddControlDialog';
 import { ControlInstance } from '../controls';
@@ -118,7 +118,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
 
   const handleEditComponent = (component: Component) => {
     // Only allow editing user-defined components
-    if (component.type !== 'user-defined') {
+    if (component.type !== ComponentType.USER_DEFINED) {
       console.warn('Cannot edit primitive components');
       return;
     }
@@ -144,7 +144,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
   const handleDeleteComponent = async (componentId: string) => {
     // Find the component to check if it's user-defined
     const component = components.find((comp) => comp.id === componentId);
-    if (!component || component.type !== 'user-defined') {
+    if (!component || component.type !== ComponentType.USER_DEFINED) {
       console.warn('Cannot delete primitive components');
       return;
     }

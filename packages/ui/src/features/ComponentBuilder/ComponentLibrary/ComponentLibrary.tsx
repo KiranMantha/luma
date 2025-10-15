@@ -2,6 +2,7 @@
 
 import { Button, Text } from '#atoms';
 import { Card } from '#molecules';
+import { ComponentType } from '../types';
 import styles from './ComponentLibrary.module.scss';
 
 export interface Component {
@@ -9,7 +10,7 @@ export interface Component {
   name: string;
   description?: string;
   createdAt: string;
-  type: 'primitive' | 'user-defined';
+  type: ComponentType;
   isPrimitive?: boolean;
   controls?: ControlInstance[];
 }
@@ -57,7 +58,7 @@ export const ComponentLibrary = ({
           components.map((component) => {
             const isSelected = selectedComponent?.id === component.id;
             const cardClassName = `${styles.componentCard} ${
-              component.type === 'primitive' ? styles.primitive : styles.userDefined
+              component.type === ComponentType.PRIMITIVE ? styles.primitive : styles.userDefined
             } ${isSelected ? styles.selected : ''}`;
 
             return (
@@ -72,24 +73,17 @@ export const ComponentLibrary = ({
                         {component.description}
                       </Text>
                     )}
-                    <Text size="1" color="gray" style={{ display: 'block', marginTop: '8px' }}>
-                      {component.type === 'primitive'
-                        ? 'Primitive Component'
-                        : `Created: ${new Date(component.createdAt).toLocaleDateString()}`}
-                    </Text>
                   </div>
-                  <div className={styles.cardActions}>
-                    {onEditComponent && component.type === 'user-defined' && (
-                      <Button size="1" variant="outline" onClick={() => onEditComponent(component)}>
+                  {component.type === ComponentType.USER_DEFINED ? (
+                    <div className={styles.cardActions}>
+                      <Button size="1" variant="outline" onClick={() => onEditComponent?.(component)}>
                         Edit
                       </Button>
-                    )}
-                    {onDeleteComponent && component.type === 'user-defined' && (
-                      <Button size="1" variant="outline" color="red" onClick={() => onDeleteComponent(component.id)}>
+                      <Button size="1" variant="outline" color="red" onClick={() => onDeleteComponent?.(component.id)}>
                         Delete
                       </Button>
-                    )}
-                  </div>
+                    </div>
+                  ) : null}
                 </div>
               </Card>
             );

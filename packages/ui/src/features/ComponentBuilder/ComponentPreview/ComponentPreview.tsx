@@ -1,25 +1,9 @@
 'use client';
 
 import { Button } from '#atoms';
+import { Card } from '#molecules';
+import { type Component, type ControlInstance } from '../ComponentLibrary';
 import styles from './ComponentPreview.module.scss';
-
-export interface ControlInstance {
-  id: string;
-  controlType: string;
-  label?: string;
-  config: Record<string, unknown>;
-  order: number;
-}
-
-export interface Component {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-  type: 'primitive' | 'user-defined';
-  isPrimitive?: boolean;
-  controls?: ControlInstance[];
-}
 
 export interface ComponentPreviewProps {
   component: Component | null;
@@ -51,7 +35,7 @@ export const ComponentPreview = ({ component, onAddControl, onEditControl }: Com
         )}
       </div>
 
-      <div className={styles.compositionArea}>
+      <Card className={styles.compositionArea}>
         <div className={styles.controlsList}>
           {component.controls && component.controls.length > 0 ? (
             component.controls.map((control) => (
@@ -67,7 +51,7 @@ export const ComponentPreview = ({ component, onAddControl, onEditControl }: Com
             </div>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 };

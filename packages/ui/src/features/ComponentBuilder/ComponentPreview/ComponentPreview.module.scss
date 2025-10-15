@@ -19,12 +19,7 @@
   }
 
   .compositionArea {
-    border: 2px dashed var(--violet-6);
-    border-radius: var(--radius-3);
-    padding: var(--space-4);
-    background: var(--violet-1);
     min-height: pxToRem(400);
-    position: relative;
 
     .controlsList {
       .controlItem {

@@ -18,7 +18,7 @@ export function Navigation() {
       <ul>
         {navigationItems.map((item) => (
           <li key={item.href}>
-            <Link href={item.href} aria-current={pathname === item.href ? 'page' : undefined}>
+            <Link href={item.href} className={pathname === item.href ? 'active' : undefined}>
               {item.label}
             </Link>
           </li>
