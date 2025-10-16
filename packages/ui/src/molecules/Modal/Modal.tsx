@@ -1,5 +1,5 @@
 import { Dialog } from '@radix-ui/themes';
-import type { ModalProps } from './Modal.model';
+import { ModalProps } from './Modal.model';
 import styles from './Modal.module.scss';
 
 export const Modal = ({ open, onOpenChange, title, children }: ModalProps) => {

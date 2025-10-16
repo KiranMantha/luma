@@ -20,7 +20,9 @@ export const ComponentLibrary = ({
         <Text size="5" weight="bold">
           Components
         </Text>
-        <Button onClick={onAddComponent}>Add Component</Button>
+        <Button variant="ghost" onClick={onAddComponent}>
+          Add Component
+        </Button>
       </div>
 
       <div className={styles.content}>

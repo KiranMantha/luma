@@ -4,82 +4,201 @@
 
 'use server';
 
-import { ComponentType, type Component } from '@repo/ui';
+import { ComponentType, ControlType, type Component, type ControlInstance } from '@repo/ui';
 import { revalidatePath } from 'next/cache';
 
-// For now, we'll simulate localStorage on the server side
-// In a real implementation, this would connect to a database
-let componentsStore: Component[] = [];
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3002';
 
 export async function saveComponent(name: string, description?: string): Promise<Component> {
-  const component: Component = {
-    id: `comp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    name,
-    description,
-    createdAt: new Date().toISOString(),
-    type: ComponentType.USER_DEFINED,
-    controls: [], // Start with empty controls array
-  };
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/components`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name,
+        description,
+        type: ComponentType.USER_DEFINED,
+      }),
+    });
 
-  // In a real app, this would save to database
-  componentsStore.push(component);
+    if (!response.ok) {
+      throw new Error(`Failed to save component: ${response.statusText}`);
+    }
 
-  // Revalidate the page to show fresh data
-  revalidatePath('/components');
+    const result = await response.json();
 
-  return component;
+    // Revalidate the page to show fresh data
+    revalidatePath('/components');
+
+    return result.data;
+  } catch (error) {
+    console.error('Error saving component:', error);
+    throw new Error('Failed to save component');
+  }
 }
 
 export async function getComponents(): Promise<Component[]> {
-  // In a real app, this would fetch from database
-  return componentsStore;
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/components`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch components: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    console.error('Error fetching components:', error);
+    return [];
+  }
 }
 
 export async function deleteComponent(id: string): Promise<void> {
-  const component = componentsStore.find((comp) => comp.id === id);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/components/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-  // Prevent deletion of primitive components
-  if (!component || component.type === ComponentType.PRIMITIVE) {
-    throw new Error('Cannot delete primitive components');
+    if (!response.ok) {
+      throw new Error(`Failed to delete component: ${response.statusText}`);
+    }
+
+    // Revalidate the page to show fresh data
+    revalidatePath('/components');
+  } catch (error) {
+    console.error('Error deleting component:', error);
+    throw new Error('Failed to delete component');
   }
-
-  // In a real app, this would delete from database
-  componentsStore = componentsStore.filter((comp) => comp.id !== id);
-
-  // Revalidate the page to show fresh data
-  revalidatePath('/components');
 }
 
-export async function updateComponent(id: string, name: string, description?: string): Promise<Component | null> {
-  const componentIndex = componentsStore.findIndex((comp) => comp.id === id);
+export async function updateComponent(id: string, updates: Partial<Component>): Promise<Component> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/components/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: updates.name,
+        description: updates.description,
+      }),
+    });
 
-  if (componentIndex === -1) {
-    return null;
+    if (!response.ok) {
+      throw new Error(`Failed to update component: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+
+    // Revalidate the page to show fresh data
+    revalidatePath('/components');
+
+    return result.data;
+  } catch (error) {
+    console.error('Error updating component:', error);
+    throw new Error('Failed to update component');
   }
+}
 
-  const existingComponent = componentsStore[componentIndex];
-  if (!existingComponent) {
-    return null;
+export async function addControlToComponent(
+  componentId: string,
+  controlType: ControlType,
+  label: string,
+  config: Record<string, unknown>,
+  orderIndex: number,
+): Promise<ControlInstance> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/components/${componentId}/controls`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        controlType,
+        label,
+        config,
+        orderIndex,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to add control: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+
+    // Revalidate the page to show fresh data
+    revalidatePath('/components');
+
+    return result.data;
+  } catch (error) {
+    console.error('Error adding control:', error);
+    throw new Error('Failed to add control');
   }
+}
 
-  // Prevent editing of primitive components
-  if (existingComponent.type === ComponentType.PRIMITIVE) {
-    throw new Error('Cannot edit primitive components');
+export async function updateControl(
+  componentId: string,
+  controlId: string,
+  updates: Partial<ControlInstance>,
+): Promise<ControlInstance> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/components/${componentId}/controls/${controlId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        controlType: updates.controlType,
+        label: updates.label,
+        config: updates.config,
+        orderIndex: updates.order,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update control: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+
+    // Revalidate the page to show fresh data
+    revalidatePath('/components');
+
+    return result.data;
+  } catch (error) {
+    console.error('Error updating control:', error);
+    throw new Error('Failed to update control');
   }
+}
 
-  const updatedComponent: Component = {
-    id: existingComponent.id,
-    name,
-    description,
-    createdAt: existingComponent.createdAt,
-    type: existingComponent.type,
-    controls: existingComponent.controls || [], // Preserve existing controls
-  };
+export async function deleteControl(componentId: string, controlId: string): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/components/${componentId}/controls/${controlId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-  componentsStore[componentIndex] = updatedComponent;
+    if (!response.ok) {
+      throw new Error(`Failed to delete control: ${response.statusText}`);
+    }
 
-  // Revalidate the page to show fresh data
-  revalidatePath('/components');
-
-  return updatedComponent;
+    // Revalidate the page to show fresh data
+    revalidatePath('/components');
+  } catch (error) {
+    console.error('Error deleting control:', error);
+    throw new Error('Failed to delete control');
+  }
 }

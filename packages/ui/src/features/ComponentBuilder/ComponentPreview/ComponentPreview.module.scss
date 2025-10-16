@@ -34,20 +34,6 @@
           background: var(--gray-1);
           transition: all 0.2s ease;
 
-          &:hover {
-            border-color: var(--gray-8);
-            background: var(--gray-2);
-            transform: translateY(pxToRem(-1));
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-          }
-
-          &[style*='cursor: pointer'] {
-            &:hover {
-              border-color: var(--blue-6);
-              background: var(--blue-1);
-            }
-          }
-
           .controlHeader {
             display: flex;
             justify-content: space-between;

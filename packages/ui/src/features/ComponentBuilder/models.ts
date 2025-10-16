@@ -1,3 +1,5 @@
+import { ControlType } from './ComponentPreview/ComponentPreview.model';
+
 export enum ComponentType {
   PRIMITIVE = 'primitive',
   USER_DEFINED = 'user-defined',
@@ -7,7 +9,7 @@ export const COMPONENT_TYPE_VALUES = [ComponentType.PRIMITIVE, ComponentType.USE
 
 export type ControlInstance = {
   id: string;
-  controlType: string;
+  controlType: ControlType;
   label?: string;
   config: Record<string, unknown>;
   order: number;
