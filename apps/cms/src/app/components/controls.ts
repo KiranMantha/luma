@@ -1,36 +1,43 @@
-// Built-in control definitions
+import { ControlType } from '@repo/ui';
+
+// Built-in control definitions - Simplified to only UI-specific data
 export const BUILT_IN_CONTROLS: ControlDefinition[] = [
   {
-    id: 'textbox',
-    name: 'Text Box',
     description: 'Single line or multi-line text input field',
-    category: 'input',
     icon: '📝',
-    configurable: true,
+    controlType: ControlType.TEXT,
   },
-  // Future controls can be added here:
-  // {
-  //   id: 'image',
-  //   name: 'Image',
-  //   description: 'Image upload and display',
-  //   category: 'display',
-  //   icon: '🖼️',
-  //   configurable: true,
-  // },
+  {
+    description: 'Dropdown selection from predefined options',
+    icon: '📋',
+    controlType: ControlType.ENUMERATION,
+  },
+  {
+    description: 'Image upload and display with validation',
+    icon: '🖼️',
+    controlType: ControlType.MEDIA,
+  },
+  {
+    description: 'Rich text editor with formatting options',
+    icon: '📄',
+    controlType: ControlType.RICHTEXT,
+  },
+  {
+    description: 'JSON data input with schema validation',
+    icon: '🔧',
+    controlType: ControlType.JSON,
+  },
 ];
 
 export type ControlDefinition = {
-  id: string;
-  name: string;
-  description: string;
-  category: 'input' | 'display' | 'structure';
-  icon?: string;
-  configurable: boolean;
+  description: string; // UI description text
+  icon: string; // Display icon (all controls have icons)
+  controlType: ControlType; // Unique identifier and links to CONTROL_METADATA
 };
 
 export type ControlInstance = {
   id: string;
-  controlType: string;
+  controlType: ControlType;
   label?: string;
   config: Record<string, unknown>;
   order: number;
@@ -38,7 +45,36 @@ export type ControlInstance = {
 
 export type TextBoxConfig = {
   label: string;
-  multiline: boolean;
+  multiline?: boolean;
   placeholder?: string;
+  required?: boolean;
+  maxLength?: number;
+};
+
+export type EnumerationConfig = {
+  label: string;
+  options: Array<{ label: string; value: string }>;
+  placeholder?: string;
+  required?: boolean;
+};
+
+export type ImageConfig = {
+  label: string;
+  allowedTypes?: string[]; // e.g., ['jpg', 'png', 'gif']
+  maxSize?: number; // in MB
+  required?: boolean;
+};
+
+export type RichTextConfig = {
+  label: string;
+  toolbar?: string[]; // e.g., ['bold', 'italic', 'link']
+  maxLength?: number;
+  required?: boolean;
+};
+
+export type JsonConfig = {
+  label: string;
+  schema?: Record<string, unknown>; // JSON schema for validation
+  pretty?: boolean; // pretty print the JSON
   required?: boolean;
 };

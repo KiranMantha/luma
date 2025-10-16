@@ -1,6 +1,6 @@
 'use client';
 
-import { Component, ComponentLibrary, ComponentPreview, ComponentType, ControlInstance } from '@repo/ui';
+import { Component, ComponentLibrary, ComponentPreview, ComponentType, ControlInstance, ControlType } from '@repo/ui';
 import { use, useState } from 'react';
 import {
   addControlToComponent,
@@ -46,7 +46,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     setIsEditControlDialogOpen(true);
   };
 
-  const handleUpdateControlInComponent = async (controlType: string, config: unknown) => {
+  const handleUpdateControlInComponent = async (controlType: ControlType, config: unknown) => {
     if (!selectedComponent || !controlToEdit) return;
 
     try {
@@ -99,7 +99,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     }
   };
 
-  const handleAddControlToComponent = async (controlType: string, config: unknown) => {
+  const handleAddControlToComponent = async (controlType: ControlType, config: unknown) => {
     if (!selectedComponent) return;
 
     try {
@@ -202,6 +202,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
         component={selectedComponent}
         onAddControl={handleAddControl}
         onEditControl={handleEditControl}
+        onDeleteControl={handleDeleteControl}
       />
 
       {/* Dialogs */}

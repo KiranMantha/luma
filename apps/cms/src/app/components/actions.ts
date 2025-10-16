@@ -4,7 +4,7 @@
 
 'use server';
 
-import { ComponentType, type Component, type ControlInstance } from '@repo/ui';
+import { ComponentType, ControlType, type Component, type ControlInstance } from '@repo/ui';
 import { revalidatePath } from 'next/cache';
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3002';
@@ -112,7 +112,7 @@ export async function updateComponent(id: string, updates: Partial<Component>): 
 
 export async function addControlToComponent(
   componentId: string,
-  controlType: string,
+  controlType: ControlType,
   label: string,
   config: Record<string, unknown>,
   orderIndex: number,
