@@ -5,7 +5,10 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["**/*.ts", "**/*.tsx", "../../types.d.ts", "next-env.d.ts", "next.config.ts", "dist/types/**/*.ts"],
   "exclude": ["node_modules", "dist"]

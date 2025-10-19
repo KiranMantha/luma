@@ -1,7 +1,5 @@
 'use client';
 
-import { Component, ComponentLibrary, ComponentPreview, ComponentType, ControlInstance, ControlType } from '@repo/ui';
-import { use, useState } from 'react';
 import {
   addControlToComponent,
   deleteComponent,
@@ -9,7 +7,9 @@ import {
   saveComponent,
   updateComponent,
   updateControl,
-} from '../actions';
+} from '@/actions';
+import { Component, ComponentLibrary, ComponentPreview, ComponentType, ControlInstance, ControlType } from '@repo/ui';
+import { use, useState } from 'react';
 import { AddComponentDialog } from '../AddComponentDialog';
 import { AddControlDialog } from '../AddControlDialog';
 import { EditComponentDialog } from '../EditComponentDialog';
