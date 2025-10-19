@@ -114,6 +114,18 @@ const renderControlPreview = (
           metadataItems.push('Pretty print');
         }
         break;
+
+      case ControlType.TABLE:
+        if (config.headers && Array.isArray(config.headers)) {
+          metadataItems.push(`${config.headers.length} columns`);
+        }
+        if (config.caption) {
+          metadataItems.push('With caption');
+        }
+        if (config.footnote) {
+          metadataItems.push('With footnote');
+        }
+        break;
     }
 
     return metadataItems.join(' • ');

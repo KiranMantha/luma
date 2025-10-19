@@ -39,16 +39,16 @@ body {
             margin-bottom: var(--space-1);
 
             &:hover {
-              background: var(--slate-3);
+              background: var(--blue-5);
               color: var(--indigo-11);
             }
 
             &.active {
-              background: var(--indigo-5);
+              background: var(--blue-5);
               color: var(--indigo-12);
 
               &:hover {
-                background: var(--slate-3);
+                background: var(--blue-5);
                 color: var(--indigo-11);
               }
             }

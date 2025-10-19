@@ -6,6 +6,7 @@ export enum ControlType {
   MEDIA = 'MEDIA',
   RICHTEXT = 'RICHTEXT',
   JSON = 'JSON',
+  TABLE = 'TABLE',
 }
 
 export type ComponentPreviewProps = {
@@ -30,6 +31,7 @@ export type ControlMetadata = {
   supportsRichText?: boolean;
   supportsMedia?: boolean;
   supportsJson?: boolean;
+  supportsTable?: boolean;
 };
 
 // Extended configs for specific control types
@@ -58,6 +60,16 @@ export type JsonConfig = BaseControlConfig & {
   pretty?: boolean; // pretty print the JSON
 };
 
+export type TableConfig = BaseControlConfig & {
+  caption?: string;
+  footnote?: string;
+  headers: Array<{
+    id: string;
+    label: string;
+    type?: 'text' | 'number' | 'date';
+  }>;
+};
+
 // Control metadata registry - simplified for your 5 core controls
 export const CONTROL_METADATA: Record<ControlType, ControlMetadata> = {
   [ControlType.TEXT]: {
@@ -83,5 +95,10 @@ export const CONTROL_METADATA: Record<ControlType, ControlMetadata> = {
     displayName: 'JSON',
     type: ControlType.JSON,
     supportsJson: true,
+  },
+  [ControlType.TABLE]: {
+    displayName: 'Table',
+    type: ControlType.TABLE,
+    supportsTable: true,
   },
 };
