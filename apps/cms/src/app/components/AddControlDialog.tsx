@@ -111,6 +111,13 @@ export const AddControlDialog = ({
           setPretty(jsonConfig.pretty || false);
           break;
         }
+        case ControlType.TABLE: {
+          const tableConfig = config as TableConfig;
+          setTableCaption(tableConfig.caption || '');
+          setTableFootnote(tableConfig.footnote || '');
+          setTableHeaders(tableConfig.headers || [{ id: 'header1', label: 'Column 1', type: 'text' }]);
+          break;
+        }
       }
 
       // Set the selected control for editing
@@ -250,6 +257,9 @@ export const AddControlDialog = ({
     setToolbar(['bold', 'italic', 'link']);
     setSchema('');
     setPretty(false);
+    setTableCaption('');
+    setTableFootnote('');
+    setTableHeaders([{ id: 'header1', label: 'Column 1', type: 'text' }]);
 
     onOpenChange(false);
   };
