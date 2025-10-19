@@ -27,6 +27,11 @@ export const BUILT_IN_CONTROLS: ControlDefinition[] = [
     icon: '🔧',
     controlType: ControlType.JSON,
   },
+  {
+    description: 'Structured data table with customizable headers',
+    icon: '📊',
+    controlType: ControlType.TABLE,
+  },
 ];
 
 export type ControlDefinition = {
@@ -76,5 +81,17 @@ export type JsonConfig = {
   label: string;
   schema?: Record<string, unknown>; // JSON schema for validation
   pretty?: boolean; // pretty print the JSON
+  required?: boolean;
+};
+
+export type TableConfig = {
+  label: string;
+  caption?: string;
+  footnote?: string;
+  headers: Array<{
+    id: string;
+    label: string;
+    type?: 'text' | 'number' | 'date';
+  }>;
   required?: boolean;
 };

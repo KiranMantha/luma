@@ -11,6 +11,7 @@ import {
   ImageConfig,
   JsonConfig,
   RichTextConfig,
+  TableConfig,
   TextBoxConfig,
 } from './controls';
 
@@ -46,6 +47,13 @@ export const AddControlDialog = ({
   // JSON specific config
   const [schema, setSchema] = useState<string>('');
   const [pretty, setPretty] = useState(false);
+
+  // Table specific config
+  const [tableCaption, setTableCaption] = useState('');
+  const [tableFootnote, setTableFootnote] = useState('');
+  const [tableHeaders, setTableHeaders] = useState<
+    Array<{ id: string; label: string; type?: 'text' | 'number' | 'date' }>
+  >([{ id: 'header1', label: 'Column 1', type: 'text' }]);
 
   // Helper function to transform multiline options into label/value pairs
   const transformEnumOptions = (optionsText: string): Array<{ label: string; value: string }> => {
@@ -101,6 +109,13 @@ export const AddControlDialog = ({
           const jsonConfig = config as JsonConfig;
           setSchema(jsonConfig.schema ? JSON.stringify(jsonConfig.schema, null, 2) : '');
           setPretty(jsonConfig.pretty || false);
+          break;
+        }
+        case ControlType.TABLE: {
+          const tableConfig = config as TableConfig;
+          setTableCaption(tableConfig.caption || '');
+          setTableFootnote(tableConfig.footnote || '');
+          setTableHeaders(tableConfig.headers || [{ id: 'header1', label: 'Column 1', type: 'text' }]);
           break;
         }
       }
@@ -205,6 +220,21 @@ export const AddControlDialog = ({
     handleClose();
   };
 
+  const handleAddTable = () => {
+    if (!label.trim() || tableHeaders.length === 0) return;
+
+    const config: TableConfig = {
+      label: label.trim(),
+      caption: tableCaption.trim() || undefined,
+      footnote: tableFootnote.trim() || undefined,
+      headers: tableHeaders,
+      required,
+    };
+
+    onAddControl(ControlType.TABLE, config);
+    handleClose();
+  };
+
   const handleClose = () => {
     // Reset step based on mode
     if (mode === 'edit') {
@@ -227,6 +257,9 @@ export const AddControlDialog = ({
     setToolbar(['bold', 'italic', 'link']);
     setSchema('');
     setPretty(false);
+    setTableCaption('');
+    setTableFootnote('');
+    setTableHeaders([{ id: 'header1', label: 'Column 1', type: 'text' }]);
 
     onOpenChange(false);
   };
@@ -464,6 +497,113 @@ export const AddControlDialog = ({
             </>
           );
 
+        case ControlType.TABLE:
+          return (
+            <>
+              <Box style={{ marginBottom: '16px' }}>
+                <Text size="2" style={{ marginBottom: '8px' }}>
+                  Table Caption (Optional)
+                </Text>
+                <Input
+                  value={tableCaption}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setTableCaption(e.target.value)}
+                  placeholder="Enter table caption"
+                  style={{ width: '100%' }}
+                />
+              </Box>
+
+              <Box style={{ marginBottom: '16px' }}>
+                <Text size="2" style={{ marginBottom: '8px' }}>
+                  Table Footnote (Optional)
+                </Text>
+                <Input
+                  value={tableFootnote}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setTableFootnote(e.target.value)}
+                  placeholder="Enter table footnote"
+                  style={{ width: '100%' }}
+                />
+              </Box>
+
+              <Box style={{ marginBottom: '16px' }}>
+                <Flex align="center" justify="between" style={{ marginBottom: '8px' }}>
+                  <Text size="2">Table Headers</Text>
+                  <Button
+                    size="1"
+                    onClick={() => {
+                      const newHeader = {
+                        id: `header-${tableHeaders.length + 1}`,
+                        label: `Column ${tableHeaders.length + 1}`,
+                        type: 'text' as const,
+                      };
+                      setTableHeaders([...tableHeaders, newHeader]);
+                    }}
+                  >
+                    Add Header
+                  </Button>
+                </Flex>
+
+                {tableHeaders.map((header, index) => (
+                  <Box
+                    key={header.id}
+                    style={{
+                      marginBottom: '12px',
+                      padding: '12px',
+                      border: '1px solid var(--gray-6)',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <Flex gap="2" align="center" style={{ marginBottom: '8px' }}>
+                      <Box style={{ flex: 1 }}>
+                        <Text size="1" style={{ marginBottom: '4px' }}>
+                          Header Label
+                        </Text>
+                        <Input
+                          value={header.label}
+                          onChange={(e) => {
+                            const updated = [...tableHeaders];
+                            updated[index] = { ...header, label: e.target.value };
+                            setTableHeaders(updated);
+                          }}
+                          placeholder="Enter header label"
+                          style={{ width: '100%' }}
+                        />
+                      </Box>
+                      <Box>
+                        <Text size="1" style={{ marginBottom: '4px' }}>
+                          Type
+                        </Text>
+                        <select
+                          value={header.type || 'text'}
+                          onChange={(e) => {
+                            const updated = [...tableHeaders];
+                            updated[index] = { ...header, type: e.target.value as 'text' | 'number' | 'date' };
+                            setTableHeaders(updated);
+                          }}
+                          style={{ padding: '4px', border: '1px solid var(--gray-6)', borderRadius: '4px' }}
+                        >
+                          <option value="text">Text</option>
+                          <option value="textarea">Multiline</option>
+                        </select>
+                      </Box>
+                      {tableHeaders.length > 1 && (
+                        <Button
+                          size="1"
+                          color="red"
+                          onClick={() => {
+                            const updated = tableHeaders.filter((_, i) => i !== index);
+                            setTableHeaders(updated);
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </Flex>
+                  </Box>
+                ))}
+              </Box>
+            </>
+          );
+
         default:
           return null;
       }
@@ -481,6 +621,8 @@ export const AddControlDialog = ({
           return handleAddRichText;
         case ControlType.JSON:
           return handleAddJson;
+        case ControlType.TABLE:
+          return handleAddTable;
         default:
           return () => {};
       }
@@ -504,6 +646,8 @@ export const AddControlDialog = ({
             }
           }
           return true;
+        case ControlType.TABLE:
+          return tableHeaders.length > 0 && tableHeaders.every((header) => header.label.trim().length > 0);
         default:
           return true;
       }
