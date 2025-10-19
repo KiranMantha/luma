@@ -1,5 +1,5 @@
+import { getComponents } from '@/actions';
 import { Suspense } from 'react';
-import { getComponents } from './actions';
 import { ComponentsPage as ComponentsPageClient } from './ComponentsPage';
 
 export default async function ComponentsPage() {
