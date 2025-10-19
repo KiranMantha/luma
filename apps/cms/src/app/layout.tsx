@@ -1,4 +1,4 @@
-import { Header, ThemeProvider } from '@repo/ui';
+import { Header } from '@repo/ui';
 import { Navigation } from '../components/Navigation';
 import '../styles/globals.scss';
 
@@ -10,7 +10,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body suppressHydrationWarning>
-        <svg xmlns="http://www.w3.org/2000/svg" display="none">
+        <svg xmlns="http://www.w3.org/2000/svg" className="icon-collection">
           <defs>
             <g id="plus-circle">
               <path
@@ -32,15 +32,13 @@ export default function RootLayout({
             </g>
           </defs>
         </svg>
-        <ThemeProvider>
-          <div className="app-shell">
-            <aside className="app-sidebar">
-              <Header />
-              <Navigation />
-            </aside>
-            <main className="app-main">{children}</main>
-          </div>
-        </ThemeProvider>
+        <div className="app-shell">
+          <aside className="app-sidebar">
+            <Header />
+            <Navigation />
+          </aside>
+          <main className="app-main">{children}</main>
+        </div>
       </body>
     </html>
   );

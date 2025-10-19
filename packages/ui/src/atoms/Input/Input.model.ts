@@ -1,5 +1,5 @@
-import { TextField } from '@radix-ui/themes';
-
-export type InputProps = TextField.RootProps & {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
-};
+  error?: string;
+  hint?: string;
+}

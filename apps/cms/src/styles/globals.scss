@@ -1,4 +1,4 @@
-@import '@radix-ui/themes/styles.css';
+@import '@repo/tailwind-config/styles.css';
 
 * {
   box-sizing: border-box;
@@ -8,6 +8,10 @@ body {
   margin: 0;
   color: var(--slate-12);
   height: 100vh;
+
+  .icon-collection {
+    display: none;
+  }
 
   .app-shell {
     display: grid;

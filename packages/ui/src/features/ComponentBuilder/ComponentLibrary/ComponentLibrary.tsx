@@ -17,9 +17,7 @@ export const ComponentLibrary = ({
   return (
     <div className={styles.componentLibrary}>
       <div className={styles.header}>
-        <Text size="5" weight="bold">
-          Components
-        </Text>
+        <Text className={`underline ${styles.title}`}>Components</Text>
         <Button variant="ghost" onClick={onAddComponent}>
           Add Component
         </Button>

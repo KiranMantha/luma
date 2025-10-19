@@ -1,7 +1,6 @@
 'use client';
 
-import { Box, Flex, Grid, Text } from '@radix-ui/themes';
-import { Button, CONTROL_METADATA, ControlType, Modal } from '@repo/ui';
+import { Box, Button, CONTROL_METADATA, ControlType, Flex, Grid, Modal, Text } from '@repo/ui';
 import { useEffect, useState } from 'react';
 import { AddControlDialogProps, ConfigStep } from './AddControlDialog.model';
 import {
@@ -403,7 +402,7 @@ export const AddControlDialog = ({
 
         {renderControlSpecificConfig()}
 
-        <Flex gap="3" justify="end">
+        <Flex justify="end" gap="3">
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>

@@ -1,5 +1,4 @@
-import { Link } from '#atoms';
-import { Heading } from '@radix-ui/themes';
+import { Link, Text } from '#atoms';
 import { ReactNode } from 'react';
 import styles from './Header.module.scss';
 
@@ -7,9 +6,9 @@ export function Header({ children }: { children?: ReactNode }) {
   return (
     <header className={styles.header}>
       <div className={styles.cmsName}>
-        <Heading>
+        <Text as="h1" size="4" weight="bold">
           <Link href="/">Luma</Link>
-        </Heading>
+        </Text>
       </div>
       <div className={styles.content}>{children}</div>
     </header>

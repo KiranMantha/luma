@@ -1,5 +1,4 @@
-import { Box, Flex, Text } from '@radix-ui/themes';
-import { Input } from '@repo/ui';
+import { Box, Flex, Input, Text } from '@repo/ui';
 import { BaseControlConfigProps, InputChangeEvent, JsonControlConfig, TextAreaChangeEvent } from './types';
 
 type JsonConfigProps = BaseControlConfigProps<JsonControlConfig>;
@@ -10,56 +9,54 @@ export const JsonConfig = ({ config, onConfigChange }: JsonConfigProps) => {
   };
 
   return (
-    <>
-      <Box style={{ marginBottom: '16px' }}>
-        <Text size="2" weight="bold" style={{ marginBottom: '8px' }}>
+    <div className="space-y-4">
+      <Box className="mb-4">
+        <Text weight="bold" className="mb-2 block">
           Label *
         </Text>
         <Input
           value={config.label}
           onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
           placeholder="Enter field label"
-          style={{ width: '100%' }}
+          className="w-full"
         />
       </Box>
 
-      <Box style={{ marginBottom: '16px' }}>
-        <Text size="2" weight="bold" style={{ marginBottom: '8px' }}>
+      <Box className="mb-4">
+        <Text weight="bold" className="mb-2 block">
           JSON Schema (Optional)
         </Text>
         <textarea
           value={config.schema}
           onChange={(e: TextAreaChangeEvent) => updateConfig({ schema: e.target.value })}
           placeholder="Enter JSON schema for validation"
-          style={{
-            width: '100%',
-            height: '120px',
-            padding: '8px',
-            border: '1px solid var(--gray-6)',
-            borderRadius: '4px',
-            fontFamily: 'monospace',
-            fontSize: '12px',
-          }}
+          className="w-full h-30 p-2 border border-gray-300 rounded-md font-mono text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
-        <Text size="1" color="gray" style={{ marginTop: '4px', display: 'block' }}>
+        <Text size="1" className="mt-1 block text-gray-600">
           Optional JSON schema to validate user input against
         </Text>
       </Box>
 
-      <Flex gap="4" style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <input type="checkbox" checked={config.pretty} onChange={(e) => updateConfig({ pretty: e.target.checked })} />
-          <Text size="2">Pretty print JSON</Text>
+      <Flex className="gap-4 mb-4">
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={config.pretty}
+            onChange={(e) => updateConfig({ pretty: e.target.checked })}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <Text>Pretty print JSON</Text>
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <label className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={config.required}
             onChange={(e) => updateConfig({ required: e.target.checked })}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
-          <Text size="2">Required field</Text>
+          <Text>Required field</Text>
         </label>
       </Flex>
-    </>
+    </div>
   );
 };

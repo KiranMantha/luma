@@ -1,5 +1,4 @@
-import { Box, Text } from '@radix-ui/themes';
-import { Input } from '@repo/ui';
+import { Box, Input, Text } from '@repo/ui';
 import { BaseControlConfigProps, EnumerationControlConfig, InputChangeEvent, TextAreaChangeEvent } from './types';
 
 type EnumerationConfigProps = BaseControlConfigProps<EnumerationControlConfig>;
@@ -15,65 +14,57 @@ export const EnumerationConfig = ({ config, onConfigChange }: EnumerationConfigP
   };
 
   return (
-    <>
-      <Box style={{ marginBottom: '16px' }}>
-        <Text size="2" weight="bold" style={{ marginBottom: '8px' }}>
+    <div className="space-y-4">
+      <Box className="mb-4">
+        <Text weight="bold" className="mb-2 block">
           Label *
         </Text>
         <Input
           value={config.label}
           onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
           placeholder="Enter field label"
-          style={{ width: '100%' }}
+          className="w-full"
         />
       </Box>
 
-      <Box style={{ marginBottom: '16px' }}>
-        <Text size="2" weight="bold" style={{ marginBottom: '8px' }}>
+      <Box className="mb-4">
+        <Text weight="bold" className="mb-2 block">
           Placeholder
         </Text>
         <Input
           value={config.placeholder}
           onChange={(e: InputChangeEvent) => updateConfig({ placeholder: e.target.value })}
           placeholder="Select an option..."
-          style={{ width: '100%' }}
+          className="w-full"
         />
       </Box>
 
-      <Box style={{ marginBottom: '16px' }}>
-        <Text size="2" weight="bold" style={{ marginBottom: '8px' }}>
+      <Box className="mb-4">
+        <Text weight="bold" className="mb-2 block">
           Options (one per line)
         </Text>
         <textarea
           value={config.options.join('\n')}
           onChange={(e: TextAreaChangeEvent) => handleOptionsChange(e.target.value)}
           placeholder="Option 1&#10;Option 2&#10;Option 3"
-          style={{
-            width: '100%',
-            height: '120px',
-            padding: '8px',
-            border: '1px solid var(--gray-6)',
-            borderRadius: '4px',
-            fontFamily: 'inherit',
-            fontSize: '14px',
-            resize: 'vertical',
-          }}
+          className="w-full h-30 p-2 border border-gray-300 rounded-md font-inherit text-sm resize-y focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         />
-        <Text size="1" color="gray" style={{ marginTop: '4px', display: 'block' }}>
+        <Text size="1" className="mt-1 block text-gray-600">
           Labels will be displayed as entered. Values will be auto-generated (UPPERCASE_WITH_UNDERSCORES).
         </Text>
       </Box>
 
-      <Box style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <Box className="mb-4">
+        <label className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={config.required}
             onChange={(e) => updateConfig({ required: e.target.checked })}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
-          <Text size="2">Required field</Text>
+          <Text>Required field</Text>
         </label>
       </Box>
-    </>
+    </div>
   );
 };
