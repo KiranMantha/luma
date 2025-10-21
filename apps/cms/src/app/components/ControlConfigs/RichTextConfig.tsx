@@ -15,63 +15,54 @@ export const RichTextConfig = ({ config, onConfigChange }: RichTextConfigProps) 
 
   return (
     <div className="space-y-4">
-      <Box className="mb-4">
-        <Text weight="bold" className="mb-2 block">
-          Label *
-        </Text>
-        <Input
-          value={config.label}
-          onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
-          placeholder="Enter field label"
-          className="w-full"
-        />
-      </Box>
-
-      <Box className="mb-4">
-        <Text weight="bold" className="mb-2 block">
+      <Input
+        label="Label *"
+        value={config.label}
+        onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
+        placeholder="Enter field label"
+        className="w-full"
+      />
+      <Box>
+        <Text as="label" size="2" weight="medium" className="mb-1 block text-gray-700">
           Toolbar Options
         </Text>
-        <Flex className="gap-2 flex-wrap">
+        <Flex wrap="wrap" direction="column">
           {['bold', 'italic', 'underline', 'link', 'bulletList', 'numberedList', 'blockquote'].map((tool) => (
-            <label key={tool} className="flex items-center gap-1">
+            <Text as="label" key={tool} className="flex items-center gap-1">
               <input
                 type="checkbox"
                 checked={config.toolbar.includes(tool)}
                 onChange={(e) => handleToolbarToggle(tool, e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                className="rounded border-gray-300"
               />
-              <Text>{tool}</Text>
-            </label>
+              <Text size="2">{tool}</Text>
+            </Text>
           ))}
         </Flex>
       </Box>
 
-      <Box className="mb-4">
-        <Text weight="bold" className="mb-2 block">
-          Max Length
-        </Text>
-        <Input
-          type="number"
-          value={config.maxLength || ''}
-          onChange={(e: InputChangeEvent) => {
-            const value = e.target.value;
-            updateConfig({ maxLength: value ? parseInt(value, 10) : undefined });
-          }}
-          placeholder="Enter maximum character limit"
-          className="w-full"
-        />
-      </Box>
+      <Input
+        label="Max Length"
+        type="number"
+        value={config.maxLength || ''}
+        onChange={(e: InputChangeEvent) => {
+          const value = e.target.value;
+          updateConfig({ maxLength: value ? parseInt(value, 10) : undefined });
+        }}
+        placeholder="Enter maximum character limit"
+        className="w-full"
+      />
 
       <Box className="mb-4">
-        <label className="flex items-center gap-2">
+        <Text as="label" className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={config.required}
             onChange={(e) => updateConfig({ required: e.target.checked })}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="rounded border-gray-300"
           />
-          <Text>Required field</Text>
-        </label>
+          <Text size="2">Required field</Text>
+        </Text>
       </Box>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Box, Flex, Input, Text } from '@repo/ui';
+import { Flex, Input, Text } from '@repo/ui';
 import { BaseControlConfigProps, InputChangeEvent, TextControlConfig } from './types';
 
 type TextConfigProps = BaseControlConfigProps<TextControlConfig>;
@@ -10,62 +10,48 @@ export const TextConfig = ({ config, onConfigChange }: TextConfigProps) => {
 
   return (
     <div className="space-y-4">
-      <Box>
-        <Text size="2" weight="bold" className="block mb-2">
-          Label *
-        </Text>
-        <Input
-          value={config.label}
-          onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
-          placeholder="Enter field label"
-        />
-      </Box>
-
-      <Box>
-        <Text size="2" weight="bold" className="block mb-2">
-          Placeholder
-        </Text>
-        <Input
-          value={config.placeholder}
-          onChange={(e: InputChangeEvent) => updateConfig({ placeholder: e.target.value })}
-          placeholder="Enter placeholder text"
-        />
-      </Box>
-
-      <Box>
-        <Text size="2" weight="bold" className="block mb-2">
-          Max Length
-        </Text>
-        <Input
-          type="number"
-          value={config.maxLength || ''}
-          onChange={(e: InputChangeEvent) => {
-            const value = e.target.value;
-            updateConfig({ maxLength: value ? parseInt(value, 10) : undefined });
-          }}
-          placeholder="Enter maximum character limit"
-        />
-      </Box>
+      <Input
+        label="Label *"
+        placeholder="Enter field label"
+        value={config.label}
+        onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
+      />
+      <Input
+        label="Placeholder"
+        placeholder="Enter placeholder text"
+        value={config.placeholder}
+        onChange={(e: InputChangeEvent) => updateConfig({ placeholder: e.target.value })}
+      />
+      <Input
+        label="Max Length"
+        placeholder="Enter maximum character limit"
+        type="number"
+        value={config.maxLength || ''}
+        onChange={(e: InputChangeEvent) => {
+          const value = e.target.value;
+          updateConfig({ maxLength: value ? parseInt(value, 10) : undefined });
+        }}
+      />
 
       <Flex gap="4" className="flex-wrap">
-        <label className="flex items-center gap-2">
+        <Text as="label" className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={config.multiline}
             onChange={(e) => updateConfig({ multiline: e.target.checked })}
-            className="rounded border-gray-300 focus:ring-primary-500"
+            className="rounded border-gray-300"
           />
           <Text size="2">Allow multiple lines</Text>
-        </label>
-        <label className="flex items-center gap-2">
+        </Text>
+        <Text as="label" className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={config.required}
             onChange={(e) => updateConfig({ required: e.target.checked })}
-            className="rounded border-gray-300 focus:ring-primary-500"
+            className="rounded border-gray-300"
           />
           <Text size="2">Required field</Text>
-        </label>
+        </Text>
       </Flex>
     </div>
   );

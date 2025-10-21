@@ -52,7 +52,7 @@ export const AddComponentDialog = ({ open, onOpenChange, onSave }: AddComponentD
           />
         </Box>
         <Flex justify="end" gap="3">
-          <Button variant="outline" onClick={handleCancel} disabled={loading}>
+          <Button variant="ghost" onClick={handleCancel} disabled={loading}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={!name.trim() || loading}>

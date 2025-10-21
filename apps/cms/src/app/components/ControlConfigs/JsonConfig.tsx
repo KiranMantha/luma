@@ -1,4 +1,4 @@
-import { Box, Flex, Input, Text } from '@repo/ui';
+import { Flex, Input, Text, Textarea } from '@repo/ui';
 import { BaseControlConfigProps, InputChangeEvent, JsonControlConfig, TextAreaChangeEvent } from './types';
 
 type JsonConfigProps = BaseControlConfigProps<JsonControlConfig>;
@@ -10,52 +10,42 @@ export const JsonConfig = ({ config, onConfigChange }: JsonConfigProps) => {
 
   return (
     <div className="space-y-4">
-      <Box className="mb-4">
-        <Text weight="bold" className="mb-2 block">
-          Label *
-        </Text>
-        <Input
-          value={config.label}
-          onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
-          placeholder="Enter field label"
-          className="w-full"
-        />
-      </Box>
+      <Input
+        label="Label *"
+        value={config.label}
+        onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
+        placeholder="Enter field label"
+        className="w-full"
+      />
 
-      <Box className="mb-4">
-        <Text weight="bold" className="mb-2 block">
-          JSON Schema (Optional)
-        </Text>
-        <textarea
-          value={config.schema}
-          onChange={(e: TextAreaChangeEvent) => updateConfig({ schema: e.target.value })}
-          placeholder="Enter JSON schema for validation"
-          className="w-full h-30 p-2 border border-gray-300 rounded-md font-mono text-xs focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
-        <Text size="1" className="mt-1 block text-gray-600">
-          Optional JSON schema to validate user input against
-        </Text>
-      </Box>
+      <Textarea
+        label="JSON Schema (Optional)"
+        value={config.schema}
+        hint="Optional JSON schema to validate user input against"
+        onChange={(e: TextAreaChangeEvent) => updateConfig({ schema: e.target.value })}
+        placeholder="Enter JSON schema for validation"
+        className="h-30 w-full rounded-md border border-gray-300 p-2 font-mono text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+      />
 
-      <Flex className="gap-4 mb-4">
-        <label className="flex items-center gap-2">
+      <Flex className="mb-4 gap-4">
+        <Text as="label" className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={config.pretty}
             onChange={(e) => updateConfig({ pretty: e.target.checked })}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="rounded border-gray-300"
           />
-          <Text>Pretty print JSON</Text>
-        </label>
-        <label className="flex items-center gap-2">
+          <Text size="2">Pretty print JSON</Text>
+        </Text>
+        <Text as="label" className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={config.required}
             onChange={(e) => updateConfig({ required: e.target.checked })}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="rounded border-gray-300"
           />
-          <Text>Required field</Text>
-        </label>
+          <Text size="2">Required field</Text>
+        </Text>
       </Flex>
     </div>
   );
