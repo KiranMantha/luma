@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Text } from '#atoms';
+import { Box, Button, Flex, Text } from '#atoms';
 import { Card } from '#molecules';
 import { ComponentType } from '../models';
 import type { ComponentLibraryProps } from './ComponentLibrary.model';
@@ -15,17 +15,17 @@ export const ComponentLibrary = ({
   onSelectComponent,
 }: ComponentLibraryProps) => {
   return (
-    <div className={styles.componentLibrary}>
-      <div className={styles.header}>
+    <Flex direction="column" align="stretch" className={styles.componentLibrary}>
+      <Flex justify="between" className={styles.header}>
         <Text size="5" weight="bold">
           Components
         </Text>
         <Button variant="ghost" color="blue" size="reg" onClick={onAddComponent}>
           Add Component
         </Button>
-      </div>
+      </Flex>
 
-      <div className={styles.content}>
+      <Box className={styles.content}>
         {components.length === 0 ? (
           <div className={styles.emptyState}>
             <Text color="gray">No components yet. Create your first component!</Text>
@@ -39,7 +39,7 @@ export const ComponentLibrary = ({
 
             return (
               <Card key={component.id} className={cardClassName} onClick={() => onSelectComponent?.(component)}>
-                <div className={styles.cardContent}>
+                <Flex align="start" justify="between" className={styles.cardContent}>
                   <div className={styles.cardInfo}>
                     <Text size="3" weight="medium">
                       {component.name}
@@ -51,7 +51,7 @@ export const ComponentLibrary = ({
                     )}
                   </div>
                   {component.type === ComponentType.USER_DEFINED ? (
-                    <div className={styles.cardActions}>
+                    <Flex gap="2">
                       <Button size="sm" variant="primary-outline" onClick={() => onEditComponent?.(component)}>
                         Edit
                       </Button>
@@ -63,14 +63,14 @@ export const ComponentLibrary = ({
                       >
                         Delete
                       </Button>
-                    </div>
+                    </Flex>
                   ) : null}
-                </div>
+                </Flex>
               </Card>
             );
           })
         )}
-      </div>
-    </div>
+      </Box>
+    </Flex>
   );
 };

@@ -100,11 +100,11 @@ export const ComponentPreview = ({
 
     return (
       <Card className={styles.controlPreview}>
-        <Flex align="center" justify="between">
+        <Flex justify="between">
           <Text size="3" weight="medium">
             {baseConfig.label || 'Unlabeled Control'}
           </Text>
-          <Flex gap="2" align="center" className={styles.controlActions}>
+          <Flex gap="2" className={styles.controlActions}>
             <Text size="1" className={styles.controlMeta}>
               {getControlMetadata()}
             </Text>
@@ -127,7 +127,7 @@ export const ComponentPreview = ({
 
   return (
     <div className={styles.componentPreviewContainer}>
-      <Flex align="center" justify="between" className={styles.header}>
+      <Flex justify="between" className={styles.header}>
         <Text as="h2" size="5" weight="bold">
           {component.name} Preview
         </Text>

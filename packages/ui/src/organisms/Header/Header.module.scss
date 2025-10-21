@@ -1,26 +1,14 @@
+@reference 'tailwindcss';
+
 .header {
-  display: flex;
-  align-items: center;
-  padding-bottom: 1rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--slate-7);
+  @apply pb-4 mb-4 border-b border-gray-300;
 
-  .cmsName {
-    flex: 1;
+  a {
+    color: var(--indigo-12);
+    text-decoration: none;
 
-    a {
-      color: var(--indigo-12);
-      text-decoration: none;
-
-      &:hover {
-        color: var(--indigo-11);
-      }
+    &:hover {
+      color: var(--indigo-11);
     }
-  }
-
-  .content {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
   }
 }

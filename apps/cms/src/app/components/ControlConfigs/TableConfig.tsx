@@ -88,7 +88,7 @@ export const TableConfig = ({ config, onConfigChange }: TableConfigProps) => {
 
         {config.headers.map((header, index) => (
           <Box key={header.id} className="mb-3 rounded-md border border-gray-300 p-3">
-            <Flex align="center" justify="center" className="mb-2 items-center gap-2">
+            <Flex justify="center" className="mb-2 items-center gap-2">
               <Box className="flex-1">
                 <Input
                   label="Header Label"

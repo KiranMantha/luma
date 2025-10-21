@@ -268,7 +268,7 @@ export const AddControlDialog = ({
       <Grid columns="1" gap="3">
         {BUILT_IN_CONTROLS.map((control) => (
           <Card key={control.controlType} onClick={() => handleControlSelect(control)} className="cursor-pointer">
-            <Flex align="center" gap="3">
+            <Flex gap="3">
               <Box
                 style={{
                   width: '40px',
@@ -376,7 +376,7 @@ export const AddControlDialog = ({
 
     return (
       <Box>
-        <Flex align="center" gap="2" style={{ marginBottom: '16px' }}>
+        <Flex gap="2" style={{ marginBottom: '16px' }}>
           {mode === 'add' ? (
             <Button size="sm" variant="primary-outline" onClick={() => setStep('select')}>
               ← Back

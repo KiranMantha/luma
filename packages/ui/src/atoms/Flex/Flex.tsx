@@ -56,7 +56,7 @@ export const Flex = forwardRef<HTMLElement, FlexProps>(
     {
       as: Component = 'div',
       direction = 'row',
-      align = 'start',
+      align = 'center',
       justify = 'start',
       wrap = 'nowrap',
       gap = '2',
