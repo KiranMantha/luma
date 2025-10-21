@@ -4,7 +4,7 @@
   @apply pb-4 mb-4 border-b border-gray-300;
 
   a {
-    color: var(--indigo-12);
+    @apply text-indigo-900;
     text-decoration: none;
 
     &:hover {

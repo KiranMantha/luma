@@ -1,4 +1,4 @@
-import { Box, Card, Link } from '@repo/ui';
+import { Box, Card, Flex, Link, Text } from '@repo/ui';
 
 const dashboardCards = [
   {
@@ -21,17 +21,21 @@ const dashboardCards = [
 export default function Home() {
   return (
     <Box className="p-4">
-      <h1>Dashboard</h1>
-      <div style={{ display: 'flex', gap: 24 }}>
+      <Text size="7" weight="bold" className="mb-6">
+        Dashboard
+      </Text>
+      <Flex gap="8">
         {dashboardCards.map((card) => (
           <Link key={card.name} href={card.href}>
             <Card>
-              <h2>{card.name}</h2>
+              <Text size="5" weight="bold" className="mb-6">
+                {card.name}
+              </Text>
               <p>{card.description}</p>
             </Card>
           </Link>
         ))}
-      </div>
+      </Flex>
     </Box>
   );
 }
