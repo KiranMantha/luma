@@ -21,16 +21,10 @@ export const EnumerationConfig = ({ config, onConfigChange }: EnumerationConfigP
         value={config.label}
         onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
       />
-      <Input
-        label="Placeholder"
-        placeholder="Select an option..."
-        value={config.placeholder}
-        onChange={(e: InputChangeEvent) => updateConfig({ placeholder: e.target.value })}
-      />
-
       <Textarea
         label="Options (one per line)"
-        value={config.options.join('\n')}
+        defaultValue={config.options.join('\n')}
+        rows={4}
         hint="Labels will be displayed as entered. Values will be auto-generated (UPPERCASE_WITH_UNDERSCORES)."
         onChange={(e: TextAreaChangeEvent) => handleOptionsChange(e.target.value)}
       />
