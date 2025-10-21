@@ -5,8 +5,8 @@
 }
 
 body {
+  @apply text-slate-900;
   margin: 0;
-  color: var(--color-gray-950);
   height: 100vh;
 
   .icon-collection {

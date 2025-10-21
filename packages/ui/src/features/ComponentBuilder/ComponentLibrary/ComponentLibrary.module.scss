@@ -21,7 +21,6 @@
     }
 
     .componentCard {
-      transition: all 0.2s ease;
       cursor: pointer;
 
       &:not(:last-child) {

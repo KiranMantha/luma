@@ -2,7 +2,7 @@ import { Box, Card, Flex, Link, Text } from '@repo/ui';
 
 const dashboardCards = [
   {
-    name: 'Components',
+    name: 'Component Builder',
     description: 'Reusable building blocks for content.',
     href: '/components',
   },
