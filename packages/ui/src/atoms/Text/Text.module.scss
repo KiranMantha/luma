@@ -2,83 +2,84 @@
 
 .text {
   /* Base text styles */
-}
-
-/* Size variants */
-.size1 {
-  @apply text-xs;
-}
-
-.size2 {
-  @apply text-sm;
-}
-
-.size3 {
   @apply text-base;
-}
 
-.size4 {
-  @apply text-lg;
-}
+  /* Size variants */
+  &.size1 {
+    @apply text-xs;
+  }
 
-.size5 {
-  @apply text-xl;
-}
+  &.size2 {
+    @apply text-sm;
+  }
 
-.size6 {
-  @apply text-2xl;
-}
+  &.size3 {
+    @apply text-base;
+  }
 
-.size7 {
-  @apply text-3xl;
-}
+  &.size4 {
+    @apply text-lg;
+  }
 
-.size8 {
-  @apply text-4xl;
-}
+  &.size5 {
+    @apply text-xl;
+  }
 
-.size9 {
-  @apply text-5xl;
-}
+  &.size6 {
+    @apply text-2xl;
+  }
 
-/* Weight variants */
-.light {
-  @apply font-light;
-}
+  &.size7 {
+    @apply text-3xl;
+  }
 
-.regular {
-  @apply font-normal;
-}
+  &.size8 {
+    @apply text-4xl;
+  }
 
-.medium {
-  @apply font-medium;
-}
+  &.size9 {
+    @apply text-5xl;
+  }
 
-.bold {
-  @apply font-bold;
-}
+  /* Weight variants */
+  &.light {
+    @apply font-light;
+  }
 
-/* Color variants */
-.gray {
-  @apply text-gray-600;
-}
+  &.regular {
+    @apply font-normal;
+  }
 
-.red {
-  @apply text-red-600;
-}
+  &.medium {
+    @apply font-medium;
+  }
 
-.green {
-  @apply text-green-600;
-}
+  &.bold {
+    @apply font-bold;
+  }
 
-.blue {
-  @apply text-blue-600;
-}
+  /* Color variants */
+  &.gray {
+    @apply text-gray-600;
+  }
 
-.yellow {
-  @apply text-yellow-600;
-}
+  &.red {
+    @apply text-red-600;
+  }
 
-.purple {
-  @apply text-purple-600;
+  &.green {
+    @apply text-green-600;
+  }
+
+  &.blue {
+    @apply text-blue-600;
+  }
+
+  &.yellow {
+    @apply text-yellow-600;
+  }
+
+  &.purple {
+    @apply text-purple-600;
+  }
 }

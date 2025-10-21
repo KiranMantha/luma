@@ -8,18 +8,16 @@ export interface TextProps extends React.HTMLAttributes<HTMLElement> {
   color?: 'gray' | 'red' | 'green' | 'blue' | 'yellow' | 'purple';
 }
 
-export const Text = ({
-  as: Component = 'p',
-  size = '3',
-  weight = 'regular',
-  color,
-  className,
-  children,
-  ...props
-}: TextProps) => {
+export const Text = ({ as: Component = 'p', size, weight, color, className, children, ...props }: TextProps) => {
   return (
     <Component
-      className={clsx(styles.text, styles[`size${size}`], styles[weight], color && styles[color], className)}
+      className={clsx(
+        styles.text,
+        size && styles[`size${size}`],
+        weight && styles[weight],
+        color && styles[color],
+        className,
+      )}
       {...props}
     >
       {children}
