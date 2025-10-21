@@ -1,0 +1,46 @@
+@reference "tailwindcss";
+
+.root {
+  @apply w-full;
+
+  .label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+
+  .select {
+    @apply block w-full appearance-none rounded-sm bg-gray-50 border border-gray-300 text-gray-900 text-sm leading-5 p-2.5;
+
+    &:focus {
+      @apply border-blue-500 ring-blue-500 ring-1;
+    }
+
+    &:disabled {
+      @apply bg-gray-100 text-gray-900;
+    }
+
+    &.error {
+      @apply border-red-300;
+
+      &:focus {
+        @apply border-red-500 ring-red-500;
+      }
+    }
+  }
+
+  .downIcon {
+    @apply pointer-events-none absolute top-3 right-2.5 text-gray-900;
+  }
+
+  .hint,
+  .errorText {
+    @apply mt-1 text-xs;
+  }
+
+  .hint {
+    @apply text-gray-600;
+  }
+
+  .errorText {
+    @apply text-red-600;
+  }
+}

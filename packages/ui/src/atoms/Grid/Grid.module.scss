@@ -1,0 +1,63 @@
+@reference "tailwindcss";
+
+.grid {
+  @apply grid;
+}
+
+/* Column variants */
+.cols1 {
+  @apply grid-cols-1;
+}
+
+.cols2 {
+  @apply grid-cols-2;
+}
+
+.cols3 {
+  @apply grid-cols-3;
+}
+
+.cols4 {
+  @apply grid-cols-4;
+}
+
+.cols5 {
+  @apply grid-cols-5;
+}
+
+.cols6 {
+  @apply grid-cols-6;
+}
+
+.cols12 {
+  @apply grid-cols-12;
+}
+
+/* Gap variants */
+.gap1 {
+  @apply gap-1;
+}
+
+.gap2 {
+  @apply gap-2;
+}
+
+.gap3 {
+  @apply gap-3;
+}
+
+.gap4 {
+  @apply gap-4;
+}
+
+.gap5 {
+  @apply gap-5;
+}
+
+.gap6 {
+  @apply gap-6;
+}
+
+.gap8 {
+  @apply gap-8;
+}

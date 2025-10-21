@@ -1,3 +1,85 @@
-.root {
-  /* Add custom text styles here */
+@reference "tailwindcss";
+
+.text {
+  /* Base text styles */
+  @apply text-base;
+
+  /* Size variants */
+  &.size1 {
+    @apply text-xs;
+  }
+
+  &.size2 {
+    @apply text-sm;
+  }
+
+  &.size3 {
+    @apply text-base;
+  }
+
+  &.size4 {
+    @apply text-lg;
+  }
+
+  &.size5 {
+    @apply text-xl;
+  }
+
+  &.size6 {
+    @apply text-2xl;
+  }
+
+  &.size7 {
+    @apply text-3xl;
+  }
+
+  &.size8 {
+    @apply text-4xl;
+  }
+
+  &.size9 {
+    @apply text-5xl;
+  }
+
+  /* Weight variants */
+  &.light {
+    @apply font-light;
+  }
+
+  &.regular {
+    @apply font-normal;
+  }
+
+  &.medium {
+    @apply font-medium;
+  }
+
+  &.bold {
+    @apply font-bold;
+  }
+
+  /* Color variants */
+  &.gray {
+    @apply text-gray-600;
+  }
+
+  &.red {
+    @apply text-red-600;
+  }
+
+  &.green {
+    @apply text-green-600;
+  }
+
+  &.blue {
+    @apply text-blue-600;
+  }
+
+  &.yellow {
+    @apply text-yellow-600;
+  }
+
+  &.purple {
+    @apply text-purple-600;
+  }
 }

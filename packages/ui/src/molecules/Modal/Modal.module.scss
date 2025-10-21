@@ -1,11 +1,13 @@
-.content {
-  max-width: 450px;
-  padding: var(--space-4);
-  border-radius: var(--radius-4);
-}
+@reference 'tailwindcss';
 
-.title {
-  margin-bottom: var(--space-3);
-  font-size: var(--font-size-4);
-  font-weight: var(--font-weight-bold);
+.modal {
+  @apply relative z-50;
+
+  .title {
+    @apply border-b border-gray-300 p-4 text-lg leading-6 font-bold text-gray-900;
+  }
+
+  .content {
+    @apply p-4;
+  }
 }

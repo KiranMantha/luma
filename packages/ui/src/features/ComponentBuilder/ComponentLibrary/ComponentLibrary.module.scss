@@ -1,56 +1,39 @@
 @use '../../../foundation/scss' as *;
+@reference 'tailwindcss';
 
 .componentLibrary {
   height: 100%;
-  border-right: 1px solid var(--gray-4);
-  display: flex;
-  flex-direction: column;
+  @apply border-r-1 border-gray-300;
 
   .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: var(--space-4);
+    @apply p-4;
   }
 
   .content {
-    padding: var(--space-4);
+    @apply p-4;
     padding-top: 2px;
     flex: 1;
     overflow-y: auto;
 
     .emptyState {
-      display: flex;
-      justify-content: center;
-      align-items: center;
       height: pxToRem(200);
       text-align: center;
     }
 
     .componentCard {
-      transition: all 0.2s ease;
       cursor: pointer;
 
       &:not(:last-child) {
-        margin-bottom: var(--space-4);
+        @apply mb-4;
       }
 
       &.selected {
-        background: var(--orange-2);
+        @apply bg-sky-50 border-1 border-sky-200 shadow-none;
       }
 
       .cardContent {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-
         .cardInfo {
           flex: 1;
-        }
-
-        .cardActions {
-          display: flex;
-          gap: var(--space-2);
         }
       }
     }

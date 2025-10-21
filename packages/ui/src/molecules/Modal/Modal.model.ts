@@ -5,4 +5,5 @@ export type ModalProps = {
   onOpenChange: (open: boolean) => void;
   title: string;
   children: ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 };

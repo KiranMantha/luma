@@ -1,0 +1,110 @@
+@reference "tailwindcss";
+
+.flex {
+  @apply flex;
+}
+
+/* Direction variants */
+.row {
+  @apply flex-row;
+}
+
+.column {
+  @apply flex-col;
+}
+
+.rowReverse {
+  @apply flex-row-reverse;
+}
+
+.columnReverse {
+  @apply flex-col-reverse;
+}
+
+/* Align variants */
+.alignStart {
+  @apply items-start;
+}
+
+.alignCenter {
+  @apply items-center;
+}
+
+.alignEnd {
+  @apply items-end;
+}
+
+.alignStretch {
+  @apply items-stretch;
+}
+
+.alignBaseline {
+  @apply items-baseline;
+}
+
+/* Justify variants */
+.justifyStart {
+  @apply justify-start;
+}
+
+.justifyCenter {
+  @apply justify-center;
+}
+
+.justifyEnd {
+  @apply justify-end;
+}
+
+.justifyBetween {
+  @apply justify-between;
+}
+
+.justifyAround {
+  @apply justify-around;
+}
+
+.justifyEvenly {
+  @apply justify-evenly;
+}
+
+/* Wrap variants */
+.wrap {
+  @apply flex-wrap;
+}
+
+.nowrap {
+  @apply flex-nowrap;
+}
+
+.wrapReverse {
+  @apply flex-wrap-reverse;
+}
+
+/* Gap variants */
+.gap1 {
+  @apply gap-1;
+}
+
+.gap2 {
+  @apply gap-2;
+}
+
+.gap3 {
+  @apply gap-3;
+}
+
+.gap4 {
+  @apply gap-4;
+}
+
+.gap5 {
+  @apply gap-5;
+}
+
+.gap6 {
+  @apply gap-6;
+}
+
+.gap8 {
+  @apply gap-8;
+}

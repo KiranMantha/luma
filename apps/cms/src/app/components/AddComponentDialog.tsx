@@ -1,7 +1,6 @@
 'use client';
 
-import { Box, Flex } from '@radix-ui/themes';
-import { Button, Input, Modal } from '@repo/ui';
+import { Box, Button, Flex, Input, Modal } from '@repo/ui';
 import { ChangeEvent, useState } from 'react';
 import type { AddComponentDialogProps } from './AddComponentDialog.model';
 
@@ -35,7 +34,7 @@ export const AddComponentDialog = ({ open, onOpenChange, onSave }: AddComponentD
   return (
     <Modal open={open} onOpenChange={onOpenChange} title="Add New Component">
       <Box>
-        <Box mb="4">
+        <Box className="mb-4">
           <Input
             label="Component Name"
             value={name}
@@ -44,7 +43,7 @@ export const AddComponentDialog = ({ open, onOpenChange, onSave }: AddComponentD
             required
           />
         </Box>
-        <Box mb="4">
+        <Box className="mb-4">
           <Input
             label="Description (Optional)"
             value={description}
@@ -52,8 +51,8 @@ export const AddComponentDialog = ({ open, onOpenChange, onSave }: AddComponentD
             placeholder="Enter component description"
           />
         </Box>
-        <Flex gap="3" justify="end">
-          <Button variant="outline" onClick={handleCancel} disabled={loading}>
+        <Flex justify="end" gap="3">
+          <Button variant="ghost" onClick={handleCancel} disabled={loading}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={!name.trim() || loading}>

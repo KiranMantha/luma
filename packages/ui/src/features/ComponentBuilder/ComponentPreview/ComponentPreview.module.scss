@@ -1,21 +1,12 @@
 @use '../../../foundation/scss' as *;
+@reference 'tailwindcss';
 
 .componentPreviewContainer {
   flex: 1;
-  padding: var(--space-4);
+  @apply p-4;
 
   .header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: var(--space-4);
-
-    .title {
-      margin: 0;
-      font-size: var(--font-size-4);
-      font-weight: var(--font-weight-bold);
-      color: var(--gray-12);
-    }
+    @apply mb-4;
   }
 
   .compositionArea {
@@ -24,76 +15,27 @@
     .controlsList {
       .controlItem {
         &:not(:last-child) {
-          margin-bottom: var(--space-2);
+          @apply mb-2;
         }
 
         .controlPreview {
-          padding: var(--space-3);
-          border: 1px solid var(--gray-6);
-          border-radius: var(--radius-2);
-          background: var(--gray-1);
-          transition: all 0.2s ease;
+          @apply bg-gray-100 border-1 border-gray-300 shadow-none;
 
-          .controlHeader {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-
-            .controlLabel {
-              font-size: var(--font-size-2);
-              font-weight: var(--font-weight-medium);
-              color: var(--gray-12);
+          .controlActions {
+            .controlMeta {
+              font-style: italic;
             }
 
-            .controlActions {
-              display: flex;
-              gap: var(--space-2);
-              align-items: center;
-
-              .controlMeta,
-              .requiredIndicator,
-              .editIndicator {
-                font-size: var(--font-size-1);
-              }
-
-              .controlMeta {
-                font-style: italic;
-              }
-
-              .requiredIndicator {
-                font-weight: var(--font-weight-medium);
-                color: var(--red-9);
-              }
-
-              .editIndicator {
-                font-weight: var(--font-weight-medium);
-                color: var(--blue-9);
-                margin-left: var(--space-2);
-              }
+            .requiredIndicator {
+              @apply text-red-500;
             }
-          }
-
-          .placeholderText {
-            margin: var(--space-1) 0 0 0;
-            font-size: var(--font-size-1);
-            color: var(--gray-9);
-            font-style: italic;
           }
         }
       }
 
       .emptyControls {
-        padding: var(--space-5);
+        @apply p-5 rounded-md border-2 border-dashed border-gray-400 bg-gray-50;
         text-align: center;
-        border: 2px dashed var(--gray-6);
-        border-radius: var(--radius-2);
-        background: var(--gray-2);
-
-        .emptyText {
-          margin: 0;
-          color: var(--gray-9);
-          font-size: var(--font-size-2);
-        }
       }
     }
   }

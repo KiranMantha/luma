@@ -1,7 +1,6 @@
 'use client';
 
-import { Box, Flex, Grid, Text } from '@radix-ui/themes';
-import { Button, CONTROL_METADATA, ControlType, Modal } from '@repo/ui';
+import { Box, Button, Card, CONTROL_METADATA, ControlType, Flex, Grid, Modal, Text } from '@repo/ui';
 import { useEffect, useState } from 'react';
 import { AddControlDialogProps, ConfigStep } from './AddControlDialog.model';
 import {
@@ -266,23 +265,10 @@ export const AddControlDialog = ({
 
   const renderSelectStep = () => (
     <Box>
-      <Text size="3" weight="bold" style={{ marginBottom: '16px' }}>
-        Select a Control Type
-      </Text>
       <Grid columns="1" gap="3">
         {BUILT_IN_CONTROLS.map((control) => (
-          <Box
-            key={control.controlType}
-            onClick={() => handleControlSelect(control)}
-            style={{
-              padding: '12px',
-              border: '1px solid var(--gray-6)',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'border-color 0.2s',
-            }}
-          >
-            <Flex align="center" gap="3">
+          <Card key={control.controlType} onClick={() => handleControlSelect(control)} className="cursor-pointer">
+            <Flex gap="3">
               <Box
                 style={{
                   width: '40px',
@@ -307,7 +293,7 @@ export const AddControlDialog = ({
                 </Text>
               </Box>
             </Flex>
-          </Box>
+          </Card>
         ))}
       </Grid>
     </Box>
@@ -390,21 +376,21 @@ export const AddControlDialog = ({
 
     return (
       <Box>
-        <Flex align="center" gap="2" style={{ marginBottom: '16px' }}>
+        <Flex gap="2" style={{ marginBottom: '16px' }}>
           {mode === 'add' ? (
-            <Button variant="outline" size="1" onClick={() => setStep('select')}>
+            <Button size="sm" variant="primary-outline" onClick={() => setStep('select')}>
               ← Back
             </Button>
           ) : null}
-          <Text size="3" weight="bold">
+          <Text size="3" weight="medium">
             Configure {CONTROL_METADATA[selectedControl.controlType].displayName}
           </Text>
         </Flex>
 
         {renderControlSpecificConfig()}
 
-        <Flex gap="3" justify="end">
-          <Button variant="outline" onClick={handleClose}>
+        <Flex justify="end" gap="3">
+          <Button variant="ghost" onClick={handleClose}>
             Cancel
           </Button>
           <Button onClick={handleAddOrUpdateControl} disabled={!isFormValid()}>

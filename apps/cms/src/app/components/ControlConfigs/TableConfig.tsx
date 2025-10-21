@@ -1,5 +1,4 @@
-import { Box, Button, Flex, Text } from '@radix-ui/themes';
-import { Icon, Input } from '@repo/ui';
+import { Box, Button, Flex, Icon, Input, Select, Text } from '@repo/ui';
 import { BaseControlConfigProps, InputChangeEvent, TableControlConfig } from './types';
 
 type TableConfigProps = BaseControlConfigProps<TableControlConfig>;
@@ -46,104 +45,72 @@ export const TableConfig = ({ config, onConfigChange }: TableConfigProps) => {
   };
 
   return (
-    <>
-      <Box style={{ marginBottom: '16px' }}>
-        <Text size="2" weight="bold" style={{ marginBottom: '8px' }}>
-          Label *
-        </Text>
+    <div className="space-y-4">
+      <Box className="mb-4">
         <Input
+          label="Label *"
+          placeholder="Enter field label"
           value={config.label}
           onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
-          placeholder="Enter field label"
-          style={{ width: '100%' }}
+          className="w-full"
         />
       </Box>
 
-      <Box style={{ marginBottom: '16px' }}>
-        <Text size="2" weight="bold" style={{ marginBottom: '8px' }}>
-          Table Title
-        </Text>
+      <Box className="mb-4">
         <Input
-          value={config.title}
-          onChange={(e: InputChangeEvent) => updateConfig({ title: e.target.value })}
-          placeholder="Enter table title"
-          style={{ width: '100%' }}
-        />
-      </Box>
-
-      <Box style={{ marginBottom: '16px' }}>
-        <Text size="2" weight="bold" style={{ marginBottom: '8px' }}>
-          Table Caption (Optional)
-        </Text>
-        <Input
+          label="Table Caption (Optional)"
           value={config.caption}
           onChange={(e: InputChangeEvent) => updateConfig({ caption: e.target.value })}
           placeholder="Enter table caption"
-          style={{ width: '100%' }}
+          className="w-full"
         />
       </Box>
 
-      <Box style={{ marginBottom: '16px' }}>
-        <Text size="2" weight="bold" style={{ marginBottom: '8px' }}>
-          Table Footnote (Optional)
-        </Text>
+      <Box className="mb-4">
         <Input
+          label="Table Footnote (Optional)"
           value={config.footnote}
           onChange={(e: InputChangeEvent) => updateConfig({ footnote: e.target.value })}
           placeholder="Enter table footnote"
-          style={{ width: '100%' }}
+          className="w-full"
         />
       </Box>
 
-      <Box style={{ marginBottom: '16px' }}>
-        <Flex align="center" justify="between" style={{ marginBottom: '8px' }}>
-          <Text size="2" weight="bold">
+      <Box className="mb-4">
+        <Flex className="mb-2 items-center justify-between">
+          <Text as="label" weight="bold">
             Table Headers
           </Text>
-          <Button size="1" onClick={addHeader}>
+          <Button size="sm" onClick={addHeader}>
             Add Header
           </Button>
         </Flex>
 
         {config.headers.map((header, index) => (
-          <Box
-            key={header.id}
-            style={{
-              marginBottom: '12px',
-              padding: '12px',
-              border: '1px solid var(--gray-6)',
-              borderRadius: '4px',
-            }}
-          >
-            <Flex gap="2" align="center" style={{ marginBottom: '8px' }}>
-              <Box style={{ flex: 1 }}>
-                <Text size="1" style={{ marginBottom: '4px' }}>
-                  Header Label
-                </Text>
+          <Box key={header.id} className="mb-3 rounded-md border border-gray-300 p-3">
+            <Flex justify="center" className="mb-2 items-center gap-2">
+              <Box className="flex-1">
                 <Input
+                  label="Header Label"
+                  placeholder="Enter header label"
                   value={header.label}
                   onChange={(e: InputChangeEvent) => updateHeader(index, 'label', e.target.value)}
-                  placeholder="Enter header label"
-                  style={{ width: '100%' }}
+                  className="w-full"
                 />
               </Box>
               <Box>
-                <Text size="1" style={{ marginBottom: '4px' }}>
-                  Type
-                </Text>
-                <Box>
-                  <select
-                    value={header.type || 'text'}
-                    onChange={(e) => updateHeader(index, 'type', e.target.value)}
-                    style={{ padding: '4px', border: '1px solid var(--gray-6)', borderRadius: '4px' }}
-                  >
-                    <option value="text">Text</option>
-                    <option value="textarea">Multiline</option>
-                  </select>
-                </Box>
+                <Select
+                  label="Type"
+                  value={header.type || 'text'}
+                  options={[
+                    { label: 'Text', value: 'text' },
+                    { label: 'Multiline', value: 'textarea' },
+                  ]}
+                  onChange={(e) => updateHeader(index, 'type', e.target.value)}
+                />
               </Box>
               {config.headers.length > 1 && (
-                <Button size="1" variant="ghost" color="red" onClick={() => removeHeader(index)}>
+                <Button size="sm" variant="ghost" color="red" className="mt-5" onClick={() => removeHeader(index)}>
                   <Icon name="cross-2" color="red" />
                 </Button>
               )}
@@ -152,16 +119,17 @@ export const TableConfig = ({ config, onConfigChange }: TableConfigProps) => {
         ))}
       </Box>
 
-      <Box style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <Box className="mb-4">
+        <Text as="label" className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={config.required}
             onChange={(e) => updateConfig({ required: e.target.checked })}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
-          <Text size="2">Required field</Text>
-        </label>
+          <Text as="label">Required field</Text>
+        </Text>
       </Box>
-    </>
+    </div>
   );
 };

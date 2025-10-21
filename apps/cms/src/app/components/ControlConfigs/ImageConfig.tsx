@@ -1,5 +1,4 @@
-import { Box, Flex, Text } from '@radix-ui/themes';
-import { Input } from '@repo/ui';
+import { Box, Flex, Input, Text } from '@repo/ui';
 import { BaseControlConfigProps, ImageControlConfig, InputChangeEvent } from './types';
 
 type ImageConfigProps = BaseControlConfigProps<ImageControlConfig>;
@@ -15,63 +14,56 @@ export const ImageConfig = ({ config, onConfigChange }: ImageConfigProps) => {
   };
 
   return (
-    <>
-      <Box style={{ marginBottom: '16px' }}>
-        <Text size="2" weight="bold" style={{ marginBottom: '8px' }}>
-          Label *
-        </Text>
-        <Input
-          value={config.label}
-          onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
-          placeholder="Enter field label"
-          style={{ width: '100%' }}
-        />
-      </Box>
-
-      <Box style={{ marginBottom: '16px' }}>
-        <Text size="2" weight="bold" style={{ marginBottom: '8px' }}>
+    <div className="space-y-4">
+      <Input
+        label="Label *"
+        value={config.label}
+        onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
+        placeholder="Enter field label"
+        className="w-full"
+      />
+      <Box>
+        <Text as="label" size="2" weight="medium" className="mb-1 block text-gray-700">
           Allowed File Types
         </Text>
-        <Flex gap="2" wrap="wrap">
+        <Flex direction="column">
           {['jpg', 'png', 'gif', 'webp', 'svg'].map((type) => (
-            <label key={type} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Text as="label" key={type} className="flex items-center gap-1">
               <input
                 type="checkbox"
                 checked={config.allowedTypes.includes(type)}
                 onChange={(e) => handleTypeToggle(type, e.target.checked)}
+                className="rounded border-gray-300"
               />
               <Text size="2">{type.toUpperCase()}</Text>
-            </label>
+            </Text>
           ))}
         </Flex>
       </Box>
 
-      <Box style={{ marginBottom: '16px' }}>
-        <Text size="2" weight="bold" style={{ marginBottom: '8px' }}>
-          Max File Size (MB)
-        </Text>
-        <Input
-          type="number"
-          value={config.maxSize || ''}
-          onChange={(e: InputChangeEvent) => {
-            const value = e.target.value;
-            updateConfig({ maxSize: value ? parseFloat(value) : undefined });
-          }}
-          placeholder="Maximum file size in MB"
-          style={{ width: '100%' }}
-        />
-      </Box>
+      <Input
+        label="Max File Size (MB)"
+        type="number"
+        value={config.maxSize || ''}
+        onChange={(e: InputChangeEvent) => {
+          const value = e.target.value;
+          updateConfig({ maxSize: value ? parseFloat(value) : undefined });
+        }}
+        placeholder="Maximum file size in MB"
+        className="w-full"
+      />
 
-      <Box style={{ marginBottom: '16px' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <Box className="mb-4">
+        <Text as="label" className="flex items-center gap-2">
           <input
             type="checkbox"
             checked={config.required}
             onChange={(e) => updateConfig({ required: e.target.checked })}
+            className="rounded border-gray-300"
           />
           <Text size="2">Required field</Text>
-        </label>
+        </Text>
       </Box>
-    </>
+    </div>
   );
 };

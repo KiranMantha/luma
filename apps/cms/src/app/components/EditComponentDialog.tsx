@@ -1,7 +1,6 @@
 'use client';
 
-import { Box, Flex } from '@radix-ui/themes';
-import { Button, Input, Modal } from '@repo/ui';
+import { Box, Button, Flex, Input, Modal } from '@repo/ui';
 import { ChangeEvent, useEffect, useState } from 'react';
 import type { EditComponentDialogProps } from './EditComponentDialog.model';
 
@@ -41,8 +40,8 @@ export const EditComponentDialog = ({ open, onOpenChange, onSave, component }: E
 
   return (
     <Modal open={open} onOpenChange={onOpenChange} title="Edit Component">
-      <Box>
-        <Box mb="4">
+      <Box className="space-y-4">
+        <Box>
           <Input
             label="Component Name"
             value={name}
@@ -51,7 +50,7 @@ export const EditComponentDialog = ({ open, onOpenChange, onSave, component }: E
             required
           />
         </Box>
-        <Box mb="4">
+        <Box className="mb-4">
           <Input
             label="Description (Optional)"
             value={description}
@@ -59,8 +58,8 @@ export const EditComponentDialog = ({ open, onOpenChange, onSave, component }: E
             placeholder="Enter component description"
           />
         </Box>
-        <Flex gap="3" justify="end">
-          <Button variant="outline" onClick={handleCancel} disabled={loading}>
+        <Flex justify="end" gap="3">
+          <Button variant="ghost" onClick={handleCancel} disabled={loading}>
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={!name.trim() || loading}>
