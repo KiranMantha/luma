@@ -30,7 +30,8 @@ export const EnumerationConfig = ({ config, onConfigChange }: EnumerationConfigP
 
       <Textarea
         label="Options (one per line)"
-        value={config.options.join('\n')}
+        defaultValue={config.options.join('\n')}
+        rows={4}
         hint="Labels will be displayed as entered. Values will be auto-generated (UPPERCASE_WITH_UNDERSCORES)."
         onChange={(e: TextAreaChangeEvent) => handleOptionsChange(e.target.value)}
       />
