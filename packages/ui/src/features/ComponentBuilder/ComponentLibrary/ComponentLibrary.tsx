@@ -1,6 +1,6 @@
 'use client';
 
-import { Button, Text } from '#atoms';
+import { Button, Icon, Text } from '#atoms';
 import { Card } from '#molecules';
 import { ComponentType } from '../models';
 import type { ComponentLibraryProps } from './ComponentLibrary.model';
@@ -18,8 +18,9 @@ export const ComponentLibrary = ({
     <div className={styles.componentLibrary}>
       <div className={styles.header}>
         <Text className={`underline ${styles.title}`}>Components</Text>
-        <Button variant="ghost" onClick={onAddComponent}>
-          Add Component
+        <Button variant="ghost" color="blue" size="reg" onClick={onAddComponent}>
+          <Icon name="plus-circle" />
+          <span>Add Component</span>
         </Button>
       </div>
 
@@ -50,10 +51,15 @@ export const ComponentLibrary = ({
                   </div>
                   {component.type === ComponentType.USER_DEFINED ? (
                     <div className={styles.cardActions}>
-                      <Button size="1" variant="outline" onClick={() => onEditComponent?.(component)}>
+                      <Button size="sm" variant="primary-outline" onClick={() => onEditComponent?.(component)}>
                         Edit
                       </Button>
-                      <Button size="1" variant="outline" color="red" onClick={() => onDeleteComponent?.(component.id)}>
+                      <Button
+                        size="sm"
+                        variant="primary-outline"
+                        color="red"
+                        onClick={() => onDeleteComponent?.(component.id)}
+                      >
                         Delete
                       </Button>
                     </div>

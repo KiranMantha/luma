@@ -6,7 +6,7 @@ export function Header({ children }: { children?: ReactNode }) {
   return (
     <header className={styles.header}>
       <div className={styles.cmsName}>
-        <Text as="h1" size="4" weight="bold">
+        <Text as="h1" size="9" weight="bold">
           <Link href="/">Luma</Link>
         </Text>
       </div>

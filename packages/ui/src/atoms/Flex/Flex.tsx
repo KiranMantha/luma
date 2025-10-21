@@ -1,5 +1,6 @@
 import { clsx } from 'clsx';
 import { forwardRef } from 'react';
+import styles from './Flex.module.scss';
 
 export interface FlexProps extends React.HTMLAttributes<HTMLElement> {
   as?: React.ElementType;
@@ -10,44 +11,44 @@ export interface FlexProps extends React.HTMLAttributes<HTMLElement> {
   gap?: '1' | '2' | '3' | '4' | '5' | '6' | '8';
 }
 
-const directionStyles = {
-  row: 'flex-row',
-  column: 'flex-col',
-  'row-reverse': 'flex-row-reverse',
-  'column-reverse': 'flex-col-reverse',
+const directionClassMap = {
+  row: styles.row,
+  column: styles.column,
+  'row-reverse': styles.rowReverse,
+  'column-reverse': styles.columnReverse,
 };
 
-const alignStyles = {
-  start: 'items-start',
-  center: 'items-center',
-  end: 'items-end',
-  stretch: 'items-stretch',
-  baseline: 'items-baseline',
+const alignClassMap = {
+  start: styles.alignStart,
+  center: styles.alignCenter,
+  end: styles.alignEnd,
+  stretch: styles.alignStretch,
+  baseline: styles.alignBaseline,
 };
 
-const justifyStyles = {
-  start: 'justify-start',
-  center: 'justify-center',
-  end: 'justify-end',
-  between: 'justify-between',
-  around: 'justify-around',
-  evenly: 'justify-evenly',
+const justifyClassMap = {
+  start: styles.justifyStart,
+  center: styles.justifyCenter,
+  end: styles.justifyEnd,
+  between: styles.justifyBetween,
+  around: styles.justifyAround,
+  evenly: styles.justifyEvenly,
 };
 
-const wrapStyles = {
-  wrap: 'flex-wrap',
-  nowrap: 'flex-nowrap',
-  'wrap-reverse': 'flex-wrap-reverse',
+const wrapClassMap = {
+  wrap: styles.wrap,
+  nowrap: styles.nowrap,
+  'wrap-reverse': styles.wrapReverse,
 };
 
-const gapStyles = {
-  '1': 'gap-1',
-  '2': 'gap-2',
-  '3': 'gap-3',
-  '4': 'gap-4',
-  '5': 'gap-5',
-  '6': 'gap-6',
-  '8': 'gap-8',
+const gapClassMap = {
+  '1': styles.gap1,
+  '2': styles.gap2,
+  '3': styles.gap3,
+  '4': styles.gap4,
+  '5': styles.gap5,
+  '6': styles.gap6,
+  '8': styles.gap8,
 };
 
 export const Flex = forwardRef<HTMLElement, FlexProps>(
@@ -69,12 +70,12 @@ export const Flex = forwardRef<HTMLElement, FlexProps>(
       <Component
         ref={ref}
         className={clsx(
-          'flex',
-          directionStyles[direction],
-          alignStyles[align],
-          justifyStyles[justify],
-          wrapStyles[wrap],
-          gapStyles[gap],
+          styles.flex,
+          directionClassMap[direction],
+          alignClassMap[align],
+          justifyClassMap[justify],
+          wrapClassMap[wrap],
+          gapClassMap[gap],
           className,
         )}
         {...props}
