@@ -3,10 +3,10 @@
 
 .componentLibrary {
   height: 100%;
-  @apply border-r-1 border-gray-300;
+  @apply border-r border-gray-200;
 
   .header {
-    @apply p-4;
+    @apply p-4.5;
   }
 
   .content {
@@ -28,7 +28,7 @@
       }
 
       &.selected {
-        @apply bg-sky-50 border-1 border-sky-200 shadow-none;
+        @apply bg-indigo-50 border-1 border-indigo-200 shadow-none;
       }
 
       .cardContent {

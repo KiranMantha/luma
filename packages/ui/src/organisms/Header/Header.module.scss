@@ -1,7 +1,7 @@
 @reference 'tailwindcss';
 
 .header {
-  @apply pb-4 mb-4 border-b border-gray-300;
+  @apply p-4 mb-4 border-b border-gray-200;
 
   a {
     @apply text-indigo-900;

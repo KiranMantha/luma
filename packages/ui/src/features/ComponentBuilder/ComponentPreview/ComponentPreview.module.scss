@@ -6,7 +6,7 @@
   @apply p-4;
 
   .header {
-    @apply mb-4;
+    @apply mb-4.5;
   }
 
   .compositionArea {
@@ -19,7 +19,7 @@
         }
 
         .controlPreview {
-          @apply bg-gray-100 border-1 border-gray-300 shadow-none;
+          @apply bg-gray-50 border-1 border-gray-300 shadow-none;
 
           .controlActions {
             .controlMeta {

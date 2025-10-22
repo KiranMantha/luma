@@ -19,7 +19,7 @@ body {
     height: 100vh;
 
     .app-sidebar {
-      @apply p-4 bg-slate-100 border-r border-slate-200;
+      @apply border-r border-gray-200;
       display: flex;
       flex-direction: column;
 
@@ -32,18 +32,14 @@ body {
           padding: 0;
 
           li a {
-            @apply block px-2 py-3 text-indigo-800 rounded-md mb-1;
+            @apply block px-4 py-2.5 font-medium text-gray-600;
 
-            &:hover {
-              @apply bg-blue-100 text-indigo-600;
+            &:not(.active):hover {
+              @apply bg-gray-100 text-gray-600;
             }
 
             &.active {
-              @apply bg-blue-100 text-indigo-600;
-
-              &:hover {
-                @apply bg-blue-100 text-indigo-600;
-              }
+              @apply bg-indigo-100 text-indigo-700 border-r-4  border-indigo-600;
             }
           }
         }
