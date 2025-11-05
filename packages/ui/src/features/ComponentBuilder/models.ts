@@ -13,6 +13,14 @@ export type ControlInstance = {
   label?: string;
   config: Record<string, unknown>;
   order: number;
+  sectionId?: string; // Optional section assignment
+};
+
+export type ComponentSection = {
+  id: string;
+  name: string;
+  order: number;
+  controls: ControlInstance[];
 };
 
 export type Component = {
@@ -22,7 +30,8 @@ export type Component = {
   createdAt: string;
   type: ComponentType;
   isPrimitive?: boolean;
-  controls?: ControlInstance[];
+  controls?: ControlInstance[]; // Legacy support - will be migrated to sections
+  sections?: ComponentSection[]; // New sectioned approach
 };
 
 // Component instance placed on a page/template with specific configuration

@@ -2,12 +2,15 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import {
   addControlToComponent,
+  addSectionToComponent,
   createComponent,
   deleteComponent,
+  deleteComponentSection,
   deleteControl,
   getAllComponents,
   getComponentById,
   updateComponent,
+  updateComponentSection,
   updateControl,
 } from '../controllers';
 import {
@@ -42,5 +45,14 @@ componentsRoute.put('/:id/controls/:controlId', zValidator('json', UpdateCompone
 
 // Delete control
 componentsRoute.delete('/:id/controls/:controlId', deleteControl);
+
+// Add section to component
+componentsRoute.post('/:id/sections', addSectionToComponent);
+
+// Update section
+componentsRoute.put('/:id/sections/:sectionId', updateComponentSection);
+
+// Delete section
+componentsRoute.delete('/:id/sections/:sectionId', deleteComponentSection);
 
 export { componentsRoute };

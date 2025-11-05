@@ -51,7 +51,7 @@ To customize Chakra UI theme (e.g., fonts, colors), edit `foundation/chakra/them
 ### Example
 
 ```tsx
-// apps/admin/src/app/page.tsx
+// apps/cms/src/app/page.tsx
 'use client';
 import { Button, Card, Header, Text } from '@repo/ui';
 

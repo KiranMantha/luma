@@ -116,6 +116,7 @@ export async function addControlToComponent(
   label: string,
   config: Record<string, unknown>,
   orderIndex: number,
+  sectionId?: string,
 ): Promise<ControlInstance> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/components/${componentId}/controls`, {
@@ -128,6 +129,7 @@ export async function addControlToComponent(
         label,
         config,
         orderIndex,
+        sectionId,
       }),
     });
 
@@ -186,9 +188,6 @@ export async function deleteControl(componentId: string, controlId: string): Pro
   try {
     const response = await fetch(`${API_BASE_URL}/api/components/${componentId}/controls/${controlId}`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
     });
 
     if (!response.ok) {
@@ -200,5 +199,83 @@ export async function deleteControl(componentId: string, controlId: string): Pro
   } catch (error) {
     console.error('Error deleting control:', error);
     throw new Error('Failed to delete control');
+  }
+}
+
+// Section management functions
+export async function addSectionToComponent(
+  componentId: string,
+  name: string,
+): Promise<{ id: string; name: string; order: number; controls: ControlInstance[] }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/components/${componentId}/sections`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to add section: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+
+    // Revalidate the page to show fresh data
+    revalidatePath('/components');
+
+    return result.data;
+  } catch (error) {
+    console.error('Error adding section:', error);
+    throw new Error('Failed to add section');
+  }
+}
+
+export async function updateSection(
+  componentId: string,
+  sectionId: string,
+  name: string,
+): Promise<{ id: string; name: string; order: number }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/components/${componentId}/sections/${sectionId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update section: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+
+    // Revalidate the page to show fresh data
+    revalidatePath('/components');
+
+    return result.data;
+  } catch (error) {
+    console.error('Error updating section:', error);
+    throw new Error('Failed to update section');
+  }
+}
+
+export async function deleteSection(componentId: string, sectionId: string): Promise<void> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/components/${componentId}/sections/${sectionId}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete section: ${response.statusText}`);
+    }
+
+    // Revalidate the page to show fresh data
+    revalidatePath('/components');
+  } catch (error) {
+    console.error('Error deleting section:', error);
+    throw new Error('Failed to delete section');
   }
 }
