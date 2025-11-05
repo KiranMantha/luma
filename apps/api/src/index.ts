@@ -4,7 +4,7 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
-import { componentsRoute } from './routes';
+import { componentsRoute, pagesRoute, templatesRoute } from './routes';
 import { errorResponse, successResponse } from './types/response';
 
 const app = new Hono();
@@ -45,6 +45,8 @@ app.get('/', (c) => {
 
 // API routes
 app.route('/api/components', componentsRoute);
+app.route('/api/templates', templatesRoute);
+app.route('/api/pages', pagesRoute);
 
 // 404 handler
 app.notFound((c) => {
