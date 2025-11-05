@@ -1,0 +1,41 @@
+@reference 'tailwindcss';
+
+.tabs {
+  @apply w-full;
+
+  .tabList {
+    @apply flex border-b border-gray-200 bg-white;
+
+    .tab {
+      @apply px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent transition-colors duration-200 capitalize;
+
+      &:hover {
+        @apply text-gray-700 border-gray-300 cursor-pointer;
+      }
+
+      &.active {
+        @apply text-blue-600 border-blue-600;
+      }
+
+      &.disabled {
+        @apply text-gray-400 cursor-not-allowed;
+
+        &:hover {
+          @apply text-gray-400 border-transparent;
+        }
+      }
+
+      &:first-child {
+        @apply ml-0;
+      }
+    }
+  }
+
+  .tabPanels {
+    @apply mt-4;
+
+    .tabPanel {
+      @apply w-full;
+    }
+  }
+}

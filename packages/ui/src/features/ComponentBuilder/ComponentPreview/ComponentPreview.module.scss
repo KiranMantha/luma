@@ -3,27 +3,32 @@
 
 .componentPreviewContainer {
   flex: 1;
+  height: 100%;
   @apply p-4;
 
   .header {
-    @apply mb-4.5;
+    @apply mb-4;
   }
 
   .compositionArea {
     min-height: pxToRem(400);
 
-    .controlsList {
-      .controlItem {
-        &:not(:last-child) {
+    .sectionContent {
+      .sectionHeader {
+        @apply mb-4 pb-2 border-b border-gray-200;
+      }
+
+      .controlsList {
+        .controlItem {
           @apply mb-2;
         }
 
         .controlPreview {
-          @apply bg-gray-50 border-1 border-gray-300 shadow-none;
+          @apply bg-gray-100 border-1 border-gray-300 shadow-none;
 
           .controlActions {
             .controlMeta {
-              font-style: italic;
+              @apply text-gray-500;
             }
 
             .requiredIndicator {
@@ -32,11 +37,38 @@
           }
         }
       }
+    }
 
-      .emptyControls {
-        @apply p-5 rounded-md border-2 border-dashed border-gray-400 bg-gray-50;
-        text-align: center;
+    .controlsList {
+      .controlItem {
+        @apply mb-2;
       }
+
+      .controlPreview {
+        @apply bg-gray-100 border-1 border-gray-300 shadow-none;
+
+        .controlActions {
+          .controlMeta {
+            @apply text-gray-500;
+          }
+
+          .requiredIndicator {
+            @apply text-red-500;
+          }
+        }
+      }
+    }
+
+    .emptyControls {
+      @apply p-5 rounded-md border-2 border-dashed border-gray-400 bg-gray-50;
+
+      .emptyText {
+        @apply text-center text-gray-600;
+      }
+    }
+
+    .unknownControl {
+      @apply p-2 bg-red-100 border border-red-300 rounded text-red-800;
     }
   }
 }

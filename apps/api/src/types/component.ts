@@ -22,6 +22,7 @@ export const CreateComponentControlSchema = z.object({
   label: z.string().optional(),
   config: z.record(z.string(), z.any()), // JSON object
   orderIndex: z.number().int().min(0),
+  sectionId: z.string().optional(), // Optional section assignment
 });
 
 export const UpdateComponentControlSchema = z.object({

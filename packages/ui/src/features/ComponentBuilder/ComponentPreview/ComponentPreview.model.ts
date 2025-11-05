@@ -11,9 +11,12 @@ export enum ControlType {
 
 export type ComponentPreviewProps = {
   component: Component | null;
-  onAddControl?: () => void;
+  activeTabId?: string; // Allow parent to control active tab
+  onAddControl?: (sectionId?: string) => void; // Updated to support section targeting
   onEditControl?: (control: ControlInstance) => void;
   onDeleteControl?: (controlId: string) => void;
+  onAddSection?: (sectionName: string) => void; // Section name only, returns section ID from API
+  onActiveTabChange?: (tabId: string) => void; // Notify parent of tab changes
 };
 
 // Base configuration that all controls share

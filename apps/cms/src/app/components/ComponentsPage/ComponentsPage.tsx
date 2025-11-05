@@ -2,13 +2,23 @@
 
 import {
   addControlToComponent,
+  addSectionToComponent,
   deleteComponent,
   deleteControl,
+  getComponents,
   saveComponent,
   updateComponent,
   updateControl,
 } from '@/actions';
-import { Component, ComponentLibrary, ComponentPreview, ComponentType, ControlInstance, ControlType } from '@repo/ui';
+import {
+  Component,
+  ComponentLibrary,
+  ComponentPreview,
+  ComponentType,
+  ControlInstance,
+  ControlType,
+  getTotalControlsCount,
+} from '@repo/ui';
 import { use, useState } from 'react';
 import { AddComponentDialog } from '../AddComponentDialog';
 import { AddControlDialog } from '../AddControlDialog';
@@ -27,6 +37,8 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
   const [componentToEdit, setComponentToEdit] = useState<Component | null>(null);
   const [controlToEdit, setControlToEdit] = useState<ControlInstance | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
+  const [targetSectionId, setTargetSectionId] = useState<string | null>(null);
+  const [activeTabId, setActiveTabId] = useState<string>(''); // Track active section tab
 
   const handleAddComponent = () => {
     setIsDialogOpen(true);
@@ -36,8 +48,9 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     setSelectedComponent(component);
   };
 
-  const handleAddControl = () => {
+  const handleAddControl = (sectionId?: string) => {
     if (!selectedComponent) return;
+    setTargetSectionId(sectionId || null);
     setIsAddControlDialogOpen(true);
   };
 
@@ -53,23 +66,19 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
       setError(null); // Clear any previous errors
 
       // Update control in database
-      const updatedControl = await updateControl(selectedComponent.id, controlToEdit.id, {
+      await updateControl(selectedComponent.id, controlToEdit.id, {
         controlType,
         config: config as Record<string, unknown>,
       });
 
-      // Update local state with the updated control
-      const updatedControls =
-        selectedComponent.controls?.map((control) => (control.id === controlToEdit.id ? updatedControl : control)) ||
-        [];
+      // Refetch the complete component to get the updated state
+      const allComponents = await getComponents();
+      const updatedComponent = allComponents.find((comp: Component) => comp.id === selectedComponent.id);
 
-      const updatedComponent: Component = {
-        ...selectedComponent,
-        controls: updatedControls,
-      };
-
-      setComponents((prev) => prev.map((comp) => (comp.id === selectedComponent.id ? updatedComponent : comp)));
-      setSelectedComponent(updatedComponent);
+      if (updatedComponent) {
+        setComponents(allComponents);
+        setSelectedComponent(updatedComponent);
+      }
     } catch (error) {
       console.error('Failed to update control:', error);
       setError('Failed to update control');
@@ -80,19 +89,19 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     if (!selectedComponent) return;
 
     try {
+      setError(null); // Clear any previous errors
+
       // Delete control from database
       await deleteControl(selectedComponent.id, controlId);
 
-      // Update local state by removing the control
-      const updatedControls = selectedComponent.controls?.filter((control) => control.id !== controlId) || [];
+      // Refetch the complete component to get the updated state
+      const allComponents = await getComponents();
+      const updatedComponent = allComponents.find((comp: Component) => comp.id === selectedComponent.id);
 
-      const updatedComponent: Component = {
-        ...selectedComponent,
-        controls: updatedControls,
-      };
-
-      setComponents((prev) => prev.map((comp) => (comp.id === selectedComponent.id ? updatedComponent : comp)));
-      setSelectedComponent(updatedComponent);
+      if (updatedComponent) {
+        setComponents(allComponents);
+        setSelectedComponent(updatedComponent);
+      }
     } catch (error) {
       console.error('Failed to delete control:', error);
       setError('Failed to delete control');
@@ -105,23 +114,33 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     try {
       setError(null); // Clear any previous errors
 
-      // Save control to database
-      const newControl = await addControlToComponent(
+      // Determine the target section for sectioned components
+      let targetSection: string | undefined;
+      if (selectedComponent.sections && selectedComponent.sections.length > 0) {
+        targetSection = targetSectionId || selectedComponent.sections[0]?.id;
+      }
+
+      // Save control to database with section assignment
+      await addControlToComponent(
         selectedComponent.id,
         controlType,
         '', // label - can be empty for now
         config as Record<string, unknown>,
-        (selectedComponent.controls?.length || 0) + 1, // orderIndex
+        getTotalControlsCount(selectedComponent.sections || []) + 1, // orderIndex
+        targetSection, // Pass the target section ID
       );
 
-      // Update local state with the control returned from the API
-      const updatedComponent: Component = {
-        ...selectedComponent,
-        controls: [...(selectedComponent.controls || []), newControl],
-      };
+      // Refetch the complete component to get the updated state
+      const allComponents = await getComponents();
+      const updatedComponent = allComponents.find((comp: Component) => comp.id === selectedComponent.id);
 
-      setComponents((prev) => prev.map((comp) => (comp.id === selectedComponent.id ? updatedComponent : comp)));
-      setSelectedComponent(updatedComponent);
+      if (updatedComponent) {
+        setComponents(allComponents);
+        setSelectedComponent(updatedComponent);
+      }
+
+      // Clear target section after adding control
+      setTargetSectionId(null);
     } catch (error) {
       console.error('Failed to add control:', error);
       setError('Failed to add control to component');
@@ -183,6 +202,35 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     }
   };
 
+  const handleAddSection = async (sectionName: string) => {
+    if (!selectedComponent) return;
+
+    try {
+      setError(null);
+
+      // Save section to database and get the new section data
+      const newSection = await addSectionToComponent(selectedComponent.id, sectionName);
+
+      // Refetch the complete component with all sections from the API
+      const allComponents = await getComponents();
+      const updatedComponent = allComponents.find((comp: Component) => comp.id === selectedComponent.id);
+
+      if (updatedComponent) {
+        setComponents(allComponents);
+        setSelectedComponent(updatedComponent);
+        // Set the newly created section as active
+        setActiveTabId(newSection.id);
+      }
+    } catch (error) {
+      console.error('Failed to add section:', error);
+      setError('Failed to add section to component');
+    }
+  };
+
+  const handleActiveTabChange = (tabId: string) => {
+    setActiveTabId(tabId);
+  };
+
   return (
     <div className={styles.componentsPage}>
       {error && <div className={styles.error}>Error: {error}</div>}
@@ -200,9 +248,12 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
       {/* Component Preview Section */}
       <ComponentPreview
         component={selectedComponent}
+        activeTabId={activeTabId}
         onAddControl={handleAddControl}
         onEditControl={handleEditControl}
         onDeleteControl={handleDeleteControl}
+        onAddSection={handleAddSection}
+        onActiveTabChange={handleActiveTabChange}
       />
 
       {/* Dialogs */}

@@ -16,19 +16,19 @@ export type ApiSuccessResponse<T = any> = {
 };
 
 // Success response helper
-export function successResponse<T>(c: Context, data: T, status?: 200 | 201) {
+export function successResponse<T>(ctx: Context, data: T, status?: 200 | 201) {
   const response: ApiSuccessResponse<T> = {
     data,
     error: null,
   };
-  return c.json(response, status);
+  return ctx.json(response, status);
 }
 
 // Error response helper
-export function errorResponse(c: Context, error: string, status?: 400 | 401 | 403 | 404 | 409 | 500) {
+export function errorResponse(ctx: Context, error: string, status?: 400 | 401 | 403 | 404 | 409 | 500) {
   const response: ApiErrorResponse = {
     data: null,
     error,
   };
-  return c.json(response, status);
+  return ctx.json(response, status);
 }

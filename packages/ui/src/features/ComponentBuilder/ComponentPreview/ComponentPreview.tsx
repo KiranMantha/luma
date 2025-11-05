@@ -1,21 +1,68 @@
 'use client';
 
-import { Button, Flex, Text } from '#atoms';
+import { Button, Flex, Tabs, Text } from '#atoms';
 import { Card } from '#molecules';
-import type { ControlInstance } from '../models';
+import { useEffect, useMemo, useState } from 'react';
+import type { ComponentSection, ControlInstance } from '../models';
+import { AddSectionDialog } from './AddSectionDialog';
 import type { BaseControlConfig, ComponentPreviewProps } from './ComponentPreview.model';
 import { CONTROL_METADATA, ControlType } from './ComponentPreview.model';
 import styles from './ComponentPreview.module.scss';
 
 export const ComponentPreview = ({
   component,
+  activeTabId: controlledActiveTabId,
   onAddControl,
   onEditControl,
   onDeleteControl,
+  onAddSection,
+  onActiveTabChange,
 }: ComponentPreviewProps) => {
+  const [internalActiveTabId, setInternalActiveTabId] = useState<string>('');
+  const [isAddSectionDialogOpen, setIsAddSectionDialogOpen] = useState(false);
+
+  // Memoize sections to avoid dependency changes on every render
+  const sections = useMemo(() => component?.sections || [], [component?.sections]);
+
+  // Use controlled activeTabId if provided, otherwise use internal state
+  const activeTabId = controlledActiveTabId || internalActiveTabId;
+
+  // Set active tab to first section if not set (in useEffect to avoid setState during render)
+  useEffect(() => {
+    if (sections.length > 0 && !activeTabId && sections[0]) {
+      const firstSectionId = sections[0].id;
+      if (controlledActiveTabId !== undefined) {
+        onActiveTabChange?.(firstSectionId);
+      } else {
+        setInternalActiveTabId(firstSectionId);
+      }
+    }
+  }, [sections, activeTabId, controlledActiveTabId, onActiveTabChange]);
+
   if (!component) {
     return <div className={styles.componentPreviewContainer} />;
   }
+
+  const handleTabChange = (tabId: string) => {
+    if (controlledActiveTabId !== undefined) {
+      onActiveTabChange?.(tabId);
+    } else {
+      setInternalActiveTabId(tabId);
+    }
+  };
+
+  const handleAddSection = (sectionName: string) => {
+    // Call the parent's onAddSection to make the API call
+    if (onAddSection) {
+      onAddSection(sectionName);
+    }
+  };
+
+  const handleAddControl = (sectionId?: string) => {
+    // Use active tab as default section if no specific section provided
+    const targetSectionId = sectionId || activeTabId;
+    onAddControl?.(targetSectionId);
+  };
 
   const renderControlPreview = (
     control: ControlInstance,
@@ -41,7 +88,7 @@ export const ComponentPreview = ({
       const metadataItems: string[] = [metadata.displayName];
       const config = control.config as Record<string, unknown>;
 
-      // Add specific characteristics based on our 5 control types
+      // Add specific characteristics based on our 6 control types
       switch (control.controlType) {
         case ControlType.TEXT:
           if (config.multiline) {
@@ -125,33 +172,66 @@ export const ComponentPreview = ({
     );
   };
 
+  const renderSectionContent = (section: ComponentSection) => (
+    <div className={styles.sectionContent}>
+      <Flex justify="between" align="center" className={styles.sectionHeader}>
+        <Text size="4" weight="medium">
+          {section.controls.length} control{section.controls.length !== 1 ? 's' : ''} in {section.name}
+        </Text>
+        <Button size="sm" variant="primary" onClick={() => handleAddControl(section.id)}>
+          + Add Control
+        </Button>
+      </Flex>
+
+      <div className={styles.controlsList}>
+        {section.controls.length > 0 ? (
+          section.controls.map((control) => (
+            <div key={control.id} className={styles.controlItem}>
+              {renderControlPreview(control, onEditControl, onDeleteControl)}
+            </div>
+          ))
+        ) : (
+          <div className={styles.emptyControls}>
+            <Text size="3" className={styles.emptyText}>
+              No controls in this section yet. Click &quot;Add Control&quot; to start building.
+            </Text>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // All components now have sections, render sectioned interface with tabs
+  const tabs = sections.map((section) => ({
+    id: section.id,
+    label: `${section.name} (${section.controls.length})`,
+    content: renderSectionContent(section),
+  }));
+
   return (
     <div className={styles.componentPreviewContainer}>
       <Flex justify="between" className={styles.header}>
         <Text as="h2" size="5" weight="bold">
           {component.name} Preview
         </Text>
-
-        {onAddControl && <Button onClick={onAddControl}>+ Add Control</Button>}
+        <Flex gap="2">
+          {onAddSection && (
+            <Button variant="ghost" onClick={() => setIsAddSectionDialogOpen(true)}>
+              + Add Section
+            </Button>
+          )}
+        </Flex>
       </Flex>
 
       <Card className={styles.compositionArea}>
-        <div className={styles.controlsList}>
-          {component.controls && component.controls.length > 0 ? (
-            component.controls.map((control) => (
-              <div key={control.id} className={styles.controlItem}>
-                {renderControlPreview(control, onEditControl, onDeleteControl)}
-              </div>
-            ))
-          ) : (
-            <div className={styles.emptyControls}>
-              <Text size="3" className={styles.emptyText}>
-                No controls added yet. Click &quot;Add Control&quot; to start building your component.
-              </Text>
-            </div>
-          )}
-        </div>
+        <Tabs tabs={tabs} activeTab={activeTabId} onTabChange={handleTabChange} />
       </Card>
+
+      <AddSectionDialog
+        open={isAddSectionDialogOpen}
+        onOpenChange={setIsAddSectionDialogOpen}
+        onAddSection={handleAddSection}
+      />
     </div>
   );
 };
