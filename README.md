@@ -5,7 +5,7 @@ Luma is a component & template-driven CMS inspired by Strapi, Contentful, and AE
 ## Architecture
 
 - **Monorepo managed by Turborepo**: Apps and packages organized under `apps/` and `packages/`.
-- **Frontend**: Next.js App Router (admin UI) in `apps/admin`.
+- **Frontend**: Next.js App Router (CMS UI) in `apps/cms`.
 - **UI Library**: All UI components are built in `packages/ui` using Chakra UI and organized by atomic design (atoms, molecules, organisms). No components live in app folders.
 - **Backend**: Separate backend app (e.g., Hono) for API and SQLite database.
 - **Database**: SQLite for fast, embedded storage (scales to 10,000+ pages easily).
@@ -66,8 +66,9 @@ This Turborepo includes the following packages/apps:
 
 ### Apps and Packages
 
-- `admin`: another [Next.js](https://nextjs.org/) admin
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
+- `cms`: [Next.js](https://nextjs.org/) CMS admin interface
+- `api`: Backend API server with SQLite database
+- `@repo/ui`: React component library shared by applications
 - `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
 - `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
 
