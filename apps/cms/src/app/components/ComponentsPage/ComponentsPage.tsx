@@ -196,6 +196,12 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
       // Update local state
       setComponents((prev) => prev.filter((comp) => comp.id !== componentId));
 
+      // Clear selected component if it was the one being deleted
+      if (selectedComponent?.id === componentId) {
+        setSelectedComponent(null);
+        setActiveTabId(''); // Also clear the active tab
+      }
+
       // Note: API actions handle revalidation via revalidatePath
     } catch (error) {
       console.error('Failed to delete component:', error);
