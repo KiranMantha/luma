@@ -1,18 +1,19 @@
-import { Button, Flex, Input, Text } from '#atoms';
+import { Box, Button, Flex, Input, Text } from '#atoms';
 import { Modal } from '#molecules';
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 
-export interface AddSectionDialogProps {
+export type AddSectionDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAddSection: (sectionName: string) => void;
-}
+};
 
 export const AddSectionDialog = ({ open, onOpenChange, onAddSection }: AddSectionDialogProps) => {
   const [sectionName, setSectionName] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = () => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     const trimmedName = sectionName.trim();
 
     if (!trimmedName) {
@@ -42,20 +43,10 @@ export const AddSectionDialog = ({ open, onOpenChange, onAddSection }: AddSectio
     onOpenChange(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSubmit();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      handleCancel();
-    }
-  };
-
   return (
     <Modal open={open} onOpenChange={onOpenChange} title="Add New Section">
-      <div className="space-y-4">
-        <div>
+      <Box as="form" onSubmit={handleSubmit} className="space-y-4">
+        <Box>
           <Text size="3" className="mb-2">
             Enter a name for the new section:
           </Text>
@@ -66,7 +57,6 @@ export const AddSectionDialog = ({ open, onOpenChange, onAddSection }: AddSectio
               setSectionName(e.target.value);
               if (error) setError(''); // Clear error on change
             }}
-            onKeyDown={handleKeyDown}
             placeholder="e.g., Header, Content, Footer"
             autoFocus
             error={error}
@@ -76,17 +66,17 @@ export const AddSectionDialog = ({ open, onOpenChange, onAddSection }: AddSectio
               {error}
             </Text>
           )}
-        </div>
+        </Box>
 
         <Flex gap="3" justify="end">
           <Button variant="ghost" onClick={handleCancel}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!sectionName.trim()}>
+          <Button type="submit" disabled={!sectionName.trim()}>
             Add Section
           </Button>
         </Flex>
-      </div>
+      </Box>
     </Modal>
   );
 };

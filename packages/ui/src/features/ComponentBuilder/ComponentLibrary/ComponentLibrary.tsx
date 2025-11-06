@@ -52,14 +52,24 @@ export const ComponentLibrary = ({
                   </div>
                   {component.type === ComponentType.USER_DEFINED ? (
                     <Flex gap="2">
-                      <Button size="sm" variant="primary-outline" onClick={() => onEditComponent?.(component)}>
+                      <Button
+                        size="sm"
+                        variant="primary-outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditComponent?.(component);
+                        }}
+                      >
                         Edit
                       </Button>
                       <Button
                         size="sm"
                         variant="primary-outline"
                         color="red"
-                        onClick={() => onDeleteComponent?.(component.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteComponent?.(component.id);
+                        }}
                       >
                         Delete
                       </Button>

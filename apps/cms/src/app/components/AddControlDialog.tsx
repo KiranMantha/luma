@@ -1,7 +1,7 @@
 'use client';
 
 import { Box, Button, Card, CONTROL_METADATA, ControlType, Flex, Grid, Modal, Text } from '@repo/ui';
-import { useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { AddControlDialogProps, ConfigStep } from './AddControlDialog.model';
 import {
   ControlConfig,
@@ -249,7 +249,8 @@ export const AddControlDialog = ({
     setStep('configure');
   };
 
-  const handleAddOrUpdateControl = () => {
+  const handleAddOrUpdateControl = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!selectedControl || !config || !config.label.trim()) return;
 
     const legacyConfig = transformConfigToLegacy(selectedControl.controlType, config);
@@ -375,7 +376,7 @@ export const AddControlDialog = ({
     };
 
     return (
-      <Box>
+      <Box as="form" onSubmit={handleAddOrUpdateControl}>
         <Flex gap="2" style={{ marginBottom: '16px' }}>
           {mode === 'add' ? (
             <Button size="sm" variant="primary-outline" onClick={() => setStep('select')}>
@@ -393,7 +394,7 @@ export const AddControlDialog = ({
           <Button variant="ghost" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={handleAddOrUpdateControl} disabled={!isFormValid()}>
+          <Button type="submit" disabled={!isFormValid()}>
             {mode === 'edit'
               ? `Update ${CONTROL_METADATA[selectedControl.controlType].displayName}`
               : `Add ${CONTROL_METADATA[selectedControl.controlType].displayName}`}

@@ -2,14 +2,14 @@ import { clsx } from 'clsx';
 import { forwardRef } from 'react';
 import styles from './Flex.module.scss';
 
-export interface FlexProps extends React.HTMLAttributes<HTMLElement> {
+export type FlexProps = React.HTMLAttributes<HTMLElement> & {
   as?: React.ElementType;
   direction?: 'row' | 'column' | 'row-reverse' | 'column-reverse';
   align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
   justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
   wrap?: 'wrap' | 'nowrap' | 'wrap-reverse';
   gap?: '1' | '2' | '3' | '4' | '5' | '6' | '8';
-}
+};
 
 const directionClassMap = {
   row: styles.row,

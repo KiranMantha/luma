@@ -2,9 +2,9 @@ import { clsx } from 'clsx';
 import { forwardRef } from 'react';
 import styles from './Box.module.scss';
 
-export interface BoxProps extends React.HTMLAttributes<HTMLElement> {
+export type BoxProps = React.HTMLAttributes<HTMLElement> & {
   as?: React.ElementType;
-}
+};
 
 export const Box = forwardRef<HTMLElement, BoxProps>(
   ({ as: Component = 'div', className, children, ...props }, ref) => {

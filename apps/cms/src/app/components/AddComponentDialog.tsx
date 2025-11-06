@@ -1,7 +1,7 @@
 'use client';
 
 import { Box, Button, Flex, Input, Modal } from '@repo/ui';
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, FormEvent, useState } from 'react';
 import type { AddComponentDialogProps } from './AddComponentDialog.model';
 
 export const AddComponentDialog = ({ open, onOpenChange, onSave }: AddComponentDialogProps) => {
@@ -9,7 +9,8 @@ export const AddComponentDialog = ({ open, onOpenChange, onSave }: AddComponentD
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSave = async () => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!name.trim()) return;
 
     setLoading(true);
@@ -33,7 +34,7 @@ export const AddComponentDialog = ({ open, onOpenChange, onSave }: AddComponentD
 
   return (
     <Modal open={open} onOpenChange={onOpenChange} title="Add New Component">
-      <Box>
+      <Box as="form" onSubmit={handleSubmit}>
         <Box className="mb-4">
           <Input
             label="Component Name"
@@ -55,7 +56,7 @@ export const AddComponentDialog = ({ open, onOpenChange, onSave }: AddComponentD
           <Button variant="ghost" onClick={handleCancel} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!name.trim() || loading}>
+          <Button type="submit" disabled={!name.trim() || loading}>
             {loading ? 'Saving...' : 'Save Component'}
           </Button>
         </Flex>
