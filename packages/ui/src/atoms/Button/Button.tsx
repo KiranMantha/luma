@@ -3,12 +3,12 @@ import { clsx } from 'clsx';
 import { forwardRef } from 'react';
 import styles from './Button.module.scss';
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   size?: 'sm' | 'reg' | 'md' | 'lg';
   variant?: 'primary' | 'primary-outline' | 'danger' | 'danger-outline' | 'ghost';
   color?: 'blue' | 'red';
   children: React.ReactNode;
-}
+};
 
 const variantClassMap = {
   primary: styles.primary,

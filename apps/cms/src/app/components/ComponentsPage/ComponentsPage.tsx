@@ -22,6 +22,7 @@ import {
 import { use, useState } from 'react';
 import { AddComponentDialog } from '../AddComponentDialog';
 import { AddControlDialog } from '../AddControlDialog';
+import { DeleteConfirmDialog } from '../DeleteConfirmDialog';
 import { EditComponentDialog } from '../EditComponentDialog';
 import type { ComponentsPageProps } from './ComponentsPage.model';
 import styles from './ComponentsPage.module.scss';
@@ -34,7 +35,9 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddControlDialogOpen, setIsAddControlDialogOpen] = useState(false);
   const [isEditControlDialogOpen, setIsEditControlDialogOpen] = useState(false);
+  const [isDeleteConfirmDialogOpen, setIsDeleteConfirmDialogOpen] = useState(false);
   const [componentToEdit, setComponentToEdit] = useState<Component | null>(null);
+  const [componentToDelete, setComponentToDelete] = useState<Component | null>(null);
   const [controlToEdit, setControlToEdit] = useState<ControlInstance | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
   const [targetSectionId, setTargetSectionId] = useState<string | null>(null);
@@ -154,6 +157,14 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     // Update local state
     setComponents((prev) => [...prev, newComponent]);
 
+    // Automatically select the newly created component to show its General tab
+    setSelectedComponent(newComponent);
+
+    // Set the General tab as active (it should be the first section)
+    if (newComponent.sections && newComponent.sections.length > 0 && newComponent.sections[0]) {
+      setActiveTabId(newComponent.sections[0].id);
+    }
+
     // Note: API actions handle revalidation via revalidatePath
   };
 
@@ -189,23 +200,40 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
       return;
     }
 
+    // Show confirmation dialog instead of deleting immediately
+    setComponentToDelete(component);
+    setIsDeleteConfirmDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!componentToDelete) return;
+
     try {
       // Call server action to delete from server
-      await deleteComponent(componentId);
+      await deleteComponent(componentToDelete.id);
 
       // Update local state
-      setComponents((prev) => prev.filter((comp) => comp.id !== componentId));
+      setComponents((prev) => prev.filter((comp) => comp.id !== componentToDelete.id));
 
       // Clear selected component if it was the one being deleted
-      if (selectedComponent?.id === componentId) {
+      if (selectedComponent?.id === componentToDelete.id) {
         setSelectedComponent(null);
         setActiveTabId(''); // Also clear the active tab
       }
+
+      // Close dialog and clear component to delete
+      setIsDeleteConfirmDialogOpen(false);
+      setComponentToDelete(null);
 
       // Note: API actions handle revalidation via revalidatePath
     } catch (error) {
       console.error('Failed to delete component:', error);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setIsDeleteConfirmDialogOpen(false);
+    setComponentToDelete(null);
   };
 
   const handleAddSection = async (sectionName: string) => {
@@ -281,6 +309,12 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
         onAddControl={handleUpdateControlInComponent}
         initialControl={controlToEdit}
         mode="edit"
+      />
+      <DeleteConfirmDialog
+        open={isDeleteConfirmDialogOpen}
+        onOpenChange={setIsDeleteConfirmDialogOpen}
+        onConfirm={handleConfirmDelete}
+        componentName={componentToDelete?.name || ''}
       />
     </div>
   );

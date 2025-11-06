@@ -2,11 +2,11 @@ import { clsx } from 'clsx';
 import { forwardRef } from 'react';
 import styles from './Grid.module.scss';
 
-export interface GridProps extends React.HTMLAttributes<HTMLElement> {
+export type GridProps = React.HTMLAttributes<HTMLElement> & {
   as?: React.ElementType;
   columns?: '1' | '2' | '3' | '4' | '5' | '6' | '12';
   gap?: '1' | '2' | '3' | '4' | '5' | '6' | '8';
-}
+};
 
 const columnClassMap = {
   '1': styles.cols1,

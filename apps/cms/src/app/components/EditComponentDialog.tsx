@@ -1,7 +1,7 @@
 'use client';
 
 import { Box, Button, Flex, Input, Modal } from '@repo/ui';
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
 import type { EditComponentDialogProps } from './EditComponentDialog.model';
 
 export const EditComponentDialog = ({ open, onOpenChange, onSave, component }: EditComponentDialogProps) => {
@@ -16,7 +16,8 @@ export const EditComponentDialog = ({ open, onOpenChange, onSave, component }: E
     }
   }, [component]);
 
-  const handleSave = async () => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!name.trim() || !component) return;
 
     setLoading(true);
@@ -40,7 +41,7 @@ export const EditComponentDialog = ({ open, onOpenChange, onSave, component }: E
 
   return (
     <Modal open={open} onOpenChange={onOpenChange} title="Edit Component">
-      <Box className="space-y-4">
+      <Box as="form" onSubmit={handleSubmit} className="space-y-4">
         <Box>
           <Input
             label="Component Name"
@@ -62,7 +63,7 @@ export const EditComponentDialog = ({ open, onOpenChange, onSave, component }: E
           <Button variant="ghost" onClick={handleCancel} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!name.trim() || loading}>
+          <Button type="submit" disabled={!name.trim() || loading}>
             {loading ? 'Updating...' : 'Update Component'}
           </Button>
         </Flex>
