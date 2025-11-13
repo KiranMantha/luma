@@ -6,13 +6,13 @@ import { Text } from '../Text';
 import { SelectProps } from './Select.model';
 import styles from './Select.module.scss';
 
-export const Select = forwardRef<HTMLSelectElement, SelectProps>(({ label, options, hint, error }, ref) => {
+export const Select = forwardRef<HTMLSelectElement, SelectProps>(({ label, options, hint, error, ...props }, ref) => {
   return (
     <Box className={styles.root}>
       <Field>
         {label && <Label className={styles.label}>{label}</Label>}
         <Box className="relative">
-          <HeadlessSelect ref={ref} className={styles.select}>
+          <HeadlessSelect ref={ref} className={styles.select} {...props}>
             {options.map(({ label, value }) => {
               return (
                 <option key={label} value={value}>

@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { nanoid } from 'nanoid';
 import { db } from '../db';
-import { componentControls, components, componentSections } from '../db/schema';
+import { componentControls, components, componentSections, templates } from '../db/schema';
 import type {
   CreateComponentControlRequest,
   CreateComponentRequest,
@@ -12,7 +12,97 @@ import type {
 } from '../types/component';
 import { successResponse } from '../types/response';
 
+// Utility function to get all component IDs used in templates
+const getComponentsUsedInTemplates = async (): Promise<Set<string>> => {
+  const usedComponents = new Set<string>();
+
+  try {
+    // Get all templates
+    const allTemplates = await db.select().from(templates);
+
+    for (const template of allTemplates) {
+      if (template.metadata) {
+        const metadata = JSON.parse(template.metadata);
+        const zones = metadata.zones || [];
+
+        // Extract component IDs from all zones
+        for (const zone of zones) {
+          if (zone.componentInstances) {
+            for (const instance of zone.componentInstances) {
+              if (instance.componentId) {
+                usedComponents.add(instance.componentId);
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error getting components used in templates:', error);
+  }
+
+  return usedComponents;
+};
+
 export const getAllComponents = async (ctx: Context) => {
+  const allComponents = await db.select().from(components).orderBy(desc(components.createdAt));
+
+  // Get components used in templates to exclude them from the available list
+  const usedInTemplates = await getComponentsUsedInTemplates();
+
+  // Filter out components that are already used in templates
+  const availableComponents = allComponents.filter((component) => !usedInTemplates.has(component.id));
+
+  const componentsWithControlsAndSections = await Promise.all(
+    availableComponents.map(async (component) => {
+      // Get all controls for this component
+      const controls = await db
+        .select()
+        .from(componentControls)
+        .where(eq(componentControls.componentId, component.id))
+        .orderBy(componentControls.orderIndex);
+
+      // Get all sections for this component
+      const sections = await db
+        .select()
+        .from(componentSections)
+        .where(eq(componentSections.componentId, component.id))
+        .orderBy(componentSections.orderIndex);
+
+      const parsedControls = controls.map((control) => ({
+        ...control,
+        config: control.config ? JSON.parse(control.config) : {},
+      }));
+
+      // If component has sections, organize controls by section
+      if (sections.length > 0) {
+        const sectionsWithControls = sections.map((section) => ({
+          id: section.id,
+          name: section.name,
+          order: section.orderIndex,
+          controls: parsedControls.filter((control) => control.sectionId === section.id),
+        }));
+
+        return {
+          ...component,
+          controls: parsedControls.filter((control) => !control.sectionId), // Legacy controls without section
+          sections: sectionsWithControls,
+        };
+      } else {
+        // Legacy component without sections
+        return {
+          ...component,
+          controls: parsedControls,
+        };
+      }
+    }),
+  );
+
+  return successResponse(ctx, componentsWithControlsAndSections);
+};
+
+// Get ALL components including those used in templates (for template builder)
+export const getAllComponentsForTemplates = async (ctx: Context) => {
   const allComponents = await db.select().from(components).orderBy(desc(components.createdAt));
 
   const componentsWithControlsAndSections = await Promise.all(

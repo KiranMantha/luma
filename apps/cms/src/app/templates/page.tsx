@@ -1,11 +1,11 @@
-import { getComponents } from '@/actions';
+import { getAllComponentsForTemplates } from '@/actions';
 import { getTemplates } from '@/actions/templates';
 import { Suspense } from 'react';
 import { TemplatesPageClient } from './TemplatesPageClient';
 
 export default async function TemplatesPage() {
   const templatesPromise = getTemplates();
-  const componentsPromise = getComponents();
+  const componentsPromise = getAllComponentsForTemplates();
 
   return (
     <Suspense fallback={<div>Loading templates...</div>}>
