@@ -1,0 +1,144 @@
+@reference 'tailwindcss';
+
+.livePreview {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f8fafc;
+}
+
+.header {
+  @apply p-4 bg-white border-b border-gray-200;
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.codePanel,
+.previewPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.codePanel {
+  @apply border-r border-gray-200;
+  background: #1e293b;
+}
+
+.previewPanel {
+  background: white;
+}
+
+.fullPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.panelHeader {
+  @apply p-3 border-b border-gray-200;
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.codePanel .panelHeader {
+  background: #334155;
+  color: white;
+  border-color: #475569;
+}
+
+.codeEditor {
+  flex: 1;
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: 'Fira Code', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 16px;
+  background: #1e293b;
+  color: #e2e8f0;
+  tab-size: 2;
+
+  &::selection {
+    background: #3b82f6;
+  }
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #334155;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #64748b;
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+.previewFrame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: white;
+}
+
+.errorBanner {
+  @apply p-3 bg-red-50 border-t border-red-200;
+  flex-shrink: 0;
+}
+
+/* StackBlitz-style syntax highlighting for the code editor */
+.codeEditor {
+  /* Keywords */
+  &:has-text('import') {
+    color: #f59e0b;
+  }
+
+  /* Strings */
+  &:has-text('"') {
+    color: #10b981;
+  }
+
+  /* Comments */
+  &:has-text('//')
+  {
+    color: #6b7280;
+    font-style: italic;
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .content {
+    flex-direction: column;
+  }
+
+  .codePanel,
+  .previewPanel {
+    flex: none;
+    height: 50%;
+  }
+
+  .codePanel {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
+}

@@ -1,0 +1,33 @@
+@reference 'tailwindcss';
+
+.previewContainer {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+}
+
+.previewHeader {
+  @apply p-4 bg-white border-b border-gray-200;
+  flex-shrink: 0;
+}
+
+.pagesList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 16px;
+}
+
+.pageCard {
+  padding: 20px;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+
+  &:hover {
+    @apply shadow-lg border-blue-200;
+    transform: translateY(-2px);
+  }
+}

@@ -6,8 +6,8 @@ import { usePathname } from 'next/navigation';
 const navigationItems = [
   { href: '/', label: 'Dashboard' },
   { href: '/components', label: 'Component Builder' },
-  { href: '/pages', label: 'Pages' },
   { href: '/templates', label: 'Templates' },
+  { href: '/pages', label: 'Pages' },
 ];
 
 export function Navigation() {

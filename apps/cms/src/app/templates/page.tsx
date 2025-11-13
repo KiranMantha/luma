@@ -1,11 +1,16 @@
-import { Box } from '@repo/ui';
+import { getComponents } from '@/actions';
+import { getTemplates } from '@/actions/templates';
+import { Suspense } from 'react';
+import { TemplatesPageClient } from './TemplatesPageClient';
 
-export default function TemplatesPage() {
+export default async function TemplatesPage() {
+  const templatesPromise = getTemplates();
+  const componentsPromise = getComponents();
+
   return (
-    <Box className="p-4">
-      <h1>Templates</h1>
-      <p>Master page layouts for consistent structure.</p>
-      {/* Template management UI will be implemented here */}
-    </Box>
+    <Suspense fallback={<div>Loading templates...</div>}>
+      {/* Pass server promises to client component */}
+      <TemplatesPageClient initialTemplates={templatesPromise} initialComponents={componentsPromise} />
+    </Suspense>
   );
 }
