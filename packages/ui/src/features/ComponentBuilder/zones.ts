@@ -132,6 +132,27 @@ export function createDefaultZones(layout: TemplateLayout): TemplateZone[] {
   }));
 }
 
+// Create default zones for pages (single body zone)
+export function createDefaultPageZones(): TemplateZone[] {
+  return [
+    {
+      id: 'body',
+      type: 'content',
+      name: 'Body',
+      description: 'Main content area for page components',
+      policy: {
+        allowedComponents: [], // Complete freedom for page content
+        maxComponents: undefined, // No limit on components
+        required: false,
+        locked: false,
+      },
+      componentInstances: [],
+      order: 0,
+      gridArea: 'body',
+    },
+  ];
+}
+
 // Validation helpers
 export function validateZonePlacement(
   zoneType: ZoneType,

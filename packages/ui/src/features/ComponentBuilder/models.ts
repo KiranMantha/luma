@@ -80,7 +80,8 @@ export type Page = {
   status: PageStatus;
   folderId?: string; // For organization
   templateId?: string; // Optional template inheritance
-  componentInstances: ComponentInstance[];
+  // Zone-based system - pages have a single body zone for content
+  zones: TemplateZone[];
   metadata?: {
     slug?: string;
     seoTitle?: string;

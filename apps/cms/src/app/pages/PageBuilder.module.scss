@@ -1,0 +1,150 @@
+/* Page Builder Styles - Similar to Template Builder */
+.pageBuilder {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #f8fafc;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.workspace {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.palette {
+  width: 400px;
+  background: white;
+  border-right: 1px solid #e2e8f0;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.paletteTitle {
+  margin-bottom: 1rem;
+  color: #374151;
+}
+
+.componentList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.componentCard {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+  cursor: grab;
+  transition: all 0.2s;
+}
+
+.componentCard:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.componentCard:active {
+  cursor: grabbing;
+}
+
+.componentUsed {
+  opacity: 0.6;
+  cursor: not-allowed;
+  border-color: #9ca3af;
+}
+
+.zoneWorkspace {
+  flex: 1;
+  padding: 1.5rem;
+  overflow: auto;
+}
+
+.layoutGrid {
+  display: grid;
+  gap: 1rem;
+  height: 100%;
+  grid-template-areas: 'body';
+  grid-template-rows: 1fr;
+}
+
+.zoneArea {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 1rem;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.2s;
+}
+
+.zoneArea.dragOver {
+  border-color: #3b82f6;
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.zoneHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.zoneContent {
+  flex: 1;
+}
+
+.emptyZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.instanceList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.zoneInstance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.zoneInstance:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.1);
+}
+
+.instanceInfo {
+  flex: 1;
+  cursor: pointer;
+}
+
+.instanceActions {
+  display: flex;
+  gap: 0.25rem;
+}

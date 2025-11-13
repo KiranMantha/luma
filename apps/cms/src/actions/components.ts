@@ -60,6 +60,27 @@ export async function getComponents(): Promise<Component[]> {
   }
 }
 
+export async function getAllComponentsForTemplates(): Promise<Component[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/components/all-for-templates`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch components for templates: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    console.error('Error fetching components for templates:', error);
+    return [];
+  }
+}
+
 export async function deleteComponent(id: string): Promise<void> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/components/${id}`, {

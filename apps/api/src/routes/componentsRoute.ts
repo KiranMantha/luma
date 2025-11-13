@@ -8,6 +8,7 @@ import {
   deleteComponentSection,
   deleteControl,
   getAllComponents,
+  getAllComponentsForTemplates,
   getComponentById,
   updateComponent,
   updateComponentSection,
@@ -22,8 +23,11 @@ import {
 
 const componentsRoute = new Hono();
 
-// Get all components
+// Get all available components (excluding those used in templates)
 componentsRoute.get('/', getAllComponents);
+
+// Get all components including those used in templates (for template builder)
+componentsRoute.get('/all-for-templates', getAllComponentsForTemplates);
 
 // Get component by ID
 componentsRoute.get('/:id', getComponentById);

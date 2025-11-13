@@ -24,10 +24,4 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: all 0.2s ease;
-
-  &:hover {
-    @apply shadow-lg border-blue-200;
-    transform: translateY(-2px);
-  }
 }
