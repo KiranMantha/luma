@@ -1,0 +1,190 @@
+@reference 'tailwindcss';
+
+.templateBuilder {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f9fafb;
+
+  .header {
+    @apply p-4 bg-white border-b border-gray-200;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .layoutSelector {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  .workspace {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  .palette {
+    width: 400px;
+    min-width: 400px;
+    @apply bg-white border-r border-gray-200 p-4;
+    overflow-y: auto;
+
+    .paletteTitle {
+      @apply mb-3 pb-2 border-b border-gray-300;
+    }
+
+    .componentList {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+
+      .componentCard {
+        @apply p-3 cursor-move;
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+
+        &:hover {
+          @apply border-blue-300 shadow-sm;
+          transform: translateY(-1px);
+        }
+
+        &.componentUsed {
+          @apply cursor-not-allowed;
+          background: #f9fafb;
+          border-color: #d1d5db;
+          opacity: 0.6;
+
+          &:hover {
+            transform: none;
+            border-color: #d1d5db;
+            box-shadow: none;
+          }
+        }
+      }
+    }
+  }
+
+  .zoneWorkspace {
+    flex: 1;
+    padding: 20px;
+    overflow: auto;
+
+    .layoutGrid {
+      display: grid;
+      gap: 16px;
+      min-height: 600px;
+      grid-template-areas:
+        'header'
+        'body'
+        'footer';
+      grid-template-rows: auto 1fr auto;
+
+      /* Dynamic grid template will be applied via style prop */
+    }
+  }
+
+  .zoneArea {
+    border: 2px dashed transparent;
+    border-radius: 8px;
+    padding: 16px;
+    min-height: 120px;
+    transition: all 0.2s ease;
+    position: relative;
+
+    &.dragOver {
+      border-color: #3b82f6;
+      background-color: rgba(59, 130, 246, 0.1) !important;
+      transform: scale(1.02);
+    }
+
+    .zoneHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .zoneContent {
+      .emptyZone {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 80px;
+        text-align: center;
+        border: 1px dashed #d1d5db;
+        border-radius: 6px;
+        padding: 20px;
+      }
+
+      .instanceList {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+
+        .zoneInstance {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 12px;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          transition: all 0.2s ease;
+
+          &:hover {
+            @apply border-blue-300 shadow-sm;
+          }
+
+          .instanceInfo {
+            flex: 1;
+          }
+
+          .instanceActions {
+            display: flex;
+            gap: 4px;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* Zone-specific colors */
+.zoneArea {
+  &.border-blue-200 {
+    background-color: rgba(59, 130, 246, 0.05);
+    border-color: #bfdbfe;
+  }
+
+  &.border-purple-200 {
+    background-color: rgba(147, 51, 234, 0.05);
+    border-color: #c4b5fd;
+  }
+
+  &.border-green-200 {
+    background-color: rgba(34, 197, 94, 0.05);
+    border-color: #bbf7d0;
+  }
+
+  &.border-yellow-200 {
+    background-color: rgba(234, 179, 8, 0.05);
+    border-color: #fde68a;
+  }
+
+  &.border-gray-200 {
+    background-color: rgba(107, 114, 128, 0.05);
+    border-color: #e5e7eb;
+  }
+
+  &.border-pink-200 {
+    background-color: rgba(236, 72, 153, 0.05);
+    border-color: #f9a8d4;
+  }
+}

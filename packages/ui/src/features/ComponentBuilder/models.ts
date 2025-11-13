@@ -1,4 +1,5 @@
 import { ControlType } from './ComponentPreview/ComponentPreview.model';
+import type { TemplateLayout, TemplateZone } from './zones';
 
 export enum ComponentType {
   PRIMITIVE = 'primitive',
@@ -57,10 +58,14 @@ export type Template = {
   description?: string;
   createdAt: string;
   updatedAt: string;
-  componentInstances: ComponentInstance[];
+  // Zone-based system - templates are composed of zones
+  zones: TemplateZone[];
+  layout: TemplateLayout;
+  parentTemplateId?: string; // For template inheritance
   metadata?: {
     thumbnail?: string;
     tags?: string[];
+    version?: number;
   };
 };
 

@@ -2,12 +2,25 @@ import { eq } from 'drizzle-orm';
 import { Context } from 'hono';
 import { nanoid } from 'nanoid';
 import { db } from '../db';
-import { componentInstances, templates } from '../db/schema';
+import { templates } from '../db/schema';
 
 export const getAllTemplates = async (ctx: Context) => {
   try {
     const allTemplates = await db.select().from(templates);
-    return ctx.json(allTemplates);
+
+    // Parse metadata for each template to get zones
+    const cleanTemplates = allTemplates.map((template) => {
+      const metadata = template?.metadata ? JSON.parse(template.metadata) : {};
+
+      return {
+        ...template,
+        layout: metadata.layout,
+        zones: metadata.zones || [],
+        metadata: metadata.metadata || {},
+      };
+    });
+
+    return ctx.json(cleanTemplates);
   } catch (error) {
     console.error('Error fetching templates:', error);
     return ctx.json({ error: 'Failed to fetch templates' }, 500);
@@ -23,20 +36,18 @@ export const getTemplateById = async (ctx: Context) => {
       return ctx.json({ error: 'Template not found' }, 404);
     }
 
-    // Get component instances for this template
-    const instances = await db.select().from(componentInstances).where(eq(componentInstances.templateId, id));
+    // Parse metadata to get layout and zones
+    const templateData = template[0];
+    const metadata = templateData?.metadata ? JSON.parse(templateData.metadata) : {};
 
-    const templateWithInstances = {
-      ...template[0],
-      componentInstances: instances.map((instance) => ({
-        ...instance,
-        position: JSON.parse(instance.position),
-        size: instance.size ? JSON.parse(instance.size) : undefined,
-        config: JSON.parse(instance.config),
-      })),
+    // Return clean zone-based template structure
+    const cleanTemplate = {
+      ...templateData,
+      layout: metadata.layout || 'header-footer',
+      zones: metadata.zones || [],
+      metadata: metadata.metadata || {},
     };
-
-    return ctx.json(templateWithInstances);
+    return ctx.json(cleanTemplate);
   } catch (error) {
     console.error('Error fetching template:', error);
     return ctx.json({ error: 'Failed to fetch template' }, 500);
@@ -45,18 +56,34 @@ export const getTemplateById = async (ctx: Context) => {
 
 export const createTemplate = async (ctx: Context) => {
   try {
-    const { name, description, metadata } = await ctx.req.json();
+    const { name, description, layout, zones, metadata } = await ctx.req.json();
     const id = nanoid();
+
+    // Create template metadata with zones
+    const templateMetadata: any = {};
+    if (metadata) templateMetadata.metadata = metadata;
+    if (layout) templateMetadata.layout = layout;
+    if (zones) templateMetadata.zones = zones;
 
     const newTemplate = {
       id,
       name,
       description,
-      metadata: metadata ? JSON.stringify(metadata) : null,
+      metadata: Object.keys(templateMetadata).length > 0 ? JSON.stringify(templateMetadata) : null,
     };
 
     await db.insert(templates).values(newTemplate);
-    return ctx.json({ ...newTemplate, componentInstances: [] }, 201);
+
+    // Return clean zone-based template
+    return ctx.json(
+      {
+        ...newTemplate,
+        layout: layout || 'header-footer',
+        zones: zones || [],
+        metadata: metadata || {},
+      },
+      201,
+    );
   } catch (error) {
     console.error('Error creating template:', error);
     return ctx.json({ error: 'Failed to create template' }, 500);
@@ -66,20 +93,43 @@ export const createTemplate = async (ctx: Context) => {
 export const updateTemplate = async (ctx: Context) => {
   try {
     const id = ctx.req.param('id');
-    const { name, description, metadata } = await ctx.req.json();
+    const body = await ctx.req.json();
+    const { name, description, metadata, layout, zones } = body;
 
+    // Update template metadata
     const updateData: any = {
       updatedAt: new Date().toISOString(),
     };
 
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
-    if (metadata !== undefined) updateData.metadata = JSON.stringify(metadata);
+
+    // Store layout and zones in metadata for zone-based templates
+    const templateMetadata: any = {};
+    if (metadata) templateMetadata.metadata = metadata;
+    if (layout) templateMetadata.layout = layout;
+    if (zones) templateMetadata.zones = zones;
+
+    if (Object.keys(templateMetadata).length > 0) {
+      updateData.metadata = JSON.stringify(templateMetadata);
+    }
 
     await db.update(templates).set(updateData).where(eq(templates.id, id));
 
+    // Zone-based templates store all component info in metadata - no separate component instances needed
+
+    // Return updated template with zone structure
     const updatedTemplate = await db.select().from(templates).where(eq(templates.id, id));
-    return ctx.json(updatedTemplate[0]);
+    const template = updatedTemplate[0];
+    const parsedMetadata = template?.metadata ? JSON.parse(template.metadata) : {};
+
+    const cleanTemplate = {
+      ...template,
+      layout: parsedMetadata.layout || 'header-footer',
+      zones: parsedMetadata.zones || [],
+      metadata: parsedMetadata.metadata || {},
+    };
+    return ctx.json(cleanTemplate);
   } catch (error) {
     console.error('Error updating template:', error);
     return ctx.json({ error: 'Failed to update template' }, 500);
@@ -90,49 +140,12 @@ export const deleteTemplate = async (ctx: Context) => {
   try {
     const id = ctx.req.param('id');
 
-    // Delete all component instances first (cascade should handle this, but being explicit)
-    await db.delete(componentInstances).where(eq(componentInstances.templateId, id));
-
-    // Delete the template
+    // Zone-based templates store everything in metadata - just delete the template
     await db.delete(templates).where(eq(templates.id, id));
 
     return ctx.json({ message: 'Template deleted successfully' });
   } catch (error) {
     console.error('Error deleting template:', error);
     return ctx.json({ error: 'Failed to delete template' }, 500);
-  }
-};
-
-// Add component instance to template
-export const addComponentToTemplate = async (ctx: Context) => {
-  try {
-    const templateId = ctx.req.param('id');
-    const { componentId, position, size, config, orderIndex } = await ctx.req.json();
-    const id = nanoid();
-
-    const newInstance = {
-      id,
-      componentId,
-      templateId,
-      position: JSON.stringify(position),
-      size: size ? JSON.stringify(size) : null,
-      config: JSON.stringify(config),
-      orderIndex,
-    };
-
-    await db.insert(componentInstances).values(newInstance);
-
-    return ctx.json(
-      {
-        ...newInstance,
-        position: JSON.parse(newInstance.position),
-        size: newInstance.size ? JSON.parse(newInstance.size) : undefined,
-        config: JSON.parse(newInstance.config),
-      },
-      201,
-    );
-  } catch (error) {
-    console.error('Error adding component to template:', error);
-    return ctx.json({ error: 'Failed to add component to template' }, 500);
   }
 };

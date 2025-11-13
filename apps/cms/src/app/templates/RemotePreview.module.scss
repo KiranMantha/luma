@@ -1,0 +1,49 @@
+@reference 'tailwindcss';
+
+.previewContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #f9fafb;
+}
+
+.previewHeader {
+  @apply p-4 bg-white border-b border-gray-200;
+
+  .urlInput {
+    min-width: 300px;
+  }
+}
+
+.previewFrame {
+  flex: 1;
+  position: relative;
+  background: white;
+
+  .previewLoading,
+  .previewError {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 10;
+    @apply p-8;
+  }
+
+  .previewError {
+    @apply bg-red-50 border border-red-200 rounded-lg;
+  }
+
+  .iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+}
+
+.previewInfo {
+  @apply p-3 bg-gray-50 border-t border-gray-200;
+  text-align: center;
+}
