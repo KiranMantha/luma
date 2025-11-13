@@ -125,60 +125,46 @@ export default function PagesPageClient({ initialPages, initialTemplates, initia
         </Button>
       </Flex>
 
-      <Box>
-        {pages.length === 0 ? (
-          <div className="py-12 text-center">
-            <Text color="gray" size="3" className="mb-4">
-              No pages yet. Create your first page.
-            </Text>
-            <Button variant="primary" onClick={handleNewPage}>
-              Create First Page
-            </Button>
-          </div>
-        ) : (
-          <div className={styles.pagesList}>
-            {pages.map((page) => {
-              const pageTemplate = page.templateId ? templates.find((t) => t.id === page.templateId) : null;
-              const componentCount =
-                page.zones?.reduce((count, zone) => count + zone.componentInstances.length, 0) || 0;
+      <Box className={styles.pagesList}>
+        {pages.map((page) => {
+          const pageTemplate = page.templateId ? templates.find((t) => t.id === page.templateId) : null;
+          const componentCount = page.zones?.reduce((count, zone) => count + zone.componentInstances.length, 0) || 0;
 
-              return (
-                <Card key={page.id} className={styles.pageCard}>
-                  <div>
-                    <Flex justify="between" align="start" className="mb-2">
-                      <Text size="4" weight="medium">
-                        {page.name}
-                      </Text>
-                      <span className={`text-sm font-medium ${getStatusColor(page.status || 'draft')}`}>
-                        ● {page.status || 'draft'}
-                      </span>
-                    </Flex>
+          return (
+            <Card key={page.id} className={styles.pageCard}>
+              <div>
+                <Flex justify="between" align="start" className="mb-2">
+                  <Text size="4" weight="medium">
+                    {page.name}
+                  </Text>
+                  <span className={`text-sm font-medium ${getStatusColor(page.status || 'draft')}`}>
+                    ● {page.status || 'draft'}
+                  </span>
+                </Flex>
 
-                    {page.description && (
-                      <Text size="2" color="gray" className="mb-2">
-                        {page.description}
-                      </Text>
-                    )}
+                {page.description && (
+                  <Text size="2" color="gray" className="mb-2">
+                    {page.description}
+                  </Text>
+                )}
 
-                    <Text size="1" color="gray">
-                      {componentCount} components
-                      {pageTemplate && ` • Template: ${pageTemplate.name}`}
-                      {page.metadata?.slug && ` • Slug: /${page.metadata.slug}`}
-                    </Text>
-                  </div>
-                  <Flex gap="2" justify="end">
-                    <Button size="sm" variant="primary-outline" onClick={() => handleEditPage(page)}>
-                      Edit
-                    </Button>
-                    <Button size="sm" variant="primary-outline" color="red" onClick={() => handleDeletePage(page.id)}>
-                      Delete
-                    </Button>
-                  </Flex>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+                <Text size="1" color="gray">
+                  {componentCount} components
+                  {pageTemplate && ` • Template: ${pageTemplate.name}`}
+                  {page.metadata?.slug && ` • Slug: /${page.metadata.slug}`}
+                </Text>
+              </div>
+              <Flex gap="2" justify="end">
+                <Button size="sm" variant="primary-outline" onClick={() => handleEditPage(page)}>
+                  Edit
+                </Button>
+                <Button size="sm" variant="primary-outline" color="red" onClick={() => handleDeletePage(page.id)}>
+                  Delete
+                </Button>
+              </Flex>
+            </Card>
+          );
+        })}
       </Box>
 
       {/* Add Page Dialog */}
