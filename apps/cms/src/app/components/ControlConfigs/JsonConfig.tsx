@@ -11,10 +11,10 @@ export const JsonConfig = ({ config, onConfigChange }: JsonConfigProps) => {
   return (
     <div className="space-y-4">
       <Input
-        label="Label *"
+        label="Control Name *"
         value={config.label}
         onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
-        placeholder="Enter field label"
+        placeholder="Enter control name (e.g., settings, config)"
         className="w-full"
       />
 

@@ -135,6 +135,7 @@ export const TemplatesPageClient = ({ initialTemplates, initialComponents }: Pro
         onOpenChange={setIsDeleteOpen}
         onConfirm={handleConfirmDelete}
         componentName={toDelete?.name || ''}
+        itemType="template"
       />
     </Box>
   );

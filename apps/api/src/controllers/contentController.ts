@@ -1,23 +1,27 @@
 import { eq } from 'drizzle-orm';
 import { Context } from 'hono';
 import { db } from '../db';
-import { componentInstances, components, pages, templates } from '../db/schema';
+import { components, pages, templates } from '../db/schema';
 
 // Content delivery controller - optimized for remote app consumption
-// Returns clean, structured JSON without internal CMS metadata
+// Returns clean, structured JSON using zone-based architecture
 
 export const getAllPublishedTemplates = async (ctx: Context) => {
   try {
     const allTemplates = await db.select().from(templates);
 
-    const transformedTemplates = allTemplates.map((template) => ({
-      id: template.id,
-      name: template.name,
-      description: template.description,
-      metadata: template.metadata ? JSON.parse(template.metadata) : {},
-      createdAt: template.createdAt,
-      updatedAt: template.updatedAt,
-    }));
+    const transformedTemplates = allTemplates.map((template) => {
+      const metadata = template.metadata ? JSON.parse(template.metadata) : {};
+      return {
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        layout: metadata.layout || 'header-footer',
+        zones: metadata.zones || [],
+        createdAt: template.createdAt,
+        updatedAt: template.updatedAt,
+      };
+    });
 
     return ctx.json({
       templates: transformedTemplates,
@@ -43,38 +47,39 @@ export const getPublishedTemplate = async (ctx: Context) => {
       return ctx.json({ error: 'Template not found' }, 404);
     }
 
-    // Get component instances with component details
-    const instances = await db
-      .select({
-        id: componentInstances.id,
-        componentId: componentInstances.componentId,
-        position: componentInstances.position,
-        size: componentInstances.size,
-        config: componentInstances.config,
-        orderIndex: componentInstances.orderIndex,
-        componentName: components.name,
-        componentType: components.type,
-      })
-      .from(componentInstances)
-      .leftJoin(components, eq(componentInstances.componentId, components.id))
-      .where(eq(componentInstances.templateId, id));
+    // Parse zone-based metadata
+    const metadata = template.metadata ? JSON.parse(template.metadata) : {};
 
-    // Transform the template for remote consumption
+    // Get component details for zones
+    const zones = await Promise.all(
+      (metadata.zones || []).map(async (zone: any) => {
+        const zoneComponents = await Promise.all(
+          (zone.componentInstances || []).map(async (instance: any) => {
+            const componentResult = await db.select().from(components).where(eq(components.id, instance.componentId));
+            const component = componentResult[0];
+            return {
+              id: instance.id || `instance-${Date.now()}`,
+              type: component?.name || 'unknown',
+              componentId: instance.componentId,
+              config: instance.config || {},
+              order: instance.order || 0,
+            };
+          }),
+        );
+
+        return {
+          ...zone,
+          componentInstances: zoneComponents,
+        };
+      }),
+    );
+
     const cleanTemplate = {
       id: template.id,
       name: template.name,
       description: template.description,
-      layout: 'full-width', // Default until we add layout field to schema
-      metadata: template.metadata ? JSON.parse(template.metadata) : {},
-      components: instances.map((instance) => ({
-        id: instance.id,
-        type: instance.componentName || 'unknown',
-        componentId: instance.componentId,
-        position: instance.position ? JSON.parse(instance.position) : { x: 0, y: 0 },
-        size: instance.size ? JSON.parse(instance.size) : { width: 200, height: 100 },
-        config: instance.config ? JSON.parse(instance.config) : {},
-        order: instance.orderIndex || 0,
-      })),
+      layout: metadata.layout || 'header-footer',
+      zones: zones,
       createdAt: template.createdAt,
       updatedAt: template.updatedAt,
     };
@@ -100,11 +105,12 @@ export const getTemplateStructure = async (ctx: Context) => {
       return ctx.json({ error: 'Template not found' }, 404);
     }
 
+    const metadata = template.metadata ? JSON.parse(template.metadata) : {};
     const structure = {
       id: template.id,
       name: template.name,
-      layout: 'full-width', // Default until we add layout field
-      metadata: template.metadata ? JSON.parse(template.metadata) : {},
+      layout: metadata.layout || 'header-footer',
+      zones: metadata.zones || [],
     };
 
     return ctx.json(structure);
@@ -128,7 +134,7 @@ export const getAllPublishedPages = async (ctx: Context) => {
         templateId: page.templateId,
         status: page.status,
         publishedAt: page.publishedAt,
-        metadata: metadata,
+        zones: metadata.zones || [],
       };
     });
 
@@ -180,48 +186,50 @@ export const getPublishedPage = async (ctx: Context) => {
       if (templateResult.length > 0) {
         const template = templateResult[0];
         if (template) {
+          const templateMetadata = template.metadata ? JSON.parse(template.metadata) : {};
           templateStructure = {
             id: template.id,
             name: template.name,
-            layout: 'full-width',
+            layout: templateMetadata.layout || 'header-footer',
+            zones: templateMetadata.zones || [],
           };
         }
       }
     }
 
-    // Get page component instances
-    const instances = await db
-      .select({
-        id: componentInstances.id,
-        componentId: componentInstances.componentId,
-        position: componentInstances.position,
-        size: componentInstances.size,
-        config: componentInstances.config,
-        orderIndex: componentInstances.orderIndex,
-        componentName: components.name,
-        componentType: components.type,
-      })
-      .from(componentInstances)
-      .leftJoin(components, eq(componentInstances.componentId, components.id))
-      .where(eq(componentInstances.pageId, page.id));
-
     const metadata = page.metadata ? JSON.parse(page.metadata) : {};
+
+    // Get component details for page zones
+    const zones = await Promise.all(
+      (metadata.zones || []).map(async (zone: any) => {
+        const zoneComponents = await Promise.all(
+          (zone.componentInstances || []).map(async (instance: any) => {
+            const componentResult = await db.select().from(components).where(eq(components.id, instance.componentId));
+            const component = componentResult[0];
+            return {
+              id: instance.id || `instance-${Date.now()}`,
+              type: component?.name || 'unknown',
+              componentId: instance.componentId,
+              config: instance.config || {},
+              order: instance.order || 0,
+            };
+          }),
+        );
+
+        return {
+          ...zone,
+          componentInstances: zoneComponents,
+        };
+      }),
+    );
+
     const cleanPage = {
       id: page.id,
       name: page.name,
       description: page.description,
       slug: metadata.slug || page.id,
       template: templateStructure,
-      metadata: metadata,
-      components: instances.map((instance) => ({
-        id: instance.id,
-        type: instance.componentName || 'unknown',
-        componentId: instance.componentId,
-        position: instance.position ? JSON.parse(instance.position) : { x: 0, y: 0 },
-        size: instance.size ? JSON.parse(instance.size) : { width: 200, height: 100 },
-        config: instance.config ? JSON.parse(instance.config) : {},
-        order: instance.orderIndex || 0,
-      })),
+      zones: zones,
       publishedAt: page.publishedAt,
       updatedAt: page.updatedAt,
     };
@@ -243,63 +251,63 @@ export const getPageContent = async (ctx: Context) => {
     }
 
     const page = pageResult[0];
-    let mergedComponents: any[] = [];
+    const pageMetadata = page.metadata ? JSON.parse(page.metadata) : {};
+    let mergedZones: any[] = [];
 
-    // Get template components if exists
+    // Get template zones if exists
     if (page.templateId) {
-      const templateInstances = await db
-        .select({
-          id: componentInstances.id,
-          componentId: componentInstances.componentId,
-          config: componentInstances.config,
-          orderIndex: componentInstances.orderIndex,
-          componentName: components.name,
-        })
-        .from(componentInstances)
-        .leftJoin(components, eq(componentInstances.componentId, components.id))
-        .where(eq(componentInstances.templateId, page.templateId));
-
-      mergedComponents.push(
-        ...templateInstances.map((instance) => ({
-          id: instance.id,
-          type: instance.componentName || 'unknown',
-          config: instance.config ? JSON.parse(instance.config) : {},
-          order: instance.orderIndex || 0,
-          source: 'template',
-        })),
-      );
+      const templateResult = await db.select().from(templates).where(eq(templates.id, page.templateId));
+      if (templateResult.length > 0) {
+        const template = templateResult[0];
+        if (template && template.metadata) {
+          const templateMetadata = JSON.parse(template.metadata);
+          mergedZones = templateMetadata.zones || [];
+        }
+      }
     }
 
-    // Get page-specific components
-    const pageInstances = await db
-      .select({
-        id: componentInstances.id,
-        componentId: componentInstances.componentId,
-        config: componentInstances.config,
-        orderIndex: componentInstances.orderIndex,
-        componentName: components.name,
-      })
-      .from(componentInstances)
-      .leftJoin(components, eq(componentInstances.componentId, components.id))
-      .where(eq(componentInstances.pageId, page.id));
+    // Merge with page-specific zones (page zones override template zones with same ID)
+    const pageZones = pageMetadata.zones || [];
+    pageZones.forEach((pageZone: any) => {
+      const existingZoneIndex = mergedZones.findIndex((zone) => zone.id === pageZone.id);
+      if (existingZoneIndex >= 0) {
+        // Override existing zone
+        mergedZones[existingZoneIndex] = pageZone;
+      } else {
+        // Add new zone
+        mergedZones.push(pageZone);
+      }
+    });
 
-    mergedComponents.push(
-      ...pageInstances.map((instance) => ({
-        id: instance.id,
-        type: instance.componentName || 'unknown',
-        config: instance.config ? JSON.parse(instance.config) : {},
-        order: instance.orderIndex || 0,
-        source: 'page',
-      })),
+    // Get component details for all zones
+    const zonesWithComponents = await Promise.all(
+      mergedZones.map(async (zone: any) => {
+        const zoneComponents = await Promise.all(
+          (zone.componentInstances || []).map(async (instance: any) => {
+            const componentResult = await db.select().from(components).where(eq(components.id, instance.componentId));
+            const component = componentResult[0];
+            return {
+              id: instance.id || `instance-${Date.now()}`,
+              type: component?.name || 'unknown',
+              componentId: instance.componentId,
+              config: instance.config || {},
+              order: instance.order || 0,
+            };
+          }),
+        );
+
+        return {
+          ...zone,
+          componentInstances: zoneComponents,
+        };
+      }),
     );
 
-    const metadata = page.metadata ? JSON.parse(page.metadata) : {};
     const content = {
       id: page.id,
       name: page.name,
-      slug: metadata.slug || page.id,
-      metadata: metadata,
-      content: mergedComponents,
+      slug: pageMetadata.slug || page.id,
+      zones: zonesWithComponents,
       publishedAt: page.publishedAt,
     };
 

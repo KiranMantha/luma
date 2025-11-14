@@ -2,7 +2,7 @@
 
 import type { Component, ComponentInstance, Page, Template, TemplateZone } from '@repo/ui';
 import { Button, createDefaultPageZones, Flex, Text, validateZonePlacement } from '@repo/ui';
-import { useState } from 'react';
+import { DragEvent, useState } from 'react';
 import { ComponentContentAuthoring } from '../templates/ComponentContentAuthoring';
 import styles from './PageBuilder.module.scss';
 
@@ -313,7 +313,7 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
 type ZoneDropAreaProps = {
   zone: TemplateZone;
   components: Component[];
-  onDrop: (e: React.DragEvent) => void;
+  onDrop: (e: DragEvent) => void;
   onInstanceDelete: (instanceId: string) => void;
   onInstanceClick: (instance: ComponentInstance) => void;
 };
@@ -321,7 +321,7 @@ type ZoneDropAreaProps = {
 const ZoneDropArea = ({ zone, components, onDrop, onInstanceDelete, onInstanceClick }: ZoneDropAreaProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
   };
@@ -330,7 +330,7 @@ const ZoneDropArea = ({ zone, components, onDrop, onInstanceDelete, onInstanceCl
     setIsDragOver(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: DragEvent) => {
     setIsDragOver(false);
     onDrop(e);
   };
@@ -368,18 +368,20 @@ const ZoneDropArea = ({ zone, components, onDrop, onInstanceDelete, onInstanceCl
               const component = components.find((c) => c.id === instance.componentId);
               return (
                 <div key={instance.id} className={styles.zoneInstance}>
-                  <div className={styles.instanceInfo} onClick={() => onInstanceClick(instance)}>
+                  <div className={styles.instanceInfo}>
                     <Text size="2">{component?.name || 'Unknown'}</Text>
-                    <Text size="1" color="gray">
-                      Click to edit content
-                    </Text>
                   </div>
                   <div className={styles.instanceActions}>
-                    <Button size="sm" variant="ghost" color="blue" onClick={() => onInstanceClick(instance)}>
+                    <Button size="sm" variant="primary-outline" color="blue" onClick={() => onInstanceClick(instance)}>
                       Edit
                     </Button>
-                    <Button size="sm" variant="ghost" color="red" onClick={() => onInstanceDelete(instance.id)}>
-                      ×
+                    <Button
+                      size="sm"
+                      variant="primary-outline"
+                      color="red"
+                      onClick={() => onInstanceDelete(instance.id)}
+                    >
+                      Delete
                     </Button>
                   </div>
                 </div>

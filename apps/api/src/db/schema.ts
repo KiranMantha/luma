@@ -38,6 +38,35 @@ export const componentSections = sqliteTable('component_sections', {
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Repeatable structures within component sections
+export const repeatableStructures = sqliteTable('repeatable_structures', {
+  id: text('id').primaryKey(),
+  sectionId: text('section_id')
+    .notNull()
+    .references(() => componentSections.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  orderIndex: integer('order_index').notNull(),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at'),
+});
+
+// Controls within repeatable structures (fields that define the structure)
+export const repeatableStructureFields = sqliteTable('repeatable_structure_fields', {
+  id: text('id').primaryKey(),
+  structureId: text('structure_id')
+    .notNull()
+    .references(() => repeatableStructures.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  type: text('type').notNull(), // Control type (TEXT, NUMBER, etc.)
+  label: text('label').notNull(),
+  placeholder: text('placeholder'),
+  isRequired: integer('is_required', { mode: 'boolean' }).notNull().default(false),
+  config: text('config'), // JSON string for control configuration
+  orderIndex: integer('order_index').notNull(),
+  createdAt: text('created_at'),
+});
+
 // Teams table (for future use)
 export const teams = sqliteTable('teams', {
   id: text('id').primaryKey(),
@@ -55,17 +84,17 @@ export const folders = sqliteTable('folders', {
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
 });
 
-// Templates define reusable page layouts
+// Templates define reusable page layouts using zone-based architecture
 export const templates = sqliteTable('templates', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description'),
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
-  metadata: text('metadata'), // JSON for thumbnail, tags, etc.
+  metadata: text('metadata'), // JSON: { layout, zones: [{ id, type, componentInstances: [...] }], metadata: {...} }
 });
 
-// Pages inherit from templates and can add/modify components
+// Pages inherit from templates and can add/modify components using zone-based architecture
 export const pages = sqliteTable('pages', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -78,23 +107,7 @@ export const pages = sqliteTable('pages', {
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
   publishedAt: text('published_at'),
-  metadata: text('metadata'), // JSON for slug, SEO, tags, etc.
-});
-
-// Component instances placed on pages/templates
-export const componentInstances = sqliteTable('component_instances', {
-  id: text('id').primaryKey(),
-  componentId: text('component_id')
-    .notNull()
-    .references(() => components.id, { onDelete: 'cascade' }),
-  pageId: text('page_id').references(() => pages.id, { onDelete: 'cascade' }),
-  templateId: text('template_id').references(() => templates.id, { onDelete: 'cascade' }),
-  position: text('position').notNull(), // JSON for x, y coordinates
-  size: text('size'), // JSON for width, height
-  config: text('config').notNull(), // JSON for instance-specific configuration
-  orderIndex: integer('order_index').notNull(),
-  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  metadata: text('metadata'), // JSON: { zones: [{ id, type, componentInstances: [...] }], slug, seo, tags, etc. }
 });
 
 // Type exports for TypeScript
@@ -104,6 +117,10 @@ export type ComponentControl = typeof componentControls.$inferSelect;
 export type NewComponentControl = typeof componentControls.$inferInsert;
 export type ComponentSection = typeof componentSections.$inferSelect;
 export type NewComponentSection = typeof componentSections.$inferInsert;
+export type RepeatableStructure = typeof repeatableStructures.$inferSelect;
+export type NewRepeatableStructure = typeof repeatableStructures.$inferInsert;
+export type RepeatableStructureField = typeof repeatableStructureFields.$inferSelect;
+export type NewRepeatableStructureField = typeof repeatableStructureFields.$inferInsert;
 export type Team = typeof teams.$inferSelect;
 export type NewTeam = typeof teams.$inferInsert;
 export type Folder = typeof folders.$inferSelect;
@@ -112,5 +129,3 @@ export type Template = typeof templates.$inferSelect;
 export type NewTemplate = typeof templates.$inferInsert;
 export type Page = typeof pages.$inferSelect;
 export type NewPage = typeof pages.$inferInsert;
-export type ComponentInstance = typeof componentInstances.$inferSelect;
-export type NewComponentInstance = typeof componentInstances.$inferInsert;

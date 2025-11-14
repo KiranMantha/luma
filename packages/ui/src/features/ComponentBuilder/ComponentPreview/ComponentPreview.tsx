@@ -3,7 +3,8 @@
 import { Button, Flex, Tabs, Text } from '#atoms';
 import { Card } from '#molecules';
 import { useEffect, useMemo, useState } from 'react';
-import type { ComponentSection, ControlInstance } from '../models';
+import type { ComponentSection, ControlInstance, RepeatableStructure } from '../models';
+import { AddRepeatableStructureDialog } from './AddRepeatableStructureDialog';
 import { AddSectionDialog } from './AddSectionDialog';
 import type { BaseControlConfig, ComponentPreviewProps } from './ComponentPreview.model';
 import { CONTROL_METADATA, ControlType } from './ComponentPreview.model';
@@ -13,13 +14,21 @@ export const ComponentPreview = ({
   component,
   activeTabId: controlledActiveTabId,
   onAddControl,
+  onAddControlToStructure,
   onEditControl,
   onDeleteControl,
   onAddSection,
+  onAddRepeatableStructure,
+  onDeleteRepeatableStructure,
+  onUpdateRepeatableStructure,
+  onRequestAddControlToStructure,
   onActiveTabChange,
 }: ComponentPreviewProps) => {
   const [internalActiveTabId, setInternalActiveTabId] = useState<string>('');
   const [isAddSectionDialogOpen, setIsAddSectionDialogOpen] = useState(false);
+  const [isAddRepeatableDialogOpen, setIsAddRepeatableDialogOpen] = useState(false);
+  const [currentSectionId, setCurrentSectionId] = useState<string>('');
+  const [editingStructure, setEditingStructure] = useState<RepeatableStructure | null>(null);
 
   // Memoize sections to avoid dependency changes on every render
   const sections = useMemo(() => component?.sections || [], [component?.sections]);
@@ -51,10 +60,10 @@ export const ComponentPreview = ({
     }
   };
 
-  const handleAddSection = (sectionName: string) => {
+  const handleAddSection = (sectionName: string, isRepeatable?: boolean, minItems?: number, maxItems?: number) => {
     // Call the parent's onAddSection to make the API call
     if (onAddSection) {
-      onAddSection(sectionName);
+      onAddSection(sectionName, isRepeatable, minItems, maxItems);
     }
   };
 
@@ -63,6 +72,75 @@ export const ComponentPreview = ({
     const targetSectionId = sectionId || activeTabId;
     onAddControl?.(targetSectionId);
   };
+
+  const handleAddRepeatableStructure = (sectionId: string) => {
+    setCurrentSectionId(sectionId);
+    setIsAddRepeatableDialogOpen(true);
+  };
+
+  const handleAddRepeatableStructureSubmit = (name: string, description?: string, controls?: ControlInstance[]) => {
+    if (editingStructure) {
+      // Update mode
+      if (onUpdateRepeatableStructure) {
+        onUpdateRepeatableStructure(editingStructure.id, name, description, controls);
+      }
+    } else {
+      // Create mode
+      if (onAddRepeatableStructure && currentSectionId) {
+        onAddRepeatableStructure(currentSectionId, name, description, controls);
+      }
+    }
+    setCurrentSectionId('');
+    setEditingStructure(null);
+  };
+
+  const handleAddControlToStructure = (structureId: string) => {
+    if (onAddControlToStructure) {
+      onAddControlToStructure(structureId);
+    }
+  };
+
+  const handleDeleteRepeatableStructure = (structureId: string) => {
+    if (onDeleteRepeatableStructure) {
+      onDeleteRepeatableStructure(structureId);
+    }
+  };
+
+  const handleEditRepeatableStructure = (structure: RepeatableStructure) => {
+    setEditingStructure(structure);
+    setCurrentSectionId(getSectionIdForStructure(structure.id));
+    setIsAddRepeatableDialogOpen(true);
+  };
+
+  const getSectionIdForStructure = (structureId: string): string => {
+    for (const section of sections) {
+      if (section.repeatableStructures?.some(s => s.id === structureId)) {
+        return section.id;
+      }
+    }
+    return '';
+  };
+
+  const renderRepeatableStructurePreview = (structure: RepeatableStructure) => (
+    <Card className={styles.repeatableStructurePreview}>
+      <Flex justify="between">
+        <Text size="3" weight="medium">
+          {structure.name}
+        </Text>
+        <Flex gap="2" className={styles.controlActions}>
+          <Text size="1" className={styles.controlMeta}>
+            Repeatable ({structure.fields?.length || 0} field{(structure.fields?.length || 0) !== 1 ? 's' : ''})
+          </Text>
+          <Button size="sm" variant="primary-outline" onClick={() => handleEditRepeatableStructure(structure)}>
+            Edit
+          </Button>
+          <Button size="sm" variant="danger-outline" onClick={() => handleDeleteRepeatableStructure(structure.id)}>
+            Delete
+          </Button>
+        </Flex>
+      </Flex>
+    </Card>
+  );
 
   const renderControlPreview = (
     control: ControlInstance,
@@ -149,7 +227,7 @@ export const ComponentPreview = ({
       <Card className={styles.controlPreview}>
         <Flex justify="between">
           <Text size="3" weight="medium">
-            {baseConfig.label || 'Unlabeled Control'}
+            {control.label || 'Unlabeled Control'}
           </Text>
           <Flex gap="2" className={styles.controlActions}>
             <Text size="1" className={styles.controlMeta}>
@@ -176,13 +254,23 @@ export const ComponentPreview = ({
     <div className={styles.sectionContent}>
       <Flex justify="between" align="center" className={styles.sectionHeader}>
         <Text size="4" weight="medium">
-          {section.controls.length} control{section.controls.length !== 1 ? 's' : ''} in {section.name}
+          {section.controls.length} control{section.controls.length !== 1 ? 's' : ''}
+          {section.repeatableStructures &&
+            section.repeatableStructures.length > 0 &&
+            `, ${section.repeatableStructures.length} repeatable structure${section.repeatableStructures.length !== 1 ? 's' : ''}`}{' '}
+          in {section.name}
         </Text>
-        <Button size="sm" variant="primary" onClick={() => handleAddControl(section.id)}>
-          + Add Control
-        </Button>
+        <Flex gap="2">
+          <Button size="sm" variant="ghost" onClick={() => handleAddRepeatableStructure(section.id)}>
+            + Add Repeatable
+          </Button>
+          <Button size="sm" variant="primary" onClick={() => handleAddControl(section.id)}>
+            + Add Control
+          </Button>
+        </Flex>
       </Flex>
 
+      {/* Controls List */}
       <div className={styles.controlsList}>
         {section.controls.length > 0 ? (
           section.controls.map((control) => (
@@ -198,13 +286,20 @@ export const ComponentPreview = ({
           </div>
         )}
       </div>
+
+      {/* Repeatable Structures List */}
+      {section.repeatableStructures && section.repeatableStructures.length > 0 && (
+        <div className={styles.repeatableStructuresList}>
+          {section.repeatableStructures.map((structure) => renderRepeatableStructurePreview(structure))}
+        </div>
+      )}
     </div>
   );
 
   // All components now have sections, render sectioned interface with tabs
   const tabs = sections.map((section) => ({
     id: section.id,
-    label: `${section.name} (${section.controls.length})`,
+    label: section.name,
     content: renderSectionContent(section),
   }));
 
@@ -231,6 +326,19 @@ export const ComponentPreview = ({
         open={isAddSectionDialogOpen}
         onOpenChange={setIsAddSectionDialogOpen}
         onAddSection={handleAddSection}
+      />
+
+      <AddRepeatableStructureDialog
+        open={isAddRepeatableDialogOpen}
+        onOpenChange={(open) => {
+          setIsAddRepeatableDialogOpen(open);
+          if (!open) {
+            setEditingStructure(null);
+          }
+        }}
+        onAddRepeatableStructure={handleAddRepeatableStructureSubmit}
+        onRequestAddControl={onRequestAddControlToStructure}
+        editingStructure={editingStructure}
       />
     </div>
   );

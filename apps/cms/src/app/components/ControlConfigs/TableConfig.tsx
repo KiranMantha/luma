@@ -48,8 +48,8 @@ export const TableConfig = ({ config, onConfigChange }: TableConfigProps) => {
     <div className="space-y-4">
       <Box className="mb-4">
         <Input
-          label="Label *"
-          placeholder="Enter field label"
+          label="Control Name *"
+          placeholder="Enter control name (e.g., pricing, features)"
           value={config.label}
           onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
           className="w-full"

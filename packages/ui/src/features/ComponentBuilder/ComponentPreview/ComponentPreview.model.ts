@@ -13,9 +13,24 @@ export type ComponentPreviewProps = {
   component: Component | null;
   activeTabId?: string; // Allow parent to control active tab
   onAddControl?: (sectionId?: string) => void; // Updated to support section targeting
+  onAddControlToStructure?: (structureId: string) => void; // Add controls to repeatable structures
   onEditControl?: (control: ControlInstance) => void;
   onDeleteControl?: (controlId: string) => void;
-  onAddSection?: (sectionName: string) => void; // Section name only, returns section ID from API
+  onAddSection?: (sectionName: string, isRepeatable?: boolean, minItems?: number, maxItems?: number) => void; // Section configuration
+  onAddRepeatableStructure?: (
+    sectionId: string,
+    name: string,
+    description?: string,
+    controls?: ControlInstance[],
+  ) => void; // Add repeatable structure to section
+  onDeleteRepeatableStructure?: (structureId: string) => void; // Delete repeatable structure
+  onUpdateRepeatableStructure?: (
+    structureId: string,
+    name: string,
+    description?: string,
+    controls?: ControlInstance[],
+  ) => void; // Update repeatable structure
+  onRequestAddControlToStructure?: () => void; // Request to open add control dialog for structure context
   onActiveTabChange?: (tabId: string) => void; // Notify parent of tab changes
 };
 

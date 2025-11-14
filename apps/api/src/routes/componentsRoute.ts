@@ -2,13 +2,17 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import {
   addControlToComponent,
+  addRepeatableStructureToSection,
   addSectionToComponent,
   createComponent,
   deleteComponent,
   deleteComponentSection,
   deleteControl,
+  deleteRepeatableStructure,
+  updateRepeatableStructure,
   getAllComponents,
   getAllComponentsForTemplates,
+  getAvailableComponentsForPages,
   getComponentById,
   updateComponent,
   updateComponentSection,
@@ -17,14 +21,18 @@ import {
 import {
   CreateComponentControlSchema,
   CreateComponentSchema,
+  CreateRepeatableStructureSchema,
   UpdateComponentControlSchema,
   UpdateComponentSchema,
 } from '../types/component';
 
 const componentsRoute = new Hono();
 
-// Get all available components (excluding those used in templates)
+// Get all components (for component builder - shows everything)
 componentsRoute.get('/', getAllComponents);
+
+// Get available components for pages (excluding those used in templates)
+componentsRoute.get('/available-for-pages', getAvailableComponentsForPages);
 
 // Get all components including those used in templates (for template builder)
 componentsRoute.get('/all-for-templates', getAllComponentsForTemplates);
@@ -58,5 +66,14 @@ componentsRoute.put('/:id/sections/:sectionId', updateComponentSection);
 
 // Delete section
 componentsRoute.delete('/:id/sections/:sectionId', deleteComponentSection);
+
+// Add repeatable structure to section
+componentsRoute.post('/:id/sections/:sectionId/structures', zValidator('json', CreateRepeatableStructureSchema), addRepeatableStructureToSection);
+
+// Update repeatable structure
+componentsRoute.put('/:id/sections/:sectionId/structures/:structureId', zValidator('json', CreateRepeatableStructureSchema), updateRepeatableStructure);
+
+// Delete repeatable structure
+componentsRoute.delete('/:id/sections/:sectionId/structures/:structureId', deleteRepeatableStructure);
 
 export { componentsRoute };

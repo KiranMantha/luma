@@ -132,31 +132,20 @@
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 8px 12px;
+          padding: 12px;
           background: white;
           border: 1px solid #e5e7eb;
           border-radius: 6px;
-          transition: all 0.2s ease;
-
-          &:hover {
-            @apply border-blue-300 shadow-sm;
-          }
 
           .instanceInfo {
             flex: 1;
-            cursor: pointer;
             padding: 4px;
             border-radius: 4px;
-            transition: background-color 0.2s;
-
-            &:hover {
-              background-color: rgba(59, 130, 246, 0.1);
-            }
           }
 
           .instanceActions {
             display: flex;
-            gap: 4px;
+            gap: 10px;
           }
         }
       }

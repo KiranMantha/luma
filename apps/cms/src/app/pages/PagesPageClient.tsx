@@ -31,11 +31,16 @@ export default function PagesPageClient({ initialPages, initialTemplates, initia
     setIsAddDialogOpen(true);
   };
 
-  const handleCreatePage = async (name: string, description?: string, templateId?: string | null) => {
+  const handleCreatePage = async (
+    name: string,
+    identifier: string,
+    description?: string,
+    templateId?: string | null,
+  ) => {
     try {
       // Convert null to undefined for the API call
       const apiTemplateId = templateId === null ? undefined : templateId;
-      const newPage = await createPage(name, description, apiTemplateId);
+      const newPage = await createPage(name, identifier, description, apiTemplateId);
       setPages((prev) => [...prev, newPage]);
       setIsAddDialogOpen(false);
     } catch (error) {

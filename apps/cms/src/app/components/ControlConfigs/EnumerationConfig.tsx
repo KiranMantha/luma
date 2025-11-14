@@ -16,8 +16,8 @@ export const EnumerationConfig = ({ config, onConfigChange }: EnumerationConfigP
   return (
     <div className="space-y-4">
       <Input
-        label="Label *"
-        placeholder="Enter field label"
+        label="Control Name *"
+        placeholder="Enter control name (e.g., category, status)"
         value={config.label}
         onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
       />

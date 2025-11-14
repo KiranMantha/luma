@@ -341,7 +341,7 @@ export const AddControlDialog = ({
     };
 
     const isFormValid = () => {
-      if (!config.label.trim()) return false;
+      if (!config.label.trim()) return false; // Control name is required
 
       switch (selectedControl.controlType) {
         case ControlType.ENUMERATION: {

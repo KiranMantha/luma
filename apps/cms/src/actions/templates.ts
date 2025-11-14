@@ -25,11 +25,14 @@ export async function getTemplates(): Promise<Template[]> {
 
 export async function saveTemplate(name: string, description?: string): Promise<Template> {
   try {
+    // Import createDefaultZones at the top of the function to avoid ESM issues
+    const { createDefaultZones } = await import('@repo/ui');
+
     const templateData = {
       name,
       description,
       layout: 'header-footer',
-      zones: [],
+      zones: createDefaultZones('header-footer'),
       metadata: {},
     };
 
