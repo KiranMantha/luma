@@ -67,6 +67,40 @@
       }
     }
 
+    .repeatableStructuresList {
+      @apply mt-6;
+
+      .repeatableStructurePreview {
+        @apply bg-gray-100 border-1 border-gray-300 shadow-none mb-4;
+
+        .controlActions {
+          .controlMeta {
+            @apply text-gray-500;
+          }
+
+          .requiredIndicator {
+            @apply text-red-500;
+          }
+        }
+      }
+
+      .repeatableStructureCard {
+        @apply p-4 bg-blue-50 border border-blue-200;
+
+        .structureFields {
+          @apply space-y-2;
+
+          .structureField {
+            @apply p-3 bg-white rounded border border-gray-200;
+          }
+
+          .emptyStructureFields {
+            @apply p-4 bg-gray-50 rounded border-2 border-dashed border-gray-300;
+          }
+        }
+      }
+    }
+
     .unknownControl {
       @apply p-2 bg-red-100 border border-red-300 rounded text-red-800;
     }

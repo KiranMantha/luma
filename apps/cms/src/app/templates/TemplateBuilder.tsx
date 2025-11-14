@@ -2,7 +2,7 @@
 
 import type { Component, ComponentInstance, Template, TemplateLayout, TemplateZone } from '@repo/ui';
 import { Button, createDefaultZones, Flex, TEMPLATE_LAYOUTS, Text, validateZonePlacement } from '@repo/ui';
-import { useState } from 'react';
+import { DragEvent, useState } from 'react';
 import { ComponentContentAuthoring } from './ComponentContentAuthoring';
 import styles from './TemplateBuilder.module.scss';
 
@@ -57,7 +57,7 @@ export const TemplateBuilder = ({ template, components, onSave, onCancel }: Temp
     setDraggedComponent({ component, sourceZoneId });
   };
 
-  const handleZoneDrop = (targetZoneId: string, e: React.DragEvent) => {
+  const handleZoneDrop = (targetZoneId: string, e: DragEvent) => {
     e.preventDefault();
 
     if (!draggedComponent) return;
@@ -369,18 +369,20 @@ const ZoneDropArea = ({ zone, components, onDrop, onInstanceDelete, onInstanceCl
               const component = components.find((c) => c.id === instance.componentId);
               return (
                 <div key={instance.id} className={styles.zoneInstance}>
-                  <div className={styles.instanceInfo} onClick={() => onInstanceClick(instance)}>
+                  <div className={styles.instanceInfo}>
                     <Text size="2">{component?.name || 'Unknown'}</Text>
-                    <Text size="1" color="gray">
-                      Click to edit content
-                    </Text>
                   </div>
                   <div className={styles.instanceActions}>
-                    <Button size="sm" variant="ghost" color="blue" onClick={() => onInstanceClick(instance)}>
+                    <Button size="sm" variant="primary-outline" onClick={() => onInstanceClick(instance)}>
                       Edit
                     </Button>
-                    <Button size="sm" variant="ghost" color="red" onClick={() => onInstanceDelete(instance.id)}>
-                      ×
+                    <Button
+                      size="sm"
+                      variant="primary-outline"
+                      color="red"
+                      onClick={() => onInstanceDelete(instance.id)}
+                    >
+                      Delete
                     </Button>
                   </div>
                 </div>

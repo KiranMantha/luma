@@ -1,7 +1,7 @@
 'use client';
 
 import { Box, Button, Flex, Input, Text } from '@repo/ui';
-import { useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 import styles from './RemotePreview.module.scss';
 
 type RemotePreviewProps = {
@@ -40,7 +40,7 @@ export const RemotePreview = ({
     setError(null);
   };
 
-  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUrlChange = (e: ChangeEvent<HTMLInputElement>) => {
     setPreviewUrl(e.target.value);
   };
 

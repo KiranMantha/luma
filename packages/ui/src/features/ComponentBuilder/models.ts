@@ -17,11 +17,21 @@ export type ControlInstance = {
   sectionId?: string; // Optional section assignment
 };
 
+// Repeatable structure within a section - like submenus, testimonials, etc.
+export type RepeatableStructure = {
+  id: string;
+  name: string; // e.g., "Submenu Item", "Testimonial", "Feature"
+  description?: string;
+  order: number;
+  fields: ControlInstance[]; // Controls that define the structure of each repeatable item
+};
+
 export type ComponentSection = {
   id: string;
   name: string;
   order: number;
-  controls: ControlInstance[];
+  controls: ControlInstance[]; // Static controls in the section
+  repeatableStructures?: RepeatableStructure[]; // Dynamic/repeatable lists within the section
 };
 
 export type Component = {

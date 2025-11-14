@@ -6,7 +6,7 @@ import PagesPageClient from './PagesPageClient';
 export default function PagesPage() {
   const pagesPromise = getPages();
   const templatesPromise = getTemplates();
-  const componentsPromise = getAllComponentsForTemplates(); // Use all components, PageBuilder will filter by specific template
+  const componentsPromise = getAllComponentsForTemplates(); // Use all components for template-specific filtering in PageBuilder
 
   return (
     <Suspense fallback={<div>Loading pages...</div>}>

@@ -3,10 +3,11 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { nanoid } from 'nanoid';
 import { db } from '../db';
-import { componentControls, components, componentSections, templates } from '../db/schema';
+import { componentControls, components, componentSections, repeatableStructures, repeatableStructureFields, templates } from '../db/schema';
 import type {
   CreateComponentControlRequest,
   CreateComponentRequest,
+  CreateRepeatableStructureRequest,
   UpdateComponentControlRequest,
   UpdateComponentRequest,
 } from '../types/component';
@@ -47,7 +48,91 @@ const getComponentsUsedInTemplates = async (): Promise<Set<string>> => {
 export const getAllComponents = async (ctx: Context) => {
   const allComponents = await db.select().from(components).orderBy(desc(components.createdAt));
 
-  // Get components used in templates to exclude them from the available list
+  // Return ALL components for the component builder - don't filter any out
+  // The filtering should only happen in PageBuilder, not in Component Builder itself
+  const componentsWithControlsAndSections = await Promise.all(
+    allComponents.map(async (component) => {
+      // Get all controls for this component
+      const controls = await db
+        .select()
+        .from(componentControls)
+        .where(eq(componentControls.componentId, component.id))
+        .orderBy(componentControls.orderIndex);
+
+      // Get all sections for this component
+      const sections = await db
+        .select()
+        .from(componentSections)
+        .where(eq(componentSections.componentId, component.id))
+        .orderBy(componentSections.orderIndex);
+
+      const parsedControls = controls.map((control) => ({
+        ...control,
+        config: control.config ? JSON.parse(control.config) : {},
+      }));
+
+      // If component has sections, organize controls by section
+      if (sections.length > 0) {
+        const sectionsWithControls = await Promise.all(
+          sections.map(async (section) => {
+            // Get repeatable structures for this section
+            const structures = await db
+              .select()
+              .from(repeatableStructures)
+              .where(eq(repeatableStructures.sectionId, section.id))
+              .orderBy(repeatableStructures.orderIndex);
+
+            const structuresWithFields = await Promise.all(
+              structures.map(async (structure) => {
+                const fields = await db
+                  .select()
+                  .from(repeatableStructureFields)
+                  .where(eq(repeatableStructureFields.structureId, structure.id))
+                  .orderBy(repeatableStructureFields.orderIndex);
+
+                return {
+                  ...structure,
+                  fields: fields.map((field) => ({
+                    ...field,
+                    config: field.config ? JSON.parse(field.config) : {},
+                  })),
+                };
+              })
+            );
+
+            return {
+              id: section.id,
+              name: section.name,
+              order: section.orderIndex,
+              controls: parsedControls.filter((control) => control.sectionId === section.id),
+              repeatableStructures: structuresWithFields,
+            };
+          })
+        );
+
+        return {
+          ...component,
+          controls: parsedControls.filter((control) => !control.sectionId), // Legacy controls without section
+          sections: sectionsWithControls,
+        };
+      } else {
+        // Legacy component without sections
+        return {
+          ...component,
+          controls: parsedControls,
+        };
+      }
+    }),
+  );
+
+  return successResponse(ctx, componentsWithControlsAndSections);
+};
+
+// Get available components for pages (excluding those used in templates)
+export const getAvailableComponentsForPages = async (ctx: Context) => {
+  const allComponents = await db.select().from(components).orderBy(desc(components.createdAt));
+
+  // Get components used in templates to exclude them from the available list for pages
   const usedInTemplates = await getComponentsUsedInTemplates();
 
   // Filter out components that are already used in templates
@@ -101,7 +186,7 @@ export const getAllComponents = async (ctx: Context) => {
   return successResponse(ctx, componentsWithControlsAndSections);
 };
 
-// Get ALL components including those used in templates (for template builder)
+// Get all components including those used in templates (for template builder)
 export const getAllComponentsForTemplates = async (ctx: Context) => {
   const allComponents = await db.select().from(components).orderBy(desc(components.createdAt));
 
@@ -187,12 +272,42 @@ export const getComponentById = async (ctx: Context) => {
 
   // If component has sections, organize controls by section
   if (sections.length > 0) {
-    const sectionsWithControls = sections.map((section) => ({
-      id: section.id,
-      name: section.name,
-      order: section.orderIndex,
-      controls: parsedControls.filter((control) => control.sectionId === section.id),
-    }));
+    const sectionsWithControls = await Promise.all(
+      sections.map(async (section) => {
+        // Get repeatable structures for this section
+        const structures = await db
+          .select()
+          .from(repeatableStructures)
+          .where(eq(repeatableStructures.sectionId, section.id))
+          .orderBy(repeatableStructures.orderIndex);
+
+        const structuresWithFields = await Promise.all(
+          structures.map(async (structure) => {
+            const fields = await db
+              .select()
+              .from(repeatableStructureFields)
+              .where(eq(repeatableStructureFields.structureId, structure.id))
+              .orderBy(repeatableStructureFields.orderIndex);
+
+            return {
+              ...structure,
+              fields: fields.map((field) => ({
+                ...field,
+                config: field.config ? JSON.parse(field.config) : {},
+              })),
+            };
+          })
+        );
+
+        return {
+          id: section.id,
+          name: section.name,
+          order: section.orderIndex,
+          controls: parsedControls.filter((control) => control.sectionId === section.id),
+          repeatableStructures: structuresWithFields,
+        };
+      })
+    );
 
     const componentWithSections = {
       ...component,
@@ -523,4 +638,206 @@ export const deleteComponentSection = async (ctx: Context) => {
   await db.delete(componentSections).where(eq(componentSections.id, sectionId));
 
   return successResponse(ctx, { message: 'Section deleted successfully' }, 200);
+};
+
+// Repeatable structure management functions
+export const addRepeatableStructureToSection = async (ctx: Context) => {
+  const componentId = ctx.req.param('id');
+  const sectionId = ctx.req.param('sectionId');
+  const data: CreateRepeatableStructureRequest = await ctx.req.json();
+  const { name, description, controls } = data;
+
+  // Verify the section exists and belongs to the component
+  const existingSection = await db
+    .select()
+    .from(componentSections)
+    .where(eq(componentSections.id, sectionId))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!existingSection || existingSection.componentId !== componentId) {
+    throw new HTTPException(404, { message: 'Section not found' });
+  }
+
+  // Get current structures count for order
+  const existingStructures = await db
+    .select()
+    .from(repeatableStructures)
+    .where(eq(repeatableStructures.sectionId, sectionId));
+
+  // Create the repeatable structure
+  const structureId = nanoid();
+
+  await db.insert(repeatableStructures).values({
+    id: structureId,
+    sectionId,
+    name,
+    description,
+    orderIndex: existingStructures.length,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+
+  // Create the structure fields
+  for (let i = 0; i < controls.length; i++) {
+    const control = controls[i];
+    const fieldId = nanoid();
+
+    await db.insert(repeatableStructureFields).values({
+      id: fieldId,
+      structureId,
+      name: control.name,
+      type: control.type,
+      label: control.label,
+      placeholder: control.placeholder || null,
+      isRequired: control.isRequired || false,
+      config: control.config ? JSON.stringify(control.config) : null,
+      orderIndex: i,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  // Fetch the complete structure with fields
+  const newStructure = await db
+    .select()
+    .from(repeatableStructures)
+    .where(eq(repeatableStructures.id, structureId))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  const fields = await db
+    .select()
+    .from(repeatableStructureFields)
+    .where(eq(repeatableStructureFields.structureId, structureId))
+    .orderBy(repeatableStructureFields.orderIndex);
+
+  const structureData = {
+    ...newStructure,
+    fields: fields.map((field) => ({
+      ...field,
+      config: field.config ? JSON.parse(field.config) : {},
+    })),
+  };
+
+  return successResponse(ctx, structureData, 201);
+};
+
+export const updateRepeatableStructure = async (ctx: Context) => {
+  const componentId = ctx.req.param('id');
+  const sectionId = ctx.req.param('sectionId');
+  const structureId = ctx.req.param('structureId');
+  const data: CreateRepeatableStructureRequest = await ctx.req.json();
+  const { name, description, controls } = data;
+
+  // Verify the structure exists and belongs to the correct section/component
+  const existingStructure = await db
+    .select()
+    .from(repeatableStructures)
+    .where(eq(repeatableStructures.id, structureId))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!existingStructure || existingStructure.sectionId !== sectionId) {
+    throw new HTTPException(404, { message: 'Repeatable structure not found' });
+  }
+
+  // Verify the section belongs to the component
+  const existingSection = await db
+    .select()
+    .from(componentSections)
+    .where(eq(componentSections.id, sectionId))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!existingSection || existingSection.componentId !== componentId) {
+    throw new HTTPException(404, { message: 'Section not found' });
+  }
+
+  // Update the repeatable structure
+  await db.update(repeatableStructures).set({
+    name,
+    description,
+    updatedAt: new Date().toISOString(),
+  }).where(eq(repeatableStructures.id, structureId));
+
+  // Delete existing fields and create new ones
+  await db.delete(repeatableStructureFields).where(eq(repeatableStructureFields.structureId, structureId));
+
+  // Create the updated structure fields
+  for (let i = 0; i < controls.length; i++) {
+    const control = controls[i];
+    const fieldId = nanoid();
+
+    await db.insert(repeatableStructureFields).values({
+      id: fieldId,
+      structureId,
+      name: control.name,
+      type: control.type,
+      label: control.label,
+      placeholder: control.placeholder || null,
+      isRequired: control.isRequired || false,
+      config: control.config ? JSON.stringify(control.config) : null,
+      orderIndex: i,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  // Fetch the updated structure with fields
+  const updatedStructure = await db
+    .select()
+    .from(repeatableStructures)
+    .where(eq(repeatableStructures.id, structureId))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  const fields = await db
+    .select()
+    .from(repeatableStructureFields)
+    .where(eq(repeatableStructureFields.structureId, structureId))
+    .orderBy(repeatableStructureFields.orderIndex);
+
+  const structureData = {
+    ...updatedStructure,
+    fields: fields.map((field) => ({
+      ...field,
+      config: field.config ? JSON.parse(field.config) : {},
+    })),
+  };
+
+  return successResponse(ctx, structureData, 200);
+};
+
+export const deleteRepeatableStructure = async (ctx: Context) => {
+  const componentId = ctx.req.param('id');
+  const sectionId = ctx.req.param('sectionId');
+  const structureId = ctx.req.param('structureId');
+
+  // Verify the structure exists and belongs to the correct section/component
+  const existingStructure = await db
+    .select()
+    .from(repeatableStructures)
+    .where(eq(repeatableStructures.id, structureId))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!existingStructure || existingStructure.sectionId !== sectionId) {
+    throw new HTTPException(404, { message: 'Repeatable structure not found' });
+  }
+
+  // Verify the section belongs to the component
+  const existingSection = await db
+    .select()
+    .from(componentSections)
+    .where(eq(componentSections.id, sectionId))
+    .limit(1)
+    .then((rows) => rows[0]);
+
+  if (!existingSection || existingSection.componentId !== componentId) {
+    throw new HTTPException(404, { message: 'Section not found' });
+  }
+
+  // Delete the repeatable structure (fields will be cascade deleted)
+  await db.delete(repeatableStructures).where(eq(repeatableStructures.id, structureId));
+
+  return successResponse(ctx, { message: 'Repeatable structure deleted successfully' }, 200);
 };

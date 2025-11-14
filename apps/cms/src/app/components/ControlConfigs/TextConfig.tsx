@@ -11,8 +11,8 @@ export const TextConfig = ({ config, onConfigChange }: TextConfigProps) => {
   return (
     <div className="space-y-4">
       <Input
-        label="Label *"
-        placeholder="Enter field label"
+        label="Control Name *"
+        placeholder="Enter control name (e.g., title, description)"
         value={config.label}
         onChange={(e: InputChangeEvent) => updateConfig({ label: e.target.value })}
       />

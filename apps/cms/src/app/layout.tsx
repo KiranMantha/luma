@@ -1,11 +1,12 @@
 import { Header } from '@repo/ui';
+import { ReactNode } from 'react';
 import { Navigation } from '../components/Navigation';
 import '../styles/globals.scss';
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: ReactNode;
 }>) {
   return (
     <html lang="en">

@@ -2,7 +2,7 @@ import { ChangeEvent } from 'react';
 
 // Base config type that all control configs extend
 export type BaseControlConfig = {
-  label: string;
+  label: string; // Control name/identifier that becomes the display label during authoring
   required: boolean;
 };
 
