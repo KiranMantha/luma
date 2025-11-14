@@ -1,7 +1,15 @@
 'use client';
 
-import type { Component, ComponentInstance, ControlInstance } from '@repo/ui';
-import { Box, Button, ControlType, Input, Modal, Select, Tabs, Text, Textarea } from '@repo/ui';
+import type {
+  Component,
+  ComponentInstance,
+  ComponentSection,
+  ControlInstance,
+  RepeatableStructure,
+  Template,
+} from '@repo/ui';
+import { Box, Button, Card, ControlType, Input, Modal, Select, Tabs, Text, Textarea } from '@repo/ui';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import styles from './ComponentContentAuthoring.module.scss';
 
@@ -10,7 +18,8 @@ type ComponentContentAuthoringProps = {
   onOpenChange: (open: boolean) => void;
   componentInstance: ComponentInstance | null;
   component: Component | null;
-  onSave: (instanceId: string, content: Record<string, unknown>) => void;
+  template: Template | null;
+  onContentSaved?: (instanceId: string, content: Record<string, unknown>) => void;
 };
 
 export const ComponentContentAuthoring = ({
@@ -18,30 +27,116 @@ export const ComponentContentAuthoring = ({
   onOpenChange,
   componentInstance,
   component,
-  onSave,
+  template,
+  onContentSaved,
 }: ComponentContentAuthoringProps) => {
   const [content, setContent] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(false);
 
-  console.log(componentInstance);
-  console.log(component);
+  // Helper function to migrate old field references to new field names
+  const migrateRepeatableStructureContent = (
+    instanceConfig: Record<string, unknown>,
+    component: Component,
+  ): Record<string, unknown> => {
+    if (!component.sections) return instanceConfig;
+
+    const migratedConfig = { ...instanceConfig };
+
+    component.sections.forEach((section) => {
+      section.repeatableStructures?.forEach((structure) => {
+        const structureContent = instanceConfig[structure.name] as unknown[];
+        if (Array.isArray(structureContent) && structureContent.length > 0 && structure.fields) {
+          // Migrate each item in the repeatable structure
+          const migratedItems = structureContent.map((item) => {
+            if (typeof item === 'object' && item !== null) {
+              const itemObj = item as Record<string, unknown>;
+              const migratedItem: Record<string, unknown> = {};
+
+              const itemKeys = Object.keys(itemObj);
+              const currentFieldIds = structure.fields?.map((field) => field.id) || [];
+
+              // Check if any of the current field IDs exist in the item
+              const hasCurrentFields = itemKeys.some((key) => currentFieldIds.includes(key));
+
+              if (!hasCurrentFields && itemKeys.length > 0 && structure.fields.length > 0) {
+                // Migrate old field references to new ones by mapping values in order
+                console.log('AUTHORING MIGRATION: Migrating old field references to new structure');
+
+                const oldValues = Object.values(itemObj);
+                const newFields = structure.fields;
+
+                // Map old values to new field IDs in order (up to the number of available fields)
+                for (let i = 0; i < Math.min(oldValues.length, newFields.length); i++) {
+                  const value = oldValues[i];
+                  const newField = newFields[i];
+
+                  if (newField?.id && value !== undefined) {
+                    console.log(`AUTHORING MIGRATION: Mapping value ${i} to field ${newField.id}:`, value);
+                    migratedItem[newField.id] = value;
+                  }
+                }
+
+                return migratedItem;
+              } else {
+                // Keep existing mapping if field IDs are current
+                return item;
+              }
+            }
+            return item;
+          });
+
+          migratedConfig[structure.name] = migratedItems;
+        }
+      });
+    });
+
+    return migratedConfig;
+  };
 
   // Initialize content from component instance config when modal opens
   useEffect(() => {
-    if (open && componentInstance) {
-      setContent(componentInstance.config || {});
+    if (open && componentInstance && component) {
+      const originalConfig = componentInstance.config || {};
+      const migratedConfig = migrateRepeatableStructureContent(originalConfig, component);
+      setContent(migratedConfig);
     }
-  }, [open, componentInstance]);
+  }, [open, componentInstance, component]);
 
   const handleSave = async () => {
-    if (!componentInstance) return;
+    if (!componentInstance || !template) return;
 
     setLoading(true);
     try {
-      onSave(componentInstance.id, content);
+      // Update the template with new content
+      const updatedZones = template.zones.map((zone) => ({
+        ...zone,
+        componentInstances: zone.componentInstances.map((instance) =>
+          instance.id === componentInstance.id ? { ...instance, config: content } : instance,
+        ),
+      }));
+
+      const updatedTemplate = {
+        ...template,
+        zones: updatedZones,
+      };
+
+      // Save directly to template API
+      const response = await fetch(`http://localhost:3002/api/templates/${template.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedTemplate),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save template: ${response.statusText}`);
+      }
+
+      // Notify parent component that content was saved
+      onContentSaved?.(componentInstance.id, content);
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to save component content:', error);
+      alert(`Failed to save content: ${error instanceof Error ? error.message : error}`);
     } finally {
       setLoading(false);
     }
@@ -59,10 +154,65 @@ export const ComponentContentAuthoring = ({
     }));
   };
 
-  const renderControlInput = (control: ControlInstance) => {
+  const handleRepeatableAdd = (structureName: string) => {
+    const structureContent = (content[structureName] as unknown[]) || [];
+    const newItem = {}; // Empty object for new instance
+    setContent((prev) => ({
+      ...prev,
+      [structureName]: [...structureContent, newItem],
+    }));
+  };
+
+  const handleRepeatableRemove = (structureName: string, index: number) => {
+    const structureContent = (content[structureName] as unknown[]) || [];
+    const newContent = structureContent.filter((_, i) => i !== index);
+    setContent((prev) => ({
+      ...prev,
+      [structureName]: newContent,
+    }));
+  };
+
+  const handleRepeatableFieldChange = (structureName: string, index: number, fieldId: string, value: unknown) => {
+    const structureContent = (content[structureName] as Record<string, unknown>[]) || [];
+    const updatedContent = [...structureContent];
+
+    if (!updatedContent[index]) {
+      updatedContent[index] = {};
+    }
+
+    updatedContent[index] = {
+      ...updatedContent[index],
+      [fieldId]: value,
+    };
+
+    setContent((prev) => ({
+      ...prev,
+      [structureName]: updatedContent,
+    }));
+  };
+
+  const renderControlInput = (control: ControlInstance, structureName?: string, itemIndex?: number) => {
     const fieldId = control.id;
-    const currentValue = content[fieldId] || '';
+
+    // Handle field value based on context (regular field vs repeatable structure field)
+    let currentValue;
+    if (structureName !== undefined && itemIndex !== undefined) {
+      const structureContent = (content[structureName] as Record<string, unknown>[]) || [];
+      currentValue = (structureContent[itemIndex] && structureContent[itemIndex][fieldId]) || '';
+    } else {
+      currentValue = content[fieldId] || '';
+    }
+
     const config = control.config || {};
+
+    // Create change handler based on context
+    const handleChange = (value: unknown) => {
+      if (structureName !== undefined && itemIndex !== undefined) {
+        handleRepeatableFieldChange(structureName, itemIndex, fieldId, value);
+      } else {
+        handleFieldChange(fieldId, value);
+      }
+    };
 
     switch (control.controlType) {
       case ControlType.TEXT: {
@@ -72,14 +222,14 @@ export const ComponentContentAuthoring = ({
           <Textarea
             placeholder={placeholder}
             value={currentValue as string}
-            onChange={(e) => handleFieldChange(fieldId, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             rows={3}
           />
         ) : (
           <Input
             placeholder={placeholder}
             value={currentValue as string}
-            onChange={(e) => handleFieldChange(fieldId, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             maxLength={textConfig.maxLength}
           />
         );
@@ -96,7 +246,7 @@ export const ComponentContentAuthoring = ({
           <Select
             options={selectOptions}
             value={currentValue as string}
-            onChange={(e) => handleFieldChange(fieldId, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
           />
         );
       }
@@ -109,11 +259,11 @@ export const ComponentContentAuthoring = ({
             <Input
               placeholder={placeholder}
               value={currentValue as string}
-              onChange={(e) => handleFieldChange(fieldId, e.target.value)}
+              onChange={(e) => handleChange(e.target.value)}
             />
             {currentValue && (
               <div className={styles.mediaPreview}>
-                <img
+                <Image
                   src={currentValue as string}
                   alt="Preview"
                   className={styles.previewImage}
@@ -135,7 +285,7 @@ export const ComponentContentAuthoring = ({
           <Textarea
             placeholder={placeholder}
             value={currentValue as string}
-            onChange={(e) => handleFieldChange(fieldId, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             rows={6}
           />
         );
@@ -151,9 +301,9 @@ export const ComponentContentAuthoring = ({
             onChange={(e) => {
               try {
                 const parsed = JSON.parse(e.target.value);
-                handleFieldChange(fieldId, parsed);
+                handleChange(parsed);
               } catch {
-                handleFieldChange(fieldId, e.target.value);
+                handleChange(e.target.value);
               }
             }}
             rows={4}
@@ -187,7 +337,7 @@ export const ComponentContentAuthoring = ({
                           onChange={(e) => {
                             const newTableData = [...tableData];
                             newTableData[rowIndex] = { ...row, [header.id]: e.target.value };
-                            handleFieldChange(fieldId, newTableData);
+                            handleChange(newTableData);
                           }}
                           placeholder={`Enter ${header.label}`}
                         />
@@ -202,7 +352,7 @@ export const ComponentContentAuthoring = ({
               variant="ghost"
               onClick={() => {
                 const newRow = headers.reduce((acc, header) => ({ ...acc, [header.id]: '' }), {});
-                handleFieldChange(fieldId, [...tableData, newRow]);
+                handleChange([...tableData, newRow]);
               }}
             >
               + Add Row
@@ -218,18 +368,84 @@ export const ComponentContentAuthoring = ({
           <Input
             placeholder={placeholder}
             value={currentValue as string}
-            onChange={(e) => handleFieldChange(fieldId, e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
           />
         );
       }
     }
   };
 
-  const renderSectionContent = (controls: ControlInstance[]) => (
+  const renderRepeatableStructure = (structure: RepeatableStructure) => {
+    // Get existing instances of this repeatable structure (stored as an array in content)
+    // For example: content['Submenu'] = [{ title: 'Home', url: '/' }, { title: 'About', url: '/about' }]
+    const structureContent = (content[structure.name] as Record<string, unknown>[]) || [];
+
+    return (
+      <div className={styles.repeatableStructure}>
+        <div>
+          <Text size="3" weight="medium" className={styles.fieldLabel}>
+            {structure.name}
+          </Text>
+          {structure.description && (
+            <Text size="2" color="gray">
+              {structure.description}
+            </Text>
+          )}
+        </div>
+        <Card className={styles.structureCard}>
+          <div className={styles.structureInstances}>
+            {structureContent.length === 0 ? (
+              <div className={styles.emptyStructure}>
+                <Text size="2" color="gray">
+                  No {structure.name.toLowerCase()} items yet. Click &quot;Add {structure.name}&quot; to create the
+                  first one.
+                </Text>
+              </div>
+            ) : (
+              structureContent.map((_, index) => (
+                <Card key={index} className={styles.structureInstance}>
+                  <div className={styles.instanceFields}>
+                    {structure.fields.map((field) => (
+                      <Box key={field.id} className={styles.field}>
+                        <Text size="3" weight="medium" className={styles.fieldLabel}>
+                          {field.label || 'Unlabeled Field'}
+                          {Boolean((field.config as Record<string, unknown>)?.required) && (
+                            <span className={styles.required}>*</span>
+                          )}
+                        </Text>
+                        {renderControlInput(field, structure.name, index)}
+                      </Box>
+                    ))}
+                  </div>
+                  <Box className="mt-4 text-right">
+                    <Button
+                      size="sm"
+                      variant="danger-outline"
+                      onClick={() => handleRepeatableRemove(structure.name, index)}
+                    >
+                      Remove
+                    </Button>
+                  </Box>
+                </Card>
+              ))
+            )}
+          </div>
+          <Box className="mt-4 text-center">
+            <Button size="md" variant="primary" onClick={() => handleRepeatableAdd(structure.name)}>
+              + Add {structure.name}
+            </Button>
+          </Box>
+        </Card>
+      </div>
+    );
+  };
+
+  const renderSectionContent = (section: ComponentSection) => (
     <div className={styles.sectionContent}>
-      {controls.length > 0 ? (
+      {/* Regular Controls */}
+      {section.controls && section.controls.length > 0 && (
         <div className={styles.controlsList}>
-          {controls.map((control) => (
+          {section.controls.map((control) => (
             <Box key={control.id} className={styles.field}>
               <Text size="3" weight="medium" className={styles.fieldLabel}>
                 {control.label || 'Unlabeled Field'}
@@ -241,50 +457,58 @@ export const ComponentContentAuthoring = ({
             </Box>
           ))}
         </div>
-      ) : (
-        <div className={styles.emptyControls}>
-          <Text size="3" color="gray">
-            No controls in this section yet.
-          </Text>
+      )}
+
+      {/* Repeatable Structures */}
+      {section.repeatableStructures && section.repeatableStructures.length > 0 && (
+        <div className={styles.repeatableStructures}>
+          {section.repeatableStructures.map((structure) => (
+            <div key={structure.id}>{renderRepeatableStructure(structure)}</div>
+          ))}
         </div>
       )}
+
+      {(!section.controls || section.controls.length === 0) &&
+        (!section.repeatableStructures || section.repeatableStructures.length === 0) && (
+          <div className={styles.emptyControls}>
+            <Text size="3" color="gray">
+              No content defined in this section yet.
+            </Text>
+          </div>
+        )}
     </div>
   );
 
   if (!component || !componentInstance) return null;
 
-  // Organize controls by sections or show legacy controls
+  // All components now use sections
   const sections = component.sections || [];
-  const legacyControls = component.controls || [];
 
   // Create tabs for the modal
-  const tabs =
-    sections.length > 0
-      ? sections.map((section) => ({
-          id: section.id,
-          label: `${section.name} (${section.controls.length})`,
-          content: renderSectionContent(section.controls),
-        }))
-      : [
-          {
-            id: 'fields',
-            label: `Fields (${legacyControls.length})`,
-            content: renderSectionContent(legacyControls),
-          },
-        ];
+  const tabs = sections.map((section) => {
+    const controlsCount = (section.controls || []).length;
+    const structuresCount = (section.repeatableStructures || []).length;
+    const totalCount = controlsCount + structuresCount;
+
+    return {
+      id: section.id,
+      label: `${section.name} (${totalCount})`,
+      content: renderSectionContent(section),
+    };
+  });
 
   return (
     <Modal open={open} title={`Edit ${component?.name || 'Component'} Content`} size="xl" onOpenChange={onOpenChange}>
       <div className={styles.content}>
-        {tabs.length > 0 && tabs[0] && tabs[0].content ? (
+        {tabs.length > 0 ? (
           <div className={styles.tabsContainer}>
             <Tabs tabs={tabs} />
           </div>
         ) : (
           <div className={styles.emptyState}>
-            <Text color="gray">This component has no fields defined yet.</Text>
+            <Text color="gray">This component has no sections defined yet.</Text>
             <Text size="2" color="gray">
-              Go to Components page to add fields to this component.
+              Go to Components page to add sections and fields to this component.
             </Text>
           </div>
         )}
@@ -295,7 +519,7 @@ export const ComponentContentAuthoring = ({
           Cancel
         </Button>
         <Button onClick={handleSave} disabled={loading}>
-          {loading ? 'Saving...' : 'Save Content'}
+          {loading ? 'Applying...' : 'Apply Changes'}
         </Button>
       </div>
     </Modal>

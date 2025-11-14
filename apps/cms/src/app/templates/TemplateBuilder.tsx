@@ -41,6 +41,8 @@ export const TemplateBuilder = ({ template, components, onSave, onCancel }: Temp
   const [selectedLayout] = useState<TemplateLayout>(initialLayout);
   const [editingInstance, setEditingInstance] = useState<ComponentInstance | null>(null);
   const [isAuthoringOpen, setIsAuthoringOpen] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Track which components have been used (single-use logic)
   const getUsedComponents = () => {
@@ -151,31 +153,71 @@ export const TemplateBuilder = ({ template, components, onSave, onCancel }: Temp
     setIsAuthoringOpen(true);
   };
 
-  const handleContentSave = (instanceId: string, content: Record<string, unknown>) => {
-    setTemplateState((prev) => ({
-      ...prev,
-      zones: prev.zones.map((zone) => ({
-        ...zone,
-        componentInstances: zone.componentInstances.map((instance) =>
-          instance.id === instanceId ? { ...instance, config: content } : instance,
-        ),
-      })),
-    }));
+  const handleContentSave = async (instanceId: string, content: Record<string, unknown>) => {
+    // Preserve existing instance configs when refreshing template state
+    const currentInstanceConfigs = new Map<string, Record<string, unknown>>();
+
+    // Collect all current instance configs before refresh
+    templateState.zones?.forEach((zone) => {
+      zone.componentInstances?.forEach((instance) => {
+        if (instance.config && Object.keys(instance.config).length > 0) {
+          currentInstanceConfigs.set(instance.id, instance.config);
+        }
+      });
+    });
+
+    // Refresh template state from the API to get latest component structures
+    try {
+      const response = await fetch(`http://localhost:3002/api/templates/${templateState.id}`);
+      if (response.ok) {
+        const updatedTemplate = await response.json();
+
+        // Restore preserved instance configs to the refreshed template
+        const zonesWithPreservedConfigs = updatedTemplate.zones?.map((zone: any) => ({
+          ...zone,
+          componentInstances: zone.componentInstances?.map((instance: any) => ({
+            ...instance,
+            config: currentInstanceConfigs.get(instance.id) || instance.config || {},
+          })),
+        }));
+
+        setTemplateState({
+          ...updatedTemplate,
+          zones: zonesWithPreservedConfigs,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to refresh template state:', error);
+      // Fallback to local state update
+      setTemplateState((prev) => ({
+        ...prev,
+        zones: prev.zones.map((zone) => ({
+          ...zone,
+          componentInstances: zone.componentInstances.map((instance) =>
+            instance.id === instanceId ? { ...instance, config: content } : instance,
+          ),
+        })),
+      }));
+    }
+
     setEditingInstance(null);
     setIsAuthoringOpen(false);
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       // Clean zones - remove unnecessary fields from component instances
       const cleanZones =
         templateState.zones?.map((zone) => ({
           ...zone,
-          componentInstances: zone.componentInstances.map((instance) => ({
-            componentId: instance.componentId,
-            config: { ...instance.config },
-            order: instance.order,
-          })),
+          componentInstances: zone.componentInstances.map((instance) => {
+            return {
+              componentId: instance.componentId,
+              config: { ...instance.config },
+              order: instance.order,
+            };
+          }),
         })) || [];
 
       const updatedTemplate = {
@@ -188,10 +230,14 @@ export const TemplateBuilder = ({ template, components, onSave, onCancel }: Temp
       } as Template;
 
       await onSave(updatedTemplate);
+      setHasUnsavedChanges(false); // Clear unsaved changes flag
+      alert('Template saved successfully!');
     } catch (error) {
       console.error('Error saving template:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       alert(`Failed to save template: ${errorMessage}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -204,7 +250,7 @@ export const TemplateBuilder = ({ template, components, onSave, onCancel }: Temp
             Template Builder: {template.name}
           </Text>
           <Text size="2" color="gray">
-            Zone-based layout system
+            Zone-based layout system {hasUnsavedChanges && '• Unsaved changes'}
           </Text>
         </div>
         <Flex gap="3" align="center">
@@ -214,8 +260,8 @@ export const TemplateBuilder = ({ template, components, onSave, onCancel }: Temp
           <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleSave}>
-            Save Template
+          <Button variant="primary" onClick={handleSave} disabled={isSaving}>
+            {isSaving ? 'Saving...' : hasUnsavedChanges ? '💾 Save Template*' : 'Save Template'}
           </Button>
         </Flex>
       </div>
@@ -286,7 +332,8 @@ export const TemplateBuilder = ({ template, components, onSave, onCancel }: Temp
         onOpenChange={setIsAuthoringOpen}
         componentInstance={editingInstance}
         component={editingInstance ? components.find((c) => c.id === editingInstance.componentId) || null : null}
-        onSave={handleContentSave}
+        template={templateState}
+        onContentSaved={handleContentSave}
       />
     </div>
   );
