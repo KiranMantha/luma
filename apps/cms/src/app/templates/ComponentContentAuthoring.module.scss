@@ -1,4 +1,4 @@
-/* Component Content Authoring Styles */
+@reference 'tailwindcss';
 
 .content {
   flex: 1;
@@ -10,6 +10,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 16px;
+  margin-top: 16px;
 }
 
 .section {
@@ -137,10 +138,6 @@
   min-height: 300px;
 }
 
-.sectionContent {
-  padding: 16px 0;
-}
-
 .controlsList {
   display: flex;
   flex-direction: column;
@@ -157,4 +154,74 @@
   border: 2px dashed #e5e7eb;
   border-radius: 8px;
   background: #f9fafb;
+}
+
+.subsectionTitle {
+  margin: 16px 0 12px 0;
+  color: #1f2937;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 4px;
+}
+
+.repeatableStructures {
+  margin-top: 24px;
+}
+
+.repeatableStructure {
+  margin-bottom: 24px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.structureCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f9fafb;
+  @apply shadow-none;
+}
+
+.structureHeader {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.structureInstances {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.emptyStructure {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+  border: 2px dashed #d1d5db;
+  border-radius: 6px;
+  background: white;
+}
+
+.structureInstance {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 12px;
+  background: white;
+  @apply shadow-none;
+}
+
+.instanceHeader {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.instanceFields {
+  display: flex;
+  flex-direction: column;
 }
