@@ -1,50 +1,40 @@
 @reference 'tailwindcss';
 
 .content {
-  flex: 1;
-  overflow-y: auto;
+  @apply flex-1 overflow-y-auto;
   max-height: 60vh;
 }
 
 .footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 16px;
-  margin-top: 16px;
+  @apply flex justify-end gap-4 mt-4;
 }
 
 .section {
-  margin-bottom: 32px;
+  @apply mb-8;
 
   &:last-child {
-    margin-bottom: 0;
+    @apply mb-0;
   }
 }
 
 .sectionTitle {
-  margin-bottom: 16px;
-  color: #1f2937;
-  border-bottom: 2px solid #e5e7eb;
-  padding-bottom: 8px;
+  @apply mb-4 text-gray-800 border-b-2 border-gray-200 pb-2;
 }
 
 .field {
-  margin-bottom: 20px;
+  @apply mb-5;
 
   &:last-child {
-    margin-bottom: 0;
+    @apply mb-0;
   }
 }
 
 .fieldLabel {
-  display: block;
-  margin-bottom: 8px;
-  color: #374151;
+  @apply block mb-2 text-gray-700;
 }
 
 .required {
-  color: #ef4444;
-  margin-left: 4px;
+  @apply text-red-500 ml-1;
 }
 
 /* Removed .selectInput since we now use the Select component */

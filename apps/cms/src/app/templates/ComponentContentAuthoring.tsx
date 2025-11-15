@@ -1,13 +1,6 @@
 'use client';
 
-import type {
-  Component,
-  ComponentInstance,
-  ComponentSection,
-  ControlInstance,
-  RepeatableStructure,
-  Template,
-} from '@repo/ui';
+import type { Component, ComponentInstance, ComponentSection, ControlInstance, Fieldset, Template } from '@repo/ui';
 import { Box, Button, Card, ControlType, Input, Modal, Select, Tabs, Text, Textarea } from '@repo/ui';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
@@ -43,9 +36,9 @@ export const ComponentContentAuthoring = ({
     const migratedConfig = { ...instanceConfig };
 
     component.sections.forEach((section) => {
-      section.repeatableStructures?.forEach((structure) => {
-        const structureContent = instanceConfig[structure.name] as unknown[];
-        if (Array.isArray(structureContent) && structureContent.length > 0 && structure.fields) {
+      section.fieldsets?.forEach((fieldset) => {
+        const structureContent = instanceConfig[fieldset.name] as unknown[];
+        if (Array.isArray(structureContent) && structureContent.length > 0 && fieldset.fields) {
           // Migrate each item in the repeatable structure
           const migratedItems = structureContent.map((item) => {
             if (typeof item === 'object' && item !== null) {
@@ -53,17 +46,17 @@ export const ComponentContentAuthoring = ({
               const migratedItem: Record<string, unknown> = {};
 
               const itemKeys = Object.keys(itemObj);
-              const currentFieldIds = structure.fields?.map((field) => field.id) || [];
+              const currentFieldIds = fieldset.fields?.map((field) => field.id) || [];
 
               // Check if any of the current field IDs exist in the item
               const hasCurrentFields = itemKeys.some((key) => currentFieldIds.includes(key));
 
-              if (!hasCurrentFields && itemKeys.length > 0 && structure.fields.length > 0) {
+              if (!hasCurrentFields && itemKeys.length > 0 && fieldset.fields.length > 0) {
                 // Migrate old field references to new ones by mapping values in order
                 console.log('AUTHORING MIGRATION: Migrating old field references to new structure');
 
                 const oldValues = Object.values(itemObj);
-                const newFields = structure.fields;
+                const newFields = fieldset.fields;
 
                 // Map old values to new field IDs in order (up to the number of available fields)
                 for (let i = 0; i < Math.min(oldValues.length, newFields.length); i++) {
@@ -85,7 +78,7 @@ export const ComponentContentAuthoring = ({
             return item;
           });
 
-          migratedConfig[structure.name] = migratedItems;
+          migratedConfig[fieldset.name] = migratedItems;
         }
       });
     });
@@ -172,8 +165,8 @@ export const ComponentContentAuthoring = ({
     }));
   };
 
-  const handleRepeatableFieldChange = (structureName: string, index: number, fieldId: string, value: unknown) => {
-    const structureContent = (content[structureName] as Record<string, unknown>[]) || [];
+  const handleFieldsetFieldChange = (fieldsetName: string, index: number, fieldId: string, value: unknown) => {
+    const structureContent = (content[fieldsetName] as Record<string, unknown>[]) || [];
     const updatedContent = [...structureContent];
 
     if (!updatedContent[index]) {
@@ -187,18 +180,18 @@ export const ComponentContentAuthoring = ({
 
     setContent((prev) => ({
       ...prev,
-      [structureName]: updatedContent,
+      [fieldsetName]: updatedContent,
     }));
   };
 
-  const renderControlInput = (control: ControlInstance, structureName?: string, itemIndex?: number) => {
+  const renderControlInput = (control: ControlInstance, fieldsetName?: string, itemIndex?: number) => {
     const fieldId = control.id;
 
     // Handle field value based on context (regular field vs repeatable structure field)
     let currentValue;
-    if (structureName !== undefined && itemIndex !== undefined) {
-      const structureContent = (content[structureName] as Record<string, unknown>[]) || [];
-      currentValue = (structureContent[itemIndex] && structureContent[itemIndex][fieldId]) || '';
+    if (fieldsetName !== undefined && itemIndex !== undefined) {
+      const fieldsetContent = (content[fieldsetName] as Record<string, unknown>[]) || [];
+      currentValue = (fieldsetContent[itemIndex] && fieldsetContent[itemIndex][fieldId]) || '';
     } else {
       currentValue = content[fieldId] || '';
     }
@@ -207,8 +200,8 @@ export const ComponentContentAuthoring = ({
 
     // Create change handler based on context
     const handleChange = (value: unknown) => {
-      if (structureName !== undefined && itemIndex !== undefined) {
-        handleRepeatableFieldChange(structureName, itemIndex, fieldId, value);
+      if (fieldsetName !== undefined && itemIndex !== undefined) {
+        handleFieldsetFieldChange(fieldsetName, itemIndex, fieldId, value);
       } else {
         handleFieldChange(fieldId, value);
       }
@@ -375,20 +368,20 @@ export const ComponentContentAuthoring = ({
     }
   };
 
-  const renderRepeatableStructure = (structure: RepeatableStructure) => {
+  const renderFieldsets = (fieldset: Fieldset) => {
     // Get existing instances of this repeatable structure (stored as an array in content)
     // For example: content['Submenu'] = [{ title: 'Home', url: '/' }, { title: 'About', url: '/about' }]
-    const structureContent = (content[structure.name] as Record<string, unknown>[]) || [];
+    const structureContent = (content[fieldset.name] as Record<string, unknown>[]) || [];
 
     return (
       <div className={styles.repeatableStructure}>
         <div>
           <Text size="3" weight="medium" className={styles.fieldLabel}>
-            {structure.name}
+            {fieldset.name}
           </Text>
-          {structure.description && (
+          {fieldset.description && (
             <Text size="2" color="gray">
-              {structure.description}
+              {fieldset.description}
             </Text>
           )}
         </div>
@@ -397,15 +390,15 @@ export const ComponentContentAuthoring = ({
             {structureContent.length === 0 ? (
               <div className={styles.emptyStructure}>
                 <Text size="2" color="gray">
-                  No {structure.name.toLowerCase()} items yet. Click &quot;Add {structure.name}&quot; to create the
-                  first one.
+                  No {fieldset.name.toLowerCase()} items yet. Click &quot;Add {fieldset.name}&quot; to create the first
+                  one.
                 </Text>
               </div>
             ) : (
               structureContent.map((_, index) => (
                 <Card key={index} className={styles.structureInstance}>
                   <div className={styles.instanceFields}>
-                    {structure.fields.map((field) => (
+                    {fieldset.fields.map((field) => (
                       <Box key={field.id} className={styles.field}>
                         <Text size="3" weight="medium" className={styles.fieldLabel}>
                           {field.label || 'Unlabeled Field'}
@@ -413,7 +406,7 @@ export const ComponentContentAuthoring = ({
                             <span className={styles.required}>*</span>
                           )}
                         </Text>
-                        {renderControlInput(field, structure.name, index)}
+                        {renderControlInput(field, fieldset.name, index)}
                       </Box>
                     ))}
                   </div>
@@ -421,7 +414,7 @@ export const ComponentContentAuthoring = ({
                     <Button
                       size="sm"
                       variant="danger-outline"
-                      onClick={() => handleRepeatableRemove(structure.name, index)}
+                      onClick={() => handleRepeatableRemove(fieldset.name, index)}
                     >
                       Remove
                     </Button>
@@ -431,8 +424,8 @@ export const ComponentContentAuthoring = ({
             )}
           </div>
           <Box className="mt-4 text-center">
-            <Button size="md" variant="primary" onClick={() => handleRepeatableAdd(structure.name)}>
-              + Add {structure.name}
+            <Button size="md" variant="primary" onClick={() => handleRepeatableAdd(fieldset.name)}>
+              + Add {fieldset.name}
             </Button>
           </Box>
         </Card>
@@ -460,16 +453,16 @@ export const ComponentContentAuthoring = ({
       )}
 
       {/* Repeatable Structures */}
-      {section.repeatableStructures && section.repeatableStructures.length > 0 && (
+      {section.fieldsets && section.fieldsets.length > 0 && (
         <div className={styles.repeatableStructures}>
-          {section.repeatableStructures.map((structure) => (
-            <div key={structure.id}>{renderRepeatableStructure(structure)}</div>
+          {section.fieldsets.map((fieldset) => (
+            <div key={fieldset.id}>{renderFieldsets(fieldset)}</div>
           ))}
         </div>
       )}
 
       {(!section.controls || section.controls.length === 0) &&
-        (!section.repeatableStructures || section.repeatableStructures.length === 0) && (
+        (!section.fieldsets || section.fieldsets.length === 0) && (
           <div className={styles.emptyControls}>
             <Text size="3" color="gray">
               No content defined in this section yet.
@@ -487,7 +480,7 @@ export const ComponentContentAuthoring = ({
   // Create tabs for the modal
   const tabs = sections.map((section) => {
     const controlsCount = (section.controls || []).length;
-    const structuresCount = (section.repeatableStructures || []).length;
+    const structuresCount = (section.fieldsets || []).length;
     const totalCount = controlsCount + structuresCount;
 
     return {

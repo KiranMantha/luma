@@ -248,17 +248,11 @@ export async function deleteControl(componentId: string, controlId: string): Pro
 export async function addSectionToComponent(
   componentId: string,
   name: string,
-  isRepeatable?: boolean,
-  minItems?: number,
-  maxItems?: number,
 ): Promise<{
   id: string;
   name: string;
   order: number;
   controls: ControlInstance[];
-  isRepeatable?: boolean;
-  minItems?: number;
-  maxItems?: number;
 }> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/components/${componentId}/sections`, {
@@ -268,9 +262,6 @@ export async function addSectionToComponent(
       },
       body: JSON.stringify({
         name,
-        isRepeatable: isRepeatable || false,
-        minItems: isRepeatable ? minItems || 0 : undefined,
-        maxItems: isRepeatable ? maxItems : undefined,
       }),
     });
 
@@ -339,7 +330,7 @@ export async function deleteSection(componentId: string, sectionId: string): Pro
 }
 
 // Repeatable structure management functions
-export async function addRepeatableStructureToSection(
+export async function addFieldsetToSection(
   componentId: string,
   sectionId: string,
   name: string,
@@ -352,7 +343,7 @@ export async function addRepeatableStructureToSection(
   order: number;
   fields: ControlInstance[];
 }> {
-  console.log('SERVER ACTION: addRepeatableStructureToSection called with:', {
+  console.log('SERVER ACTION: addFieldsetToSection called with:', {
     componentId,
     sectionId,
     name,
@@ -363,7 +354,7 @@ export async function addRepeatableStructureToSection(
   try {
     console.log(
       'SERVER ACTION: Making API call to:',
-      `${API_BASE_URL}/api/components/${componentId}/sections/${sectionId}/structures`,
+      `${API_BASE_URL}/api/components/${componentId}/sections/${sectionId}/fieldsets`,
     );
 
     const transformedControls = (controls || []).map((control) => {
@@ -403,7 +394,7 @@ export async function addRepeatableStructureToSection(
 
     console.log('SERVER ACTION: Sending payload:', payload);
 
-    const response = await fetch(`${API_BASE_URL}/api/components/${componentId}/sections/${sectionId}/structures`, {
+    const response = await fetch(`${API_BASE_URL}/api/components/${componentId}/sections/${sectionId}/fieldsets`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -412,7 +403,7 @@ export async function addRepeatableStructureToSection(
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to add repeatable structure: ${response.statusText}`);
+      throw new Error(`Failed to add fieldset: ${response.statusText}`);
     }
 
     const result = await response.json();
@@ -425,12 +416,12 @@ export async function addRepeatableStructureToSection(
 
     return result.data;
   } catch (error) {
-    console.error('Error adding repeatable structure:', error);
-    throw new Error('Failed to add repeatable structure');
+    console.error('Error adding fieldset:', error);
+    throw new Error('Failed to add fieldset');
   }
 }
 
-export async function updateRepeatableStructureInSection(
+export async function updateFieldsetInSection(
   componentId: string,
   sectionId: string,
   structureId: string,
@@ -444,7 +435,7 @@ export async function updateRepeatableStructureInSection(
   order: number;
   fields: ControlInstance[];
 }> {
-  console.log('SERVER ACTION: updateRepeatableStructureInSection called with:', {
+  console.log('SERVER ACTION: updateFieldsetInSection called with:', {
     componentId,
     sectionId,
     structureId,
@@ -494,7 +485,7 @@ export async function updateRepeatableStructureInSection(
     console.log('SERVER ACTION: Sending update payload:', payload);
 
     const response = await fetch(
-      `${API_BASE_URL}/api/components/${componentId}/sections/${sectionId}/structures/${structureId}`,
+      `${API_BASE_URL}/api/components/${componentId}/sections/${sectionId}/fieldsets/${structureId}`,
       {
         method: 'PUT',
         headers: {
@@ -505,7 +496,7 @@ export async function updateRepeatableStructureInSection(
     );
 
     if (!response.ok) {
-      throw new Error(`Failed to update repeatable structure: ${response.statusText}`);
+      throw new Error(`Failed to update fieldset: ${response.statusText}`);
     }
 
     const result = await response.json();
@@ -518,8 +509,8 @@ export async function updateRepeatableStructureInSection(
 
     return result.data;
   } catch (error) {
-    console.error('Error updating repeatable structure:', error);
-    throw new Error('Failed to update repeatable structure');
+    console.error('Error updating fieldset:', error);
+    throw new Error('Failed to update fieldset');
   }
 }
 
@@ -721,31 +712,31 @@ async function cleanupInstanceDataAfterStructureDeletion(componentId: string, st
   }
 }
 
-export async function deleteRepeatableStructureFromSection(
+export async function deleteFieldsetFromSection(
   componentId: string,
   sectionId: string,
-  structureId: string,
+  fieldsetId: string,
 ): Promise<void> {
   try {
     const response = await fetch(
-      `${API_BASE_URL}/api/components/${componentId}/sections/${sectionId}/structures/${structureId}`,
+      `${API_BASE_URL}/api/components/${componentId}/sections/${sectionId}/fieldsets/${fieldsetId}`,
       {
         method: 'DELETE',
       },
     );
 
     if (!response.ok) {
-      throw new Error(`Failed to delete repeatable structure: ${response.statusText}`);
+      throw new Error(`Failed to delete fieldset: ${response.statusText}`);
     }
 
-    // When deleting structures, we need to clean up any instance data that references them
-    await cleanupInstanceDataAfterStructureDeletion(componentId, structureId);
+    // When deleting fieldsets, we need to clean up any instance data that references them
+    await cleanupInstanceDataAfterStructureDeletion(componentId, fieldsetId);
 
     // Revalidate the page to show fresh data
     revalidatePath('/components');
     revalidatePath('/templates'); // Also revalidate templates since instances may have changed
   } catch (error) {
-    console.error('Error deleting repeatable structure:', error);
+    console.error('Error deleting fieldset:', error);
     throw error;
   }
 }

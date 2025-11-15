@@ -2,10 +2,10 @@
 
 import { createPage, deletePage, updatePage } from '@/actions';
 import type { Component, Page, Template } from '@repo/ui';
-import { Box, Button, Card, Flex, Text } from '@repo/ui';
+import { Box, Button, Card, Flex, PageBuilder, Text } from '@repo/ui';
 import { use, useState } from 'react';
+import { ComponentContentAuthoring } from '../templates/ComponentContentAuthoring';
 import { AddPageDialog } from './AddPageDialog';
-import { PageBuilder } from './PageBuilder';
 import styles from './PagesPage.module.scss';
 
 type PagesPageClientProps = {
@@ -108,6 +108,7 @@ export default function PagesPageClient({ initialPages, initialTemplates, initia
         page={selectedPage}
         components={components}
         selectedTemplate={selectedTemplate || undefined}
+        ComponentContentAuthoring={ComponentContentAuthoring}
         onSave={handleSavePage}
         onCancel={handleCancelEdit}
       />

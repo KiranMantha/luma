@@ -1,16 +1,23 @@
 'use client';
 
-import type { Component, ComponentInstance, Page, Template, TemplateZone } from '@repo/ui';
-import { Button, createDefaultPageZones, Flex, Text, validateZonePlacement } from '@repo/ui';
 import { DragEvent, useState } from 'react';
-import { ComponentContentAuthoring } from '../templates/ComponentContentAuthoring';
-import styles from './PageBuilder.module.scss';
+import { Button, Flex, Text } from '../../atoms';
+import type { Component, ComponentInstance, Template } from '../ComponentBuilder/models';
+import {
+  createDefaultZones,
+  TEMPLATE_LAYOUTS,
+  TemplateLayout,
+  TemplateZone,
+  validateZonePlacement,
+} from '../ComponentBuilder/zones';
+import type { ComponentContentAuthoringProps } from '../ComponentContentAuthoring/ComponentContentAuthoring.model';
+import styles from './TemplateBuilder.module.scss';
 
-type PageBuilderProps = {
-  page: Page;
+type TemplateBuilderProps = {
+  template: Template;
   components: Component[];
-  selectedTemplate?: Template;
-  onSave: (page: Page) => Promise<void>;
+  ComponentContentAuthoring: React.ComponentType<ComponentContentAuthoringProps>;
+  onSave: (template: Template) => Promise<void>;
   onCancel: () => void;
 };
 
@@ -19,9 +26,16 @@ type DraggedComponent = {
   sourceZoneId?: string; // For moving between zones
 };
 
-export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCancel }: PageBuilderProps) => {
-  // Initialize zones - either from page or create default ones
-  const initialZones = page.zones || createDefaultPageZones();
+export const TemplateBuilder = ({
+  template,
+  components,
+  ComponentContentAuthoring,
+  onSave,
+  onCancel,
+}: TemplateBuilderProps) => {
+  // Initialize zones - either from template or create default ones
+  const initialLayout: TemplateLayout = template.layout || 'header-footer';
+  const initialZones = template.zones || createDefaultZones(initialLayout);
 
   // Ensure all component instances have unique IDs
   const zonesWithIds = initialZones.map((zone) => ({
@@ -32,39 +46,22 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
     })),
   }));
 
-  const [pageState, setPageState] = useState<Page>({
-    ...page,
+  const [templateState, setTemplateState] = useState<Template>({
+    ...template,
+    layout: initialLayout,
     zones: zonesWithIds,
   });
   const [draggedComponent, setDraggedComponent] = useState<DraggedComponent | null>(null);
+  const [selectedLayout] = useState<TemplateLayout>(initialLayout);
   const [editingInstance, setEditingInstance] = useState<ComponentInstance | null>(null);
   const [isAuthoringOpen, setIsAuthoringOpen] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Get components used in the selected template to exclude them
-  const getTemplateComponentIds = (): Set<string> => {
-    const templateComponentIds = new Set<string>();
-
-    if (selectedTemplate?.zones) {
-      selectedTemplate.zones.forEach((zone) => {
-        zone.componentInstances.forEach((instance) => {
-          templateComponentIds.add(instance.componentId);
-        });
-      });
-    }
-
-    return templateComponentIds;
-  };
-
-  // Filter available components (exclude those used in template)
-  const getAvailableComponents = () => {
-    const templateComponentIds = getTemplateComponentIds();
-    return components.filter((component) => !templateComponentIds.has(component.id));
-  };
-
-  // Track which components have been used in the page (single-use logic)
+  // Track which components have been used (single-use logic)
   const getUsedComponents = () => {
     const used = new Set<string>();
-    pageState.zones?.forEach((zone) => {
+    templateState.zones?.forEach((zone) => {
       zone.componentInstances.forEach((instance) => {
         used.add(instance.componentId);
       });
@@ -76,15 +73,15 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
     setDraggedComponent({ component, sourceZoneId });
   };
 
-  const handleZoneDrop = (targetZoneId: string, e: React.DragEvent) => {
+  const handleZoneDrop = (targetZoneId: string, e: DragEvent) => {
     e.preventDefault();
 
     if (!draggedComponent) return;
 
-    const targetZone = pageState.zones?.find((z) => z.id === targetZoneId);
+    const targetZone = templateState.zones?.find((z) => z.id === targetZoneId);
     if (!targetZone) return;
 
-    // Prevent dropping in locked zones
+    // Prevent dropping in locked zones (like body placeholder)
     if (targetZone.policy.locked) {
       alert('This zone is locked and cannot accept components');
       return;
@@ -111,7 +108,7 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
       return;
     }
 
-    setPageState((prev) => {
+    setTemplateState((prev) => {
       const newZones =
         prev.zones?.map((zone) => {
           if (zone.id === targetZoneId) {
@@ -151,7 +148,7 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
   };
 
   const handleInstanceDelete = (zoneId: string, instanceId: string) => {
-    setPageState((prev) => ({
+    setTemplateState((prev) => ({
       ...prev,
       zones:
         prev.zones?.map((zone) =>
@@ -170,66 +167,112 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
     setIsAuthoringOpen(true);
   };
 
-  const handleContentSave = (instanceId: string, content: Record<string, unknown>) => {
-    setPageState((prev) => ({
+  const handleContentSave = async (instanceId: string, content: Record<string, unknown>) => {
+    // Update the local template state immediately with the new content
+    setTemplateState((prev) => ({
       ...prev,
-      zones: prev.zones.map((zone) => ({
-        ...zone,
-        componentInstances: zone.componentInstances.map((instance) =>
-          instance.id === instanceId ? { ...instance, config: content } : instance,
-        ),
-      })),
+      zones:
+        prev.zones?.map((zone) => ({
+          ...zone,
+          componentInstances: zone.componentInstances.map((instance) =>
+            instance.id === instanceId ? { ...instance, config: content } : instance,
+          ),
+        })) || [],
     }));
+
+    // Optionally refresh from API to get any other updates, but preserve the content we just saved
+    try {
+      const response = await fetch(`http://localhost:3002/api/templates/${templateState.id}`);
+      if (response.ok) {
+        const updatedTemplate = await response.json();
+
+        // Update template state but ensure we keep the content we just saved
+        setTemplateState((prev) => ({
+          ...updatedTemplate,
+          zones:
+            updatedTemplate.zones?.map((zone: TemplateZone) => ({
+              ...zone,
+              componentInstances:
+                zone.componentInstances?.map((instance: ComponentInstance) => {
+                  // Find the corresponding instance in our current state
+                  const currentZone = prev.zones?.find((z) => z.id === zone.id);
+                  const currentInstance = currentZone?.componentInstances.find((i) => i.id === instance.id);
+
+                  return {
+                    ...instance,
+                    config: currentInstance?.config || instance.config || {},
+                  };
+                }) || [],
+            })) || [],
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to refresh template state:', error);
+      // No need for fallback since we already updated the state above
+    }
+
     setEditingInstance(null);
     setIsAuthoringOpen(false);
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       // Clean zones - remove unnecessary fields from component instances
       const cleanZones =
-        pageState.zones?.map((zone) => ({
+        templateState.zones?.map((zone) => ({
           ...zone,
-          componentInstances: zone.componentInstances.map((instance) => ({
-            componentId: instance.componentId,
-            config: { ...instance.config },
-            order: instance.order,
-          })),
+          componentInstances: zone.componentInstances.map((instance) => {
+            return {
+              componentId: instance.componentId,
+              config: { ...instance.config },
+              order: instance.order,
+            };
+          }),
         })) || [];
 
-      const updatedPage = {
-        ...pageState,
+      const updatedTemplate = {
+        id: templateState.id,
+        name: templateState.name,
+        description: templateState.description,
+        layout: templateState.layout,
         zones: cleanZones,
-      } as Page;
+        metadata: {},
+      } as Template;
 
-      await onSave(updatedPage);
+      await onSave(updatedTemplate);
+      setHasUnsavedChanges(false); // Clear unsaved changes flag
+      alert('Template saved successfully!');
     } catch (error) {
-      console.error('Error saving page:', error);
+      console.error('Error saving template:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      alert(`Failed to save page: ${errorMessage}`);
+      alert(`Failed to save template: ${errorMessage}`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const availableComponents = getAvailableComponents();
-
   return (
-    <div className={styles.pageBuilder}>
+    <div className={styles.templateBuilder}>
       {/* Header */}
       <div className={styles.header}>
         <div>
           <Text size="5" weight="bold">
-            Page Builder: {page.name}
+            Template Builder: {template.name}
           </Text>
           <Text size="2" color="gray">
-            {selectedTemplate ? `Using template: ${selectedTemplate.name}` : 'Blank page with body content only'}
+            Zone-based layout system {hasUnsavedChanges && '• Unsaved changes'}
           </Text>
         </div>
         <Flex gap="3" align="center">
+          <div className={styles.layoutSelector}>
+            <Text size="2">Layout: Header + Footer</Text>
+          </div>
           <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleSave}>
-            Save Page
+          <Button variant="primary" onClick={handleSave} disabled={isSaving}>
+            {isSaving ? 'Saving...' : hasUnsavedChanges ? '💾 Save Template*' : 'Save Template'}
           </Button>
         </Flex>
       </div>
@@ -238,53 +281,49 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
         {/* Component Palette */}
         <div className={styles.palette}>
           <Text size="3" weight="medium" className={styles.paletteTitle}>
-            Available Components
+            Components
           </Text>
-          {selectedTemplate && (
-            <Text size="1" color="gray" className="mb-3">
-              Components used in template are excluded
-            </Text>
-          )}
           <div className={styles.componentList}>
-            {availableComponents.length === 0 ? (
-              <Text size="2" color="gray">
-                No components available.
-                {selectedTemplate ? ' All components are used in the selected template.' : ' Create components first.'}
-              </Text>
-            ) : (
-              availableComponents.map((component) => {
-                const usedComponents = getUsedComponents();
-                const isUsed = usedComponents.has(component.id);
+            {components.map((component) => {
+              const usedComponents = getUsedComponents();
+              const isUsed = usedComponents.has(component.id);
 
-                return (
-                  <div
-                    key={component.id}
-                    className={`${styles.componentCard} ${isUsed ? styles.componentUsed : ''}`}
-                    draggable={!isUsed}
-                    onDragStart={() => !isUsed && handleDragStart(component)}
-                    title={
-                      isUsed ? 'Component already used - remove it first to reuse' : 'Drag to body zone to add to page'
-                    }
-                  >
-                    <Text size="2" weight="medium" color={isUsed ? 'gray' : undefined}>
-                      {component.name} {isUsed && '✓'}
+              return (
+                <div
+                  key={component.id}
+                  className={`${styles.componentCard} ${isUsed ? styles.componentUsed : ''}`}
+                  draggable={!isUsed}
+                  onDragStart={() => !isUsed && handleDragStart(component)}
+                  title={
+                    isUsed
+                      ? 'Component already used - remove it first to reuse'
+                      : 'Drag to any zone - you decide where it belongs!'
+                  }
+                >
+                  <Text size="2" weight="medium" color={isUsed ? 'gray' : undefined}>
+                    {component.name} {isUsed && '✓'}
+                  </Text>
+                  {component.description && (
+                    <Text size="1" color="gray">
+                      {component.description}
                     </Text>
-                    {component.description && (
-                      <Text size="1" color="gray">
-                        {component.description}
-                      </Text>
-                    )}
-                  </div>
-                );
-              })
-            )}
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Zone Workspace */}
         <div className={styles.zoneWorkspace}>
-          <div className={styles.layoutGrid}>
-            {pageState.zones?.map((zone) => (
+          <div
+            className={styles.layoutGrid}
+            style={{
+              gridTemplateAreas: TEMPLATE_LAYOUTS[selectedLayout].gridTemplateAreas,
+              gridTemplateRows: TEMPLATE_LAYOUTS[selectedLayout].gridTemplateRows,
+            }}
+          >
+            {templateState.zones?.map((zone) => (
               <ZoneDropArea
                 key={zone.id}
                 zone={zone}
@@ -304,7 +343,8 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
         onOpenChange={setIsAuthoringOpen}
         componentInstance={editingInstance}
         component={editingInstance ? components.find((c) => c.id === editingInstance.componentId) || null : null}
-        onSave={handleContentSave}
+        template={templateState}
+        onContentSaved={handleContentSave}
       />
     </div>
   );
@@ -313,7 +353,7 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
 type ZoneDropAreaProps = {
   zone: TemplateZone;
   components: Component[];
-  onDrop: (e: DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
   onInstanceDelete: (instanceId: string) => void;
   onInstanceClick: (instance: ComponentInstance) => void;
 };
@@ -321,7 +361,7 @@ type ZoneDropAreaProps = {
 const ZoneDropArea = ({ zone, components, onDrop, onInstanceDelete, onInstanceClick }: ZoneDropAreaProps) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const handleDragOver = (e: DragEvent) => {
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(true);
   };
@@ -330,14 +370,33 @@ const ZoneDropArea = ({ zone, components, onDrop, onInstanceDelete, onInstanceCl
     setIsDragOver(false);
   };
 
-  const handleDrop = (e: DragEvent) => {
+  const handleDrop = (e: React.DragEvent) => {
     setIsDragOver(false);
     onDrop(e);
   };
 
+  const getZoneTypeColor = (zone: TemplateZone) => {
+    const colors: Record<string, string> = {
+      header: 'border-blue-200 bg-blue-50',
+      hero: 'border-purple-200 bg-purple-50',
+      content: 'border-green-200 bg-green-50',
+      sidebar: 'border-yellow-200 bg-yellow-50',
+      footer: 'border-gray-200 bg-gray-50',
+      custom: 'border-pink-200 bg-pink-50',
+    };
+
+    // Special styling for locked body placeholder
+    if (zone.policy.locked && zone.name === 'Body') {
+      return 'border-gray-300 bg-gray-100';
+    }
+
+    return colors[zone.type] || colors.custom;
+  };
+
   return (
     <div
-      className={`${styles.zoneArea} ${isDragOver ? styles.dragOver : ''} border-green-200 bg-green-50`}
+      className={`${styles.zoneArea} ${isDragOver ? styles.dragOver : ''} ${getZoneTypeColor(zone)}`}
+      style={{ gridArea: zone.gridArea || zone.type }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -356,7 +415,7 @@ const ZoneDropArea = ({ zone, components, onDrop, onInstanceDelete, onInstanceCl
         {zone.componentInstances.length === 0 ? (
           <div className={styles.emptyZone}>
             <Text size="2" color="gray">
-              Drop components here
+              {zone.policy.locked ? 'Reserved for page content' : 'Drop components here'}
             </Text>
             <Text size="1" color="gray">
               {zone.description || `Add ${zone.type} components`}
@@ -372,7 +431,7 @@ const ZoneDropArea = ({ zone, components, onDrop, onInstanceDelete, onInstanceCl
                     <Text size="2">{component?.name || 'Unknown'}</Text>
                   </div>
                   <div className={styles.instanceActions}>
-                    <Button size="sm" variant="primary-outline" color="blue" onClick={() => onInstanceClick(instance)}>
+                    <Button size="sm" variant="primary-outline" onClick={() => onInstanceClick(instance)}>
                       Edit
                     </Button>
                     <Button

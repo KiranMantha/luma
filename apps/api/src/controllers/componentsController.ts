@@ -3,18 +3,11 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { nanoid } from 'nanoid';
 import { db } from '../db';
-import {
-  componentControls,
-  components,
-  componentSections,
-  repeatableStructureFields,
-  repeatableStructures,
-  templates,
-} from '../db/schema';
+import { componentControls, components, componentSections, fieldsetFields, fieldsets, templates } from '../db/schema';
 import type {
   CreateComponentControlRequest,
   CreateComponentRequest,
-  CreateRepeatableStructureRequest,
+  CreateFieldsetRequest,
   UpdateComponentControlRequest,
   UpdateComponentRequest,
 } from '../types/component';
@@ -82,23 +75,23 @@ export const getAllComponents = async (ctx: Context) => {
       if (sections.length > 0) {
         const sectionsWithControls = await Promise.all(
           sections.map(async (section) => {
-            // Get repeatable structures for this section
-            const structures = await db
+            // Get fieldsets for this section
+            const fieldsetList = await db
               .select()
-              .from(repeatableStructures)
-              .where(eq(repeatableStructures.sectionId, section.id))
-              .orderBy(repeatableStructures.orderIndex);
+              .from(fieldsets)
+              .where(eq(fieldsets.sectionId, section.id))
+              .orderBy(fieldsets.orderIndex);
 
-            const structuresWithFields = await Promise.all(
-              structures.map(async (structure) => {
+            const fieldsetsWithFields = await Promise.all(
+              fieldsetList.map(async (fieldset) => {
                 const fields = await db
                   .select()
-                  .from(repeatableStructureFields)
-                  .where(eq(repeatableStructureFields.structureId, structure.id))
-                  .orderBy(repeatableStructureFields.orderIndex);
+                  .from(fieldsetFields)
+                  .where(eq(fieldsetFields.fieldsetId, fieldset.id))
+                  .orderBy(fieldsetFields.orderIndex);
 
                 return {
-                  ...structure,
+                  ...fieldset,
                   fields: fields.map((field) => ({
                     ...field,
                     config: field.config ? JSON.parse(field.config) : {},
@@ -112,7 +105,7 @@ export const getAllComponents = async (ctx: Context) => {
               name: section.name,
               order: section.orderIndex,
               controls: parsedControls.filter((control) => control.sectionId === section.id),
-              repeatableStructures: structuresWithFields,
+              fieldsets: fieldsetsWithFields,
             };
           }),
         );
@@ -166,25 +159,25 @@ export const getAvailableComponentsForPages = async (ctx: Context) => {
         config: control.config ? JSON.parse(control.config) : {},
       }));
 
-      // If component has sections, organize controls by section and include repeatable structures
+      // If component has sections, organize controls by section and include Fieldsets
       if (sections.length > 0) {
         const sectionsWithControls = await Promise.all(
           sections.map(async (section) => {
-            // Get repeatable structures for this section
+            // Get Fieldsets for this section
             const structures = await db
               .select()
-              .from(repeatableStructures)
-              .where(eq(repeatableStructures.sectionId, section.id))
-              .orderBy(repeatableStructures.orderIndex);
+              .from(fieldsets)
+              .where(eq(fieldsets.sectionId, section.id))
+              .orderBy(fieldsets.orderIndex);
 
             // Get fields for each structure
             const structuresWithFields = await Promise.all(
               structures.map(async (structure) => {
                 const fields = await db
                   .select()
-                  .from(repeatableStructureFields)
-                  .where(eq(repeatableStructureFields.structureId, structure.id))
-                  .orderBy(repeatableStructureFields.orderIndex);
+                  .from(fieldsetFields)
+                  .where(eq(fieldsetFields.fieldsetId, structure.id))
+                  .orderBy(fieldsetFields.orderIndex);
 
                 return {
                   ...structure,
@@ -201,7 +194,7 @@ export const getAvailableComponentsForPages = async (ctx: Context) => {
               name: section.name,
               order: section.orderIndex,
               controls: parsedControls.filter((control) => control.sectionId === section.id),
-              repeatableStructures: structuresWithFields,
+              fieldsets: structuresWithFields,
             };
           }),
         );
@@ -249,25 +242,25 @@ export const getAllComponentsForTemplates = async (ctx: Context) => {
         config: control.config ? JSON.parse(control.config) : {},
       }));
 
-      // If component has sections, organize controls by section and include repeatable structures
+      // If component has sections, organize controls by section and include Fieldsets
       if (sections.length > 0) {
         const sectionsWithControls = await Promise.all(
           sections.map(async (section) => {
-            // Get repeatable structures for this section
+            // Get Fieldsets for this section
             const structures = await db
               .select()
-              .from(repeatableStructures)
-              .where(eq(repeatableStructures.sectionId, section.id))
-              .orderBy(repeatableStructures.orderIndex);
+              .from(fieldsets)
+              .where(eq(fieldsets.sectionId, section.id))
+              .orderBy(fieldsets.orderIndex);
 
             // Get fields for each structure
             const structuresWithFields = await Promise.all(
               structures.map(async (structure) => {
                 const fields = await db
                   .select()
-                  .from(repeatableStructureFields)
-                  .where(eq(repeatableStructureFields.structureId, structure.id))
-                  .orderBy(repeatableStructureFields.orderIndex);
+                  .from(fieldsetFields)
+                  .where(eq(fieldsetFields.fieldsetId, structure.id))
+                  .orderBy(fieldsetFields.orderIndex);
 
                 return {
                   ...structure,
@@ -284,7 +277,7 @@ export const getAllComponentsForTemplates = async (ctx: Context) => {
               name: section.name,
               order: section.orderIndex,
               controls: parsedControls.filter((control) => control.sectionId === section.id),
-              repeatableStructures: structuresWithFields,
+              fieldsets: structuresWithFields,
             };
           }),
         );
@@ -343,20 +336,20 @@ export const getComponentById = async (ctx: Context) => {
   if (sections.length > 0) {
     const sectionsWithControls = await Promise.all(
       sections.map(async (section) => {
-        // Get repeatable structures for this section
+        // Get Fieldsets for this section
         const structures = await db
           .select()
-          .from(repeatableStructures)
-          .where(eq(repeatableStructures.sectionId, section.id))
-          .orderBy(repeatableStructures.orderIndex);
+          .from(fieldsets)
+          .where(eq(fieldsets.sectionId, section.id))
+          .orderBy(fieldsets.orderIndex);
 
         const structuresWithFields = await Promise.all(
           structures.map(async (structure) => {
             const fields = await db
               .select()
-              .from(repeatableStructureFields)
-              .where(eq(repeatableStructureFields.structureId, structure.id))
-              .orderBy(repeatableStructureFields.orderIndex);
+              .from(fieldsetFields)
+              .where(eq(fieldsetFields.fieldsetId, structure.id))
+              .orderBy(fieldsetFields.orderIndex);
 
             return {
               ...structure,
@@ -373,7 +366,7 @@ export const getComponentById = async (ctx: Context) => {
           name: section.name,
           order: section.orderIndex,
           controls: parsedControls.filter((control) => control.sectionId === section.id),
-          repeatableStructures: structuresWithFields,
+          fieldsets: structuresWithFields,
         };
       }),
     );
@@ -709,11 +702,11 @@ export const deleteComponentSection = async (ctx: Context) => {
   return successResponse(ctx, { message: 'Section deleted successfully' }, 200);
 };
 
-// Repeatable structure management functions
-export const addRepeatableStructureToSection = async (ctx: Context) => {
+// Fieldset management functions
+export const addFieldsetToSection = async (ctx: Context) => {
   const componentId = ctx.req.param('id');
   const sectionId = ctx.req.param('sectionId');
-  const data: CreateRepeatableStructureRequest = await ctx.req.json();
+  const data: CreateFieldsetRequest = await ctx.req.json();
   const { name, description, controls } = data;
 
   // Verify the section exists and belongs to the component
@@ -728,33 +721,32 @@ export const addRepeatableStructureToSection = async (ctx: Context) => {
     throw new HTTPException(404, { message: 'Section not found' });
   }
 
-  // Get current structures count for order
-  const existingStructures = await db
-    .select()
-    .from(repeatableStructures)
-    .where(eq(repeatableStructures.sectionId, sectionId));
+  // Get current fieldsets count for order
+  const existingFieldsets = await db.select().from(fieldsets).where(eq(fieldsets.sectionId, sectionId));
 
-  // Create the repeatable structure
-  const structureId = nanoid();
+  // Create the fieldset
+  const fieldsetId = nanoid();
 
-  await db.insert(repeatableStructures).values({
-    id: structureId,
+  await db.insert(fieldsets).values({
+    id: fieldsetId,
     sectionId,
     name,
     description,
-    orderIndex: existingStructures.length,
+    orderIndex: existingFieldsets.length,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
 
-  // Create the structure fields
+  // Create the fieldset fields
   for (let i = 0; i < controls.length; i++) {
     const control = controls[i];
+    if (!control) continue;
+
     const fieldId = nanoid();
 
-    await db.insert(repeatableStructureFields).values({
+    await db.insert(fieldsetFields).values({
       id: fieldId,
-      structureId,
+      fieldsetId: fieldsetId,
       name: control.name,
       type: control.type,
       label: control.label,
@@ -769,18 +761,18 @@ export const addRepeatableStructureToSection = async (ctx: Context) => {
   // Fetch the complete structure with fields
   const newStructure = await db
     .select()
-    .from(repeatableStructures)
-    .where(eq(repeatableStructures.id, structureId))
+    .from(fieldsets)
+    .where(eq(fieldsets.id, fieldsetId))
     .limit(1)
     .then((rows) => rows[0]);
 
   const fields = await db
     .select()
-    .from(repeatableStructureFields)
-    .where(eq(repeatableStructureFields.structureId, structureId))
-    .orderBy(repeatableStructureFields.orderIndex);
+    .from(fieldsetFields)
+    .where(eq(fieldsetFields.fieldsetId, fieldsetId))
+    .orderBy(fieldsetFields.orderIndex);
 
-  const structureData = {
+  const fieldsetData = {
     ...newStructure,
     fields: fields.map((field) => ({
       ...field,
@@ -788,26 +780,26 @@ export const addRepeatableStructureToSection = async (ctx: Context) => {
     })),
   };
 
-  return successResponse(ctx, structureData, 201);
+  return successResponse(ctx, fieldsetData, 201);
 };
 
-export const updateRepeatableStructure = async (ctx: Context) => {
+export const updateFieldset = async (ctx: Context) => {
   const componentId = ctx.req.param('id');
   const sectionId = ctx.req.param('sectionId');
-  const structureId = ctx.req.param('structureId');
-  const data: CreateRepeatableStructureRequest = await ctx.req.json();
+  const fieldsetId = ctx.req.param('fieldsetId');
+  const data: CreateFieldsetRequest = await ctx.req.json();
   const { name, description, controls } = data;
 
   // Verify the structure exists and belongs to the correct section/component
-  const existingStructure = await db
+  const existingFieldset = await db
     .select()
-    .from(repeatableStructures)
-    .where(eq(repeatableStructures.id, structureId))
+    .from(fieldsets)
+    .where(eq(fieldsets.id, fieldsetId))
     .limit(1)
     .then((rows) => rows[0]);
 
-  if (!existingStructure || existingStructure.sectionId !== sectionId) {
-    throw new HTTPException(404, { message: 'Repeatable structure not found' });
+  if (!existingFieldset || existingFieldset.sectionId !== sectionId) {
+    throw new HTTPException(404, { message: 'Fieldset not found' });
   }
 
   // Verify the section belongs to the component
@@ -822,27 +814,29 @@ export const updateRepeatableStructure = async (ctx: Context) => {
     throw new HTTPException(404, { message: 'Section not found' });
   }
 
-  // Update the repeatable structure
+  // Update the Fieldset
   await db
-    .update(repeatableStructures)
+    .update(fieldsets)
     .set({
       name,
       description,
       updatedAt: new Date().toISOString(),
     })
-    .where(eq(repeatableStructures.id, structureId));
+    .where(eq(fieldsets.id, fieldsetId));
 
   // Delete existing fields and create new ones
-  await db.delete(repeatableStructureFields).where(eq(repeatableStructureFields.structureId, structureId));
+  await db.delete(fieldsetFields).where(eq(fieldsetFields.fieldsetId, fieldsetId));
 
   // Create the updated structure fields
   for (let i = 0; i < controls.length; i++) {
     const control = controls[i];
+    if (!control) continue;
+
     const fieldId = nanoid();
 
-    await db.insert(repeatableStructureFields).values({
+    await db.insert(fieldsetFields).values({
       id: fieldId,
-      structureId,
+      fieldsetId,
       name: control.name,
       type: control.type,
       label: control.label,
@@ -855,45 +849,45 @@ export const updateRepeatableStructure = async (ctx: Context) => {
   }
 
   // Fetch the updated structure with fields
-  const updatedStructure = await db
+  const updatedFieldset = await db
     .select()
-    .from(repeatableStructures)
-    .where(eq(repeatableStructures.id, structureId))
+    .from(fieldsets)
+    .where(eq(fieldsets.id, fieldsetId))
     .limit(1)
     .then((rows) => rows[0]);
 
   const fields = await db
     .select()
-    .from(repeatableStructureFields)
-    .where(eq(repeatableStructureFields.structureId, structureId))
-    .orderBy(repeatableStructureFields.orderIndex);
+    .from(fieldsetFields)
+    .where(eq(fieldsetFields.fieldsetId, fieldsetId))
+    .orderBy(fieldsetFields.orderIndex);
 
-  const structureData = {
-    ...updatedStructure,
+  const fieldsetData = {
+    ...updatedFieldset,
     fields: fields.map((field) => ({
       ...field,
       config: field.config ? JSON.parse(field.config) : {},
     })),
   };
 
-  return successResponse(ctx, structureData, 200);
+  return successResponse(ctx, fieldsetData, 200);
 };
 
-export const deleteRepeatableStructure = async (ctx: Context) => {
+export const deleteFieldset = async (ctx: Context) => {
   const componentId = ctx.req.param('id');
   const sectionId = ctx.req.param('sectionId');
-  const structureId = ctx.req.param('structureId');
+  const fieldsetId = ctx.req.param('fieldsetId');
 
-  // Verify the structure exists and belongs to the correct section/component
-  const existingStructure = await db
+  // Verify the fieldset exists and belongs to the correct section/component
+  const existingFieldset = await db
     .select()
-    .from(repeatableStructures)
-    .where(eq(repeatableStructures.id, structureId))
+    .from(fieldsets)
+    .where(eq(fieldsets.id, fieldsetId))
     .limit(1)
     .then((rows) => rows[0]);
 
-  if (!existingStructure || existingStructure.sectionId !== sectionId) {
-    throw new HTTPException(404, { message: 'Repeatable structure not found' });
+  if (!existingFieldset || existingFieldset.sectionId !== sectionId) {
+    throw new HTTPException(404, { message: 'Fieldset not found' });
   }
 
   // Verify the section belongs to the component
@@ -908,8 +902,8 @@ export const deleteRepeatableStructure = async (ctx: Context) => {
     throw new HTTPException(404, { message: 'Section not found' });
   }
 
-  // Delete the repeatable structure (fields will be cascade deleted)
-  await db.delete(repeatableStructures).where(eq(repeatableStructures.id, structureId));
+  // Delete the Fieldset (fields will be cascade deleted)
+  await db.delete(fieldsets).where(eq(fieldsets.id, fieldsetId));
 
-  return successResponse(ctx, { message: 'Repeatable structure deleted successfully' }, 200);
+  return successResponse(ctx, { message: 'Fieldset deleted successfully' }, 200);
 };

@@ -39,7 +39,7 @@ export const componentSections = sqliteTable('component_sections', {
 });
 
 // Repeatable structures within component sections
-export const repeatableStructures = sqliteTable('repeatable_structures', {
+export const fieldsets = sqliteTable('fieldsets', {
   id: text('id').primaryKey(),
   sectionId: text('section_id')
     .notNull()
@@ -52,11 +52,11 @@ export const repeatableStructures = sqliteTable('repeatable_structures', {
 });
 
 // Controls within repeatable structures (fields that define the structure)
-export const repeatableStructureFields = sqliteTable('repeatable_structure_fields', {
+export const fieldsetFields = sqliteTable('fieldset_fields', {
   id: text('id').primaryKey(),
-  structureId: text('structure_id')
+  fieldsetId: text('fieldset_id')
     .notNull()
-    .references(() => repeatableStructures.id, { onDelete: 'cascade' }),
+    .references(() => fieldsets.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   type: text('type').notNull(), // Control type (TEXT, NUMBER, etc.)
   label: text('label').notNull(),
@@ -117,10 +117,10 @@ export type ComponentControl = typeof componentControls.$inferSelect;
 export type NewComponentControl = typeof componentControls.$inferInsert;
 export type ComponentSection = typeof componentSections.$inferSelect;
 export type NewComponentSection = typeof componentSections.$inferInsert;
-export type RepeatableStructure = typeof repeatableStructures.$inferSelect;
-export type NewRepeatableStructure = typeof repeatableStructures.$inferInsert;
-export type RepeatableStructureField = typeof repeatableStructureFields.$inferSelect;
-export type NewRepeatableStructureField = typeof repeatableStructureFields.$inferInsert;
+export type Fieldset = typeof fieldsets.$inferSelect;
+export type NewFieldset = typeof fieldsets.$inferInsert;
+export type FieldsetField = typeof fieldsetFields.$inferSelect;
+export type NewFieldsetField = typeof fieldsetFields.$inferInsert;
 export type Team = typeof teams.$inferSelect;
 export type NewTeam = typeof teams.$inferInsert;
 export type Folder = typeof folders.$inferSelect;

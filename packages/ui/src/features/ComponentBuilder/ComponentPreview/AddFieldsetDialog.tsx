@@ -1,28 +1,28 @@
 import { Box, Button, Flex, Input, Text } from '#atoms';
-import { Card, Modal } from '#molecules';
+import { Modal } from '#molecules';
 import { FormEvent, useCallback, useEffect, useState } from 'react';
-import type { ControlInstance, RepeatableStructure } from '../models';
+import type { ControlInstance, Fieldset } from '../models';
 import { CONTROL_METADATA, ControlType } from './ComponentPreview.model';
 
-export type AddRepeatableStructureDialogProps = {
+export type AddFieldsetDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddRepeatableStructure: (name: string, description?: string, controls?: ControlInstance[]) => void;
+  onAddFieldset: (name: string, description?: string, controls?: ControlInstance[]) => void;
   onRequestAddControl?: () => void; // Callback to request parent to open add control dialog
-  editingStructure?: RepeatableStructure | null; // Structure to edit, null for create mode
+  editingStructure?: Fieldset | null; // Fieldset to edit, null for create mode
 };
 
-export type AddRepeatableStructureDialogRef = {
+export type AddFieldsetDialogRef = {
   addControl: (controlType: ControlType, config: Record<string, unknown>) => void;
 };
 
-export const AddRepeatableStructureDialog = ({
+export const AddFieldsetDialog = ({
   open,
   onOpenChange,
-  onAddRepeatableStructure,
+  onAddFieldset,
   onRequestAddControl,
   editingStructure,
-}: AddRepeatableStructureDialogProps) => {
+}: AddFieldsetDialogProps) => {
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -50,17 +50,17 @@ export const AddRepeatableStructureDialog = ({
     const trimmedName = name.trim();
 
     if (!trimmedName) {
-      setError('Structure name is required');
+      setError('Fieldset name is required');
       return;
     }
 
     if (trimmedName.length < 2) {
-      setError('Structure name must be at least 2 characters');
+      setError('Fieldset name must be at least 2 characters');
       return;
     }
 
     if (trimmedName.length > 50) {
-      setError('Structure name must be less than 50 characters');
+      setError('Fieldset name must be less than 50 characters');
       return;
     }
 
@@ -69,12 +69,8 @@ export const AddRepeatableStructureDialog = ({
       setStep(2);
       setError('');
     } else {
-      // Step 2 - Create the structure (this happens when user clicks "Create Structure")
-      onAddRepeatableStructure(
-        trimmedName,
-        description.trim() || undefined,
-        controls.length > 0 ? controls : undefined,
-      );
+      // Step 2 - Create the fieldset (this happens when user clicks "Create Fieldset")
+      onAddFieldset(trimmedName, description.trim() || undefined, controls.length > 0 ? controls : undefined);
 
       // Reset form
       setName('');
@@ -99,7 +95,7 @@ export const AddRepeatableStructureDialog = ({
     setControls(controls.filter((c) => c.id !== controlId));
   };
 
-  // Add a method that parent can call to add a control
+  // Add a method that parent can call to add a control to this fieldset
   const addControl = useCallback(
     (controlType: ControlType, config: Record<string, unknown>) => {
       const newControl: ControlInstance = {
@@ -113,23 +109,30 @@ export const AddRepeatableStructureDialog = ({
       setControls((prev) => [...prev, newControl]);
     },
     [controls.length],
-  ); // Expose addControl method to window for parent access (temporary approach)
+  );
+
+  // Expose addControl method to window for parent access (temporary approach)
   useEffect(() => {
     if (open) {
-      (window as unknown as Record<string, unknown>).addControlToRepeatableStructure = addControl;
+      (window as unknown as Record<string, unknown>).addControlToFieldset = addControl;
     } else {
-      delete (window as unknown as Record<string, unknown>).addControlToRepeatableStructure;
+      delete (window as unknown as Record<string, unknown>).addControlToFieldset;
     }
 
     return () => {
-      delete (window as unknown as Record<string, unknown>).addControlToRepeatableStructure;
+      delete (window as unknown as Record<string, unknown>).addControlToFieldset;
     };
   }, [open, addControl]);
   return (
     <Modal
-      title={editingStructure 
-        ? (step === 1 ? 'Edit Repeatable Structure' : 'Edit Controls')
-        : (step === 1 ? 'Add Repeatable Structure' : 'Add Controls')
+      title={
+        editingStructure
+          ? step === 1
+            ? 'Edit Fieldset'
+            : 'Edit Controls'
+          : step === 1
+            ? 'Add Fieldset'
+            : 'Add Controls'
       }
       open={open}
       size="lg"
@@ -139,7 +142,7 @@ export const AddRepeatableStructureDialog = ({
         <Box as="form" onSubmit={handleSubmit} className="space-y-4">
           <Box>
             <Text size="3" className="mb-2">
-              Structure Name:
+              Fieldset Name:
             </Text>
             <Input
               type="text"
@@ -167,7 +170,7 @@ export const AddRepeatableStructureDialog = ({
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of what this structure represents"
+              placeholder="Brief description of what this fieldset represents"
             />
           </Box>
           <Flex gap="3" justify="end">
@@ -185,7 +188,7 @@ export const AddRepeatableStructureDialog = ({
             <Box className="mb-4">
               <Box className="space-y-2">
                 {controls.map((control) => (
-                  <Box key={control.id} className="bg-gray-100 border-1 border-gray-300 rounded-sm p-4 mb-3">
+                  <Box key={control.id} className="mb-3 rounded-sm border-1 border-gray-300 bg-gray-100 p-4">
                     <Flex justify="between">
                       <Text size="3" weight="medium">
                         {control.label || 'Unlabeled Field'}
@@ -217,7 +220,7 @@ export const AddRepeatableStructureDialog = ({
           {controls.length === 0 && (
             <Box className="rounded border border-gray-200 bg-gray-50 p-4 text-center">
               <Text size="2" className="text-gray-600">
-                No fields added yet. Click &quot;+ Add Field&quot; to start building your repeatable structure.
+                No fields added yet. Click &quot;+ Add Field&quot; to start building your fieldset.
               </Text>
             </Box>
           )}
@@ -234,12 +237,8 @@ export const AddRepeatableStructureDialog = ({
             </Button>
             <Button
               onClick={() => {
-                // Create structure with controls if any were added
-                onAddRepeatableStructure(
-                  name.trim(),
-                  description.trim() || undefined,
-                  controls.length > 0 ? controls : undefined,
-                );
+                // Create fieldset with controls if any were added
+                onAddFieldset(name.trim(), description.trim() || undefined, controls.length > 0 ? controls : undefined);
 
                 // Reset form
                 setName('');
@@ -250,7 +249,8 @@ export const AddRepeatableStructureDialog = ({
                 onOpenChange(false);
               }}
             >
-              {editingStructure ? 'Update' : 'Create'} Structure {controls.length > 0 && `(${controls.length} field${controls.length !== 1 ? 's' : ''})`}
+              {editingStructure ? 'Update' : 'Create'} Fieldset{' '}
+              {controls.length > 0 && `(${controls.length} field${controls.length !== 1 ? 's' : ''})`}
             </Button>
           </Flex>
         </Box>

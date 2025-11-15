@@ -17,13 +17,13 @@ export type ControlInstance = {
   sectionId?: string; // Optional section assignment
 };
 
-// Repeatable structure within a section - like submenus, testimonials, etc.
-export type RepeatableStructure = {
+// Fieldset within a section - like submenus, testimonials, etc.
+export type Fieldset = {
   id: string;
   name: string; // e.g., "Submenu Item", "Testimonial", "Feature"
   description?: string;
   order: number;
-  fields: ControlInstance[]; // Controls that define the structure of each repeatable item
+  fields: ControlInstance[]; // Controls that define the structure of each fieldset item
 };
 
 export type ComponentSection = {
@@ -31,7 +31,7 @@ export type ComponentSection = {
   name: string;
   order: number;
   controls: ControlInstance[]; // Static controls in the section
-  repeatableStructures?: RepeatableStructure[]; // Dynamic/repeatable lists within the section
+  fieldsets?: Fieldset[]; // Dynamic/repeatable lists within the section
 };
 
 export type Component = {

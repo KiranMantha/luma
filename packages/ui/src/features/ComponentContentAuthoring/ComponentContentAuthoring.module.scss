@@ -1,0 +1,38 @@
+@reference 'tailwindcss';
+
+.content {
+  @apply flex-1 overflow-y-auto;
+  max-height: 60vh;
+}
+
+.footer {
+  @apply flex justify-end gap-4 mt-4;
+}
+
+.section {
+  @apply mb-8;
+
+  &:last-child {
+    @apply mb-0;
+  }
+}
+
+.sectionTitle {
+  @apply mb-4 text-gray-800 border-b-2 border-gray-200 pb-2;
+}
+
+.field {
+  @apply mb-5;
+
+  &:last-child {
+    @apply mb-0;
+  }
+}
+
+.fieldLabel {
+  @apply block mb-2 text-gray-700;
+}
+
+.required {
+  @apply text-red-500 ml-1;
+}
