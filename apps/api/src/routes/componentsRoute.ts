@@ -2,14 +2,13 @@ import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import {
   addControlToComponent,
-  addRepeatableStructureToSection,
+  addFieldsetToSection,
   addSectionToComponent,
   createComponent,
   deleteComponent,
   deleteComponentSection,
   deleteControl,
-  deleteRepeatableStructure,
-  updateRepeatableStructure,
+  deleteFieldset,
   getAllComponents,
   getAllComponentsForTemplates,
   getAvailableComponentsForPages,
@@ -17,11 +16,12 @@ import {
   updateComponent,
   updateComponentSection,
   updateControl,
+  updateFieldset,
 } from '../controllers';
 import {
   CreateComponentControlSchema,
   CreateComponentSchema,
-  CreateRepeatableStructureSchema,
+  CreateFieldsetSchema,
   UpdateComponentControlSchema,
   UpdateComponentSchema,
 } from '../types/component';
@@ -67,13 +67,21 @@ componentsRoute.put('/:id/sections/:sectionId', updateComponentSection);
 // Delete section
 componentsRoute.delete('/:id/sections/:sectionId', deleteComponentSection);
 
-// Add repeatable structure to section
-componentsRoute.post('/:id/sections/:sectionId/structures', zValidator('json', CreateRepeatableStructureSchema), addRepeatableStructureToSection);
+// Add fieldset to section
+componentsRoute.post(
+  '/:id/sections/:sectionId/fieldsets',
+  zValidator('json', CreateFieldsetSchema),
+  addFieldsetToSection,
+);
 
-// Update repeatable structure
-componentsRoute.put('/:id/sections/:sectionId/structures/:structureId', zValidator('json', CreateRepeatableStructureSchema), updateRepeatableStructure);
+// Update fieldset
+componentsRoute.put(
+  '/:id/sections/:sectionId/fieldsets/:fieldsetId',
+  zValidator('json', CreateFieldsetSchema),
+  updateFieldset,
+);
 
-// Delete repeatable structure
-componentsRoute.delete('/:id/sections/:sectionId/structures/:structureId', deleteRepeatableStructure);
+// Delete fieldset
+componentsRoute.delete('/:id/sections/:sectionId/fieldsets/:fieldsetId', deleteFieldset);
 
 export { componentsRoute };

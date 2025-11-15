@@ -67,10 +67,10 @@
       }
     }
 
-    .repeatableStructuresList {
+    .fieldsetsList {
       @apply mt-6;
 
-      .repeatableStructurePreview {
+      .fieldsetPreview {
         @apply bg-gray-100 border-1 border-gray-300 shadow-none mb-4;
 
         .controlActions {
@@ -84,17 +84,17 @@
         }
       }
 
-      .repeatableStructureCard {
+      .fieldsetCard {
         @apply p-4 bg-blue-50 border border-blue-200;
 
-        .structureFields {
+        .fieldsetFields {
           @apply space-y-2;
 
-          .structureField {
+          .fieldsetField {
             @apply p-3 bg-white rounded border border-gray-200;
           }
 
-          .emptyStructureFields {
+          .emptyFieldsetFields {
             @apply p-4 bg-gray-50 rounded border-2 border-dashed border-gray-300;
           }
         }

@@ -5,14 +5,11 @@ import { FormEvent, useState } from 'react';
 export type AddSectionDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddSection: (sectionName: string, isRepeatable?: boolean, minItems?: number, maxItems?: number) => void;
+  onAddSection: (sectionName: string) => void;
 };
 
 export const AddSectionDialog = ({ open, onOpenChange, onAddSection }: AddSectionDialogProps) => {
   const [sectionName, setSectionName] = useState('');
-  const [isRepeatable, setIsRepeatable] = useState(false);
-  const [minItems, setMinItems] = useState<number>(0);
-  const [maxItems, setMaxItems] = useState<number | ''>('');
   const [error, setError] = useState('');
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
@@ -34,23 +31,14 @@ export const AddSectionDialog = ({ open, onOpenChange, onAddSection }: AddSectio
       return;
     }
 
-    // Convert maxItems from string to number if provided
-    const maxItemsValue = maxItems === '' ? undefined : Number(maxItems);
-
-    onAddSection(trimmedName, isRepeatable, isRepeatable ? minItems : undefined, maxItemsValue);
+    onAddSection(trimmedName);
     setSectionName('');
-    setIsRepeatable(false);
-    setMinItems(0);
-    setMaxItems('');
     setError('');
     onOpenChange(false);
   };
 
   const handleCancel = () => {
     setSectionName('');
-    setIsRepeatable(false);
-    setMinItems(0);
-    setMaxItems('');
     setError('');
     onOpenChange(false);
   };
@@ -81,60 +69,10 @@ export const AddSectionDialog = ({ open, onOpenChange, onAddSection }: AddSectio
         </Box>
 
         <Box>
-          <Flex align="center" gap="2" className="mb-2">
-            <input
-              type="checkbox"
-              id="isRepeatable"
-              checked={isRepeatable}
-              onChange={(e) => setIsRepeatable(e.target.checked)}
-              className="h-4 w-4"
-            />
-            <Text as="label" htmlFor="isRepeatable" size="3">
-              Make this section repeatable
-            </Text>
-          </Flex>
-          <Text size="2" className="mb-3 text-gray-600">
-            Repeatable sections allow content authors to add multiple instances (e.g., navigation menu items,
-            testimonials, features list)
+          <Text size="2" className="text-gray-600">
+            Sections organize your component into logical groups. You can add repeatable structures within sections
+            later.
           </Text>
-
-          {isRepeatable && (
-            <Box className="ml-6 space-y-3 rounded bg-gray-50 p-3">
-              <Flex gap="3">
-                <Box className="flex-1">
-                  <Text size="2" className="mb-1">
-                    Minimum items:
-                  </Text>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={minItems}
-                    onChange={(e) => setMinItems(Math.max(0, parseInt(e.target.value) || 0))}
-                    placeholder="0"
-                  />
-                </Box>
-                <Box className="flex-1">
-                  <Text size="2" className="mb-1">
-                    Maximum items (optional):
-                  </Text>
-                  <Input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={maxItems}
-                    onChange={(e) =>
-                      setMaxItems(e.target.value === '' ? '' : Math.max(1, parseInt(e.target.value) || 1))
-                    }
-                    placeholder="No limit"
-                  />
-                </Box>
-              </Flex>
-              <Text size="2" className="text-gray-600">
-                Example: Navigation menus might have min=1, max=10. Testimonials might have no limits.
-              </Text>
-            </Box>
-          )}
         </Box>
 
         <Flex gap="3" justify="end">

@@ -13,24 +13,14 @@ export type ComponentPreviewProps = {
   component: Component | null;
   activeTabId?: string; // Allow parent to control active tab
   onAddControl?: (sectionId?: string) => void; // Updated to support section targeting
-  onAddControlToStructure?: (structureId: string) => void; // Add controls to repeatable structures
+  onAddControlToFieldset?: (fieldsetId: string) => void; // Add controls to fieldsets
   onEditControl?: (control: ControlInstance) => void;
   onDeleteControl?: (controlId: string) => void;
-  onAddSection?: (sectionName: string, isRepeatable?: boolean, minItems?: number, maxItems?: number) => void; // Section configuration
-  onAddRepeatableStructure?: (
-    sectionId: string,
-    name: string,
-    description?: string,
-    controls?: ControlInstance[],
-  ) => void; // Add repeatable structure to section
-  onDeleteRepeatableStructure?: (structureId: string) => void; // Delete repeatable structure
-  onUpdateRepeatableStructure?: (
-    structureId: string,
-    name: string,
-    description?: string,
-    controls?: ControlInstance[],
-  ) => void; // Update repeatable structure
-  onRequestAddControlToStructure?: () => void; // Request to open add control dialog for structure context
+  onAddSection?: (sectionName: string) => void;
+  onAddFieldset?: (sectionId: string, name: string, description?: string, controls?: ControlInstance[]) => void; // Add fieldset to section
+  onDeleteFieldset?: (fieldsetId: string) => void; // Delete fieldset
+  onUpdateFieldset?: (fieldsetId: string, name: string, description?: string, controls?: ControlInstance[]) => void; // Update fieldset
+  onRequestAddControlToFieldset?: () => void; // Request to open add control dialog for fieldset context
   onActiveTabChange?: (tabId: string) => void; // Notify parent of tab changes
 };
 

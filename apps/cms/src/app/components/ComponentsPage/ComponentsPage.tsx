@@ -2,16 +2,16 @@
 
 import {
   addControlToComponent,
-  addRepeatableStructureToSection,
+  addFieldsetToSection,
   addSectionToComponent,
   deleteComponent,
   deleteControl,
-  deleteRepeatableStructureFromSection,
-  updateRepeatableStructureInSection,
+  deleteFieldsetFromSection,
   getComponents,
   saveComponent,
   updateComponent,
   updateControl,
+  updateFieldsetInSection,
 } from '@/actions';
 import {
   Component,
@@ -47,12 +47,12 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
   const [activeTabId, setActiveTabId] = useState<string>(''); // Track active section tab
 
   // State for managing control addition to repeatable structures
-  const [isAddingControlToStructure, setIsAddingControlToStructure] = useState(false);
-  const [pendingStructureControls, setPendingStructureControls] = useState<ControlInstance[]>([]);
+  const [isAddingControlToFieldset, setIsAddingControlToFieldset] = useState(false);
+  const [pendingFieldsetControls, setPendingFieldsetControls] = useState<ControlInstance[]>([]);
 
   // Handler for adding controls to repeatable structures (during structure creation)
-  const handleAddControlToNewStructure = async (controlType: ControlType, config: unknown) => {
-    if (!isAddingControlToStructure) return;
+  const handleAddControlToNewFieldset = async (controlType: ControlType, config: unknown) => {
+    if (!isAddingControlToFieldset) return;
 
     // Extract label from config
     const configObj = config as Record<string, unknown>;
@@ -64,19 +64,16 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
       controlType,
       label,
       config: configObj,
-      order: pendingStructureControls.length,
+      order: pendingFieldsetControls.length,
     };
 
     // Add to pending controls
-    setPendingStructureControls([...pendingStructureControls, newControl]);
+    setPendingFieldsetControls([...pendingFieldsetControls, newControl]);
 
-    // Call the global function to add to the repeatable structure dialog
-    if ((window as unknown as Record<string, unknown>).addControlToRepeatableStructure) {
+    // Call the global function to add to the fieldset dialog
+    if ((window as unknown as Record<string, unknown>).addControlToFieldset) {
       (
-        (window as unknown as Record<string, unknown>).addControlToRepeatableStructure as (
-          type: ControlType,
-          cfg: unknown,
-        ) => void
+        (window as unknown as Record<string, unknown>).addControlToFieldset as (type: ControlType, cfg: unknown) => void
       )(controlType, configObj);
     }
 
@@ -85,8 +82,8 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
   };
 
   // Handler to start adding controls to repeatable structure
-  const handleRequestAddControlToStructure = () => {
-    setIsAddingControlToStructure(true);
+  const handleRequestAddControlToFieldset = () => {
+    setIsAddingControlToFieldset(true);
     setIsAddControlDialogOpen(true);
   };
 
@@ -101,7 +98,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
   const handleAddControl = (sectionId?: string) => {
     if (!selectedComponent) return;
     setTargetSectionId(sectionId || null);
-    setIsAddingControlToStructure(false); // Reset structure context
+    setIsAddingControlToFieldset(false); // Reset fieldset context
     setIsAddControlDialogOpen(true);
   };
 
@@ -292,25 +289,14 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     setComponentToDelete(null);
   };
 
-  const handleAddSection = async (
-    sectionName: string,
-    isRepeatable?: boolean,
-    minItems?: number,
-    maxItems?: number,
-  ) => {
+  const handleAddSection = async (sectionName: string) => {
     if (!selectedComponent) return;
 
     try {
       setError(null);
 
       // Save section to database and get the new section data
-      const newSection = await addSectionToComponent(
-        selectedComponent.id,
-        sectionName,
-        isRepeatable,
-        minItems,
-        maxItems,
-      );
+      const newSection = await addSectionToComponent(selectedComponent.id, sectionName);
 
       // Refetch the complete component with all sections from the API
       const allComponents = await getComponents();
@@ -328,10 +314,10 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     }
   };
 
-  const handleAddControlToExistingStructure = (structureId: string) => {
+  const handleAddControlToExistingFieldset = (fieldsetId: string) => {
     // Open the add control dialog but target the repeatable structure instead of section
     // For now, we'll use the same dialog but store the structureId context
-    console.log('Adding control to structure:', structureId);
+    console.log('Adding control to fieldset:', fieldsetId);
     // TODO: Implement server-side API for adding controls to repeatable structures
     // This would be similar to handleAddControl but target a structure instead of section
 
@@ -340,7 +326,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     setIsAddControlDialogOpen(true);
   };
 
-  const handleAddRepeatableStructure = async (
+  const handleAddFieldset = async (
     sectionId: string,
     name: string,
     description?: string,
@@ -351,9 +337,9 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     try {
       setError(null);
       console.log('Adding repeatable structure to section:', { sectionId, name, description, controls });
-      
+
       // Save the repeatable structure to the backend
-      await addRepeatableStructureToSection(selectedComponent.id, sectionId, name, description, controls);
+      await addFieldsetToSection(selectedComponent.id, sectionId, name, description, controls);
 
       // Refresh the component to show the new structure
       const allComponents = await getComponents();
@@ -369,8 +355,8 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     }
   };
 
-  const handleUpdateRepeatableStructure = async (
-    structureId: string,
+  const handleUpdateFieldset = async (
+    fieldsetId: string,
     name: string,
     description?: string,
     controls?: ControlInstance[],
@@ -379,24 +365,24 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
 
     try {
       setError(null);
-      console.log('Updating repeatable structure:', { structureId, name, description, controls });
-      
-      // Find the structure to get the section ID
+      console.log('Updating fieldset:', { fieldsetId, name, description, controls });
+
+      // Find the fieldset to get the section ID
       let sectionId = '';
       const sections = selectedComponent.sections || [];
       for (const section of sections) {
-        if (section.repeatableStructures?.some(structure => structure.id === structureId)) {
+        if (section.fieldsets?.some((fieldset) => fieldset.id === fieldsetId)) {
           sectionId = section.id;
           break;
         }
       }
 
       if (!sectionId) {
-        throw new Error('Could not find section for structure');
+        throw new Error('Could not find section for fieldset');
       }
-      
-      // Update the repeatable structure in the backend
-      await updateRepeatableStructureInSection(selectedComponent.id, sectionId, structureId, name, description, controls);
+
+      // Update the fieldset in the backend
+      await updateFieldsetInSection(selectedComponent.id, sectionId, fieldsetId, name, description, controls);
 
       // Refresh the component to show the updated structure
       const allComponents = await getComponents();
@@ -412,18 +398,18 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     }
   };
 
-  const handleDeleteRepeatableStructure = async (structureId: string) => {
+  const handleDeleteFieldset = async (fieldsetId: string) => {
     if (!selectedComponent) return;
 
     try {
       setError(null);
-      console.log('Deleting repeatable structure:', structureId);
-      
-      // Find the structure to get the section ID
+      console.log('Deleting fieldset:', fieldsetId);
+
+      // Find the fieldset to get the section ID
       let sectionId = '';
       const sections = selectedComponent.sections || [];
       for (const section of sections) {
-        if (section.repeatableStructures?.some(structure => structure.id === structureId)) {
+        if (section.fieldsets?.some((fieldset) => fieldset.id === fieldsetId)) {
           sectionId = section.id;
           break;
         }
@@ -432,9 +418,9 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
       if (!sectionId) {
         throw new Error('Could not find section for structure');
       }
-      
-      // Delete the repeatable structure from the backend
-      await deleteRepeatableStructureFromSection(selectedComponent.id, sectionId, structureId);
+
+      // Delete the fieldset from the backend
+      await deleteFieldsetFromSection(selectedComponent.id, sectionId, fieldsetId);
 
       // Refresh the component to show the updated structure list
       const allComponents = await getComponents();
@@ -473,14 +459,14 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
         component={selectedComponent}
         activeTabId={activeTabId}
         onAddControl={handleAddControl}
-        onAddControlToStructure={handleAddControlToExistingStructure}
+        onAddControlToFieldset={handleAddControlToExistingFieldset}
         onEditControl={handleEditControl}
         onDeleteControl={handleDeleteControl}
         onAddSection={handleAddSection}
-        onAddRepeatableStructure={handleAddRepeatableStructure}
-        onDeleteRepeatableStructure={handleDeleteRepeatableStructure}
-        onUpdateRepeatableStructure={handleUpdateRepeatableStructure}
-        onRequestAddControlToStructure={handleRequestAddControlToStructure}
+        onAddFieldset={handleAddFieldset}
+        onDeleteFieldset={handleDeleteFieldset}
+        onUpdateFieldset={handleUpdateFieldset}
+        onRequestAddControlToFieldset={handleRequestAddControlToFieldset}
         onActiveTabChange={handleActiveTabChange}
       />
 
@@ -497,10 +483,10 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
         onOpenChange={(open) => {
           setIsAddControlDialogOpen(open);
           if (!open) {
-            setIsAddingControlToStructure(false); // Reset context when closing
+            setIsAddingControlToFieldset(false); // Reset context when closing
           }
         }}
-        onAddControl={isAddingControlToStructure ? handleAddControlToNewStructure : handleAddControlToComponent}
+        onAddControl={isAddingControlToFieldset ? handleAddControlToNewFieldset : handleAddControlToComponent}
       />
       <AddControlDialog
         open={isEditControlDialogOpen}

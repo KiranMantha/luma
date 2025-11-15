@@ -32,19 +32,22 @@ export const UpdateComponentControlSchema = z.object({
   orderIndex: z.number().int().min(0).optional(),
 });
 
-export const CreateRepeatableStructureSchema = z.object({
-  name: z.string().min(1, 'Structure name is required'),
+export const CreateFieldsetSchema = z.object({
+  name: z.string().min(1, 'Fieldset name is required'),
   description: z.string().nullable().optional(),
-  controls: z.array(
-    z.object({
-      name: z.string().min(1, 'Control name is required'),
-      type: z.string().min(1, 'Control type is required'),
-      label: z.string(),
-      placeholder: z.string().optional(),
-      isRequired: z.boolean().optional(),
-      config: z.record(z.string(), z.any()).optional(),
-    })
-  ).min(1, 'At least one control is required'),
+  controls: z
+    .array(
+      z.object({
+        name: z.string().min(1, 'Control name is required'),
+        type: z.string().min(1, 'Control type is required'),
+        label: z.string(),
+        placeholder: z.string().optional(),
+        isRequired: z.boolean().optional(),
+        config: z.record(z.string(), z.any()).optional(),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 // Response types
@@ -75,5 +78,5 @@ export type CreateComponentRequest = z.infer<typeof CreateComponentSchema>;
 export type UpdateComponentRequest = z.infer<typeof UpdateComponentSchema>;
 export type CreateComponentControlRequest = z.infer<typeof CreateComponentControlSchema>;
 export type UpdateComponentControlRequest = z.infer<typeof UpdateComponentControlSchema>;
-export type CreateRepeatableStructureRequest = z.infer<typeof CreateRepeatableStructureSchema>;
+export type CreateFieldsetRequest = z.infer<typeof CreateFieldsetSchema>;
 export type ComponentResponse = z.infer<typeof ComponentResponseSchema>;

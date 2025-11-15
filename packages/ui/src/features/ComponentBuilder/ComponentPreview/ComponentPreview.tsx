@@ -3,8 +3,8 @@
 import { Button, Flex, Tabs, Text } from '#atoms';
 import { Card } from '#molecules';
 import { useEffect, useMemo, useState } from 'react';
-import type { ComponentSection, ControlInstance, RepeatableStructure } from '../models';
-import { AddRepeatableStructureDialog } from './AddRepeatableStructureDialog';
+import type { ComponentSection, ControlInstance, Fieldset } from '../models';
+import { AddFieldsetDialog } from './AddFieldsetDialog';
 import { AddSectionDialog } from './AddSectionDialog';
 import type { BaseControlConfig, ComponentPreviewProps } from './ComponentPreview.model';
 import { CONTROL_METADATA, ControlType } from './ComponentPreview.model';
@@ -14,21 +14,20 @@ export const ComponentPreview = ({
   component,
   activeTabId: controlledActiveTabId,
   onAddControl,
-  onAddControlToStructure,
   onEditControl,
   onDeleteControl,
   onAddSection,
-  onAddRepeatableStructure,
-  onDeleteRepeatableStructure,
-  onUpdateRepeatableStructure,
-  onRequestAddControlToStructure,
+  onAddFieldset,
+  onDeleteFieldset,
+  onUpdateFieldset,
+  onRequestAddControlToFieldset,
   onActiveTabChange,
 }: ComponentPreviewProps) => {
   const [internalActiveTabId, setInternalActiveTabId] = useState<string>('');
   const [isAddSectionDialogOpen, setIsAddSectionDialogOpen] = useState(false);
-  const [isAddRepeatableDialogOpen, setIsAddRepeatableDialogOpen] = useState(false);
+  const [isAddFieldsetDialogOpen, setIsAddFieldsetDialogOpen] = useState(false);
   const [currentSectionId, setCurrentSectionId] = useState<string>('');
-  const [editingStructure, setEditingStructure] = useState<RepeatableStructure | null>(null);
+  const [editingFieldset, setEditingFieldset] = useState<Fieldset | null>(null);
 
   // Memoize sections to avoid dependency changes on every render
   const sections = useMemo(() => component?.sections || [], [component?.sections]);
@@ -60,10 +59,10 @@ export const ComponentPreview = ({
     }
   };
 
-  const handleAddSection = (sectionName: string, isRepeatable?: boolean, minItems?: number, maxItems?: number) => {
+  const handleAddSection = (sectionName: string) => {
     // Call the parent's onAddSection to make the API call
     if (onAddSection) {
-      onAddSection(sectionName, isRepeatable, minItems, maxItems);
+      onAddSection(sectionName);
     }
   };
 
@@ -73,68 +72,62 @@ export const ComponentPreview = ({
     onAddControl?.(targetSectionId);
   };
 
-  const handleAddRepeatableStructure = (sectionId: string) => {
+  const handleAddFieldset = (sectionId: string) => {
     setCurrentSectionId(sectionId);
-    setIsAddRepeatableDialogOpen(true);
+    setIsAddFieldsetDialogOpen(true);
   };
 
-  const handleAddRepeatableStructureSubmit = (name: string, description?: string, controls?: ControlInstance[]) => {
-    if (editingStructure) {
+  const handleAddFieldsetSubmit = (name: string, description?: string, controls?: ControlInstance[]) => {
+    if (editingFieldset) {
       // Update mode
-      if (onUpdateRepeatableStructure) {
-        onUpdateRepeatableStructure(editingStructure.id, name, description, controls);
+      if (onUpdateFieldset) {
+        onUpdateFieldset(editingFieldset.id, name, description, controls);
       }
     } else {
       // Create mode
-      if (onAddRepeatableStructure && currentSectionId) {
-        onAddRepeatableStructure(currentSectionId, name, description, controls);
+      if (onAddFieldset && currentSectionId) {
+        onAddFieldset(currentSectionId, name, description, controls);
       }
     }
     setCurrentSectionId('');
-    setEditingStructure(null);
+    setEditingFieldset(null);
   };
 
-  const handleAddControlToStructure = (structureId: string) => {
-    if (onAddControlToStructure) {
-      onAddControlToStructure(structureId);
+  const handleDeleteFieldset = (fieldsetId: string) => {
+    if (onDeleteFieldset) {
+      onDeleteFieldset(fieldsetId);
     }
   };
 
-  const handleDeleteRepeatableStructure = (structureId: string) => {
-    if (onDeleteRepeatableStructure) {
-      onDeleteRepeatableStructure(structureId);
-    }
+  const handleEditFieldset = (fieldset: Fieldset) => {
+    setEditingFieldset(fieldset);
+    setCurrentSectionId(getSectionIdForFieldset(fieldset.id));
+    setIsAddFieldsetDialogOpen(true);
   };
 
-  const handleEditRepeatableStructure = (structure: RepeatableStructure) => {
-    setEditingStructure(structure);
-    setCurrentSectionId(getSectionIdForStructure(structure.id));
-    setIsAddRepeatableDialogOpen(true);
-  };
-
-  const getSectionIdForStructure = (structureId: string): string => {
+  const getSectionIdForFieldset = (fieldsetId: string): string => {
     for (const section of sections) {
-      if (section.repeatableStructures?.some(s => s.id === structureId)) {
+      if (section.fieldsets?.some((f) => f.id === fieldsetId)) {
         return section.id;
       }
     }
     return '';
   };
 
-  const renderRepeatableStructurePreview = (structure: RepeatableStructure) => (
-    <Card className={styles.repeatableStructurePreview}>
+  const renderFieldsetPreview = (fieldset: Fieldset) => (
+    <Card className={styles.fieldsetPreview}>
       <Flex justify="between">
         <Text size="3" weight="medium">
-          {structure.name}
+          {fieldset.name}
         </Text>
         <Flex gap="2" className={styles.controlActions}>
           <Text size="1" className={styles.controlMeta}>
-            Repeatable ({structure.fields?.length || 0} field{(structure.fields?.length || 0) !== 1 ? 's' : ''})
+            Fieldset ({fieldset.fields?.length || 0} field{(fieldset.fields?.length || 0) !== 1 ? 's' : ''})
           </Text>
-          <Button size="sm" variant="primary-outline" onClick={() => handleEditRepeatableStructure(structure)}>
+          <Button size="sm" variant="primary-outline" onClick={() => handleEditFieldset(fieldset)}>
             Edit
           </Button>
-          <Button size="sm" variant="danger-outline" onClick={() => handleDeleteRepeatableStructure(structure.id)}>
+          <Button size="sm" variant="danger-outline" onClick={() => handleDeleteFieldset(fieldset.id)}>
             Delete
           </Button>
         </Flex>
@@ -255,14 +248,14 @@ export const ComponentPreview = ({
       <Flex justify="between" align="center" className={styles.sectionHeader}>
         <Text size="4" weight="medium">
           {section.controls.length} control{section.controls.length !== 1 ? 's' : ''}
-          {section.repeatableStructures &&
-            section.repeatableStructures.length > 0 &&
-            `, ${section.repeatableStructures.length} repeatable structure${section.repeatableStructures.length !== 1 ? 's' : ''}`}{' '}
+          {section.fieldsets &&
+            section.fieldsets.length > 0 &&
+            `, ${section.fieldsets.length} fieldset${section.fieldsets.length !== 1 ? 's' : ''}`}{' '}
           in {section.name}
         </Text>
         <Flex gap="2">
-          <Button size="sm" variant="ghost" onClick={() => handleAddRepeatableStructure(section.id)}>
-            + Add Repeatable
+          <Button size="sm" variant="primary" onClick={() => handleAddFieldset(section.id)}>
+            + Add Fieldset
           </Button>
           <Button size="sm" variant="primary" onClick={() => handleAddControl(section.id)}>
             + Add Control
@@ -287,10 +280,14 @@ export const ComponentPreview = ({
         )}
       </div>
 
-      {/* Repeatable Structures List */}
-      {section.repeatableStructures && section.repeatableStructures.length > 0 && (
-        <div className={styles.repeatableStructuresList}>
-          {section.repeatableStructures.map((structure) => renderRepeatableStructurePreview(structure))}
+      {/* Fieldsets List */}
+      {section.fieldsets && section.fieldsets.length > 0 && (
+        <div className={styles.fieldsetsList}>
+          {section.fieldsets?.map((fieldset) => (
+            <div key={fieldset.id} className={styles.fieldsetItem}>
+              {renderFieldsetPreview(fieldset)}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -328,17 +325,17 @@ export const ComponentPreview = ({
         onAddSection={handleAddSection}
       />
 
-      <AddRepeatableStructureDialog
-        open={isAddRepeatableDialogOpen}
-        onOpenChange={(open) => {
-          setIsAddRepeatableDialogOpen(open);
+      <AddFieldsetDialog
+        open={isAddFieldsetDialogOpen}
+        onOpenChange={(open: boolean) => {
+          setIsAddFieldsetDialogOpen(open);
           if (!open) {
-            setEditingStructure(null);
+            setEditingFieldset(null);
           }
         }}
-        onAddRepeatableStructure={handleAddRepeatableStructureSubmit}
-        onRequestAddControl={onRequestAddControlToStructure}
-        editingStructure={editingStructure}
+        onAddFieldset={handleAddFieldsetSubmit}
+        onRequestAddControl={onRequestAddControlToFieldset}
+        editingStructure={editingFieldset}
       />
     </div>
   );
