@@ -69,26 +69,22 @@
 
 .zoneWorkspace {
   flex: 1;
-  padding: 1.5rem;
+  padding: 20px;
   overflow: auto;
 }
 
-.layoutGrid {
-  display: grid;
-  gap: 1rem;
-  height: 100%;
-  grid-template-areas: 'body';
-  grid-template-rows: 1fr;
-}
+/* Removed layoutGrid - not needed for single zone */
 
 .zoneArea {
   border: 2px dashed #cbd5e1;
   border-radius: 12px;
   padding: 1rem;
-  min-height: 200px;
+  min-height: calc(100vh - 200px); /* Full height minus header and padding */
   display: flex;
   flex-direction: column;
   transition: all 0.2s;
+  background-color: rgba(34, 197, 94, 0.05);
+  border-color: #bbf7d0;
 }
 
 .zoneArea.dragOver {
@@ -148,4 +144,25 @@
 .instanceActions {
   display: flex;
   gap: 10px;
+}
+
+.statusSelect {
+  padding: 4px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.statusSelect:hover {
+  border-color: #3b82f6;
+}
+
+.statusSelect:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
