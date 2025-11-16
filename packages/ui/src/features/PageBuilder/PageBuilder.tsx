@@ -3,6 +3,7 @@
 import { DragEvent, useState } from 'react';
 import { Button, Flex, Text } from '../../atoms';
 import type { Component, ComponentInstance, Page, Template } from '../ComponentBuilder/models';
+import { PageStatus } from '../ComponentBuilder/models';
 import { createDefaultPageZones, TemplateZone, validateZonePlacement } from '../ComponentBuilder/zones';
 import type { ComponentContentAuthoringProps } from '../ComponentContentAuthoring/ComponentContentAuthoring.model';
 import styles from './PageBuilder.module.scss';
@@ -188,6 +189,13 @@ export const PageBuilder = ({
     setIsAuthoringOpen(false);
   };
 
+  const handleStatusChange = (newStatus: PageStatus) => {
+    setPageState((prev) => ({
+      ...prev,
+      status: newStatus,
+    }));
+  };
+
   const handleSave = async () => {
     try {
       // Clean zones - remove unnecessary fields from component instances
@@ -224,6 +232,20 @@ export const PageBuilder = ({
           <Text size="5" weight="bold">
             Page Builder: {page.name}
           </Text>
+          <Flex gap="2" align="center" className="mb-1">
+            <Text size="2" color="gray">
+              Status:
+            </Text>
+            <select
+              value={pageState.status}
+              onChange={(e) => handleStatusChange(e.target.value as PageStatus)}
+              className={styles.statusSelect}
+            >
+              <option value={PageStatus.DRAFT}>Draft</option>
+              <option value={PageStatus.PUBLISHED}>Published</option>
+              <option value={PageStatus.ARCHIVED}>Archived</option>
+            </select>
+          </Flex>
           <Text size="2" color="gray">
             {selectedTemplate ? `Using template: ${selectedTemplate.name}` : 'Blank page with body content only'}
           </Text>
@@ -289,18 +311,16 @@ export const PageBuilder = ({
 
         {/* Zone Workspace */}
         <div className={styles.zoneWorkspace}>
-          <div className={styles.layoutGrid}>
-            {pageState.zones?.map((zone) => (
-              <ZoneDropArea
-                key={zone.id}
-                zone={zone}
-                components={components}
-                onDrop={(e) => handleZoneDrop(zone.id, e)}
-                onInstanceDelete={(instanceId) => handleInstanceDelete(zone.id, instanceId)}
-                onInstanceClick={handleInstanceClick}
-              />
-            ))}
-          </div>
+          {pageState.zones?.map((zone) => (
+            <ZoneDropArea
+              key={zone.id}
+              zone={zone}
+              components={components}
+              onDrop={(e) => handleZoneDrop(zone.id, e)}
+              onInstanceDelete={(instanceId) => handleInstanceDelete(zone.id, instanceId)}
+              onInstanceClick={handleInstanceClick}
+            />
+          ))}
         </div>
       </div>
 
