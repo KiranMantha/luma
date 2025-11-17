@@ -175,6 +175,8 @@ export const PageBuilder = ({
   };
 
   const handleContentSave = async (instanceId: string, content: Record<string, unknown>) => {
+    // Update the local page state immediately with the new content
+    console.log(instanceId, content);
     setPageState((prev) => ({
       ...prev,
       zones: prev.zones.map((zone) => ({
@@ -184,6 +186,37 @@ export const PageBuilder = ({
         ),
       })),
     }));
+
+    // Optionally refresh from API to get any other updates, but preserve the content we just saved
+    try {
+      const response = await fetch(`http://localhost:3002/api/pages/${pageState.id}`);
+      if (response.ok) {
+        const updatedPage = await response.json();
+
+        // Update page state but ensure we keep the content we just saved
+        setPageState((prev) => ({
+          ...updatedPage,
+          zones:
+            updatedPage.zones?.map((zone: TemplateZone) => ({
+              ...zone,
+              componentInstances:
+                zone.componentInstances.map((instance: ComponentInstance) => {
+                  const currentInstance = prev.zones
+                    .flatMap((z) => z.componentInstances)
+                    .find((i) => i.id === instance.id);
+
+                  return {
+                    ...instance,
+                    config: currentInstance?.config || instance.config || {},
+                  };
+                }) || [],
+            })) || [],
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to refresh page state:', error);
+      // No need for fallback since we already updated the state above
+    }
 
     setEditingInstance(null);
     setIsAuthoringOpen(false);
@@ -203,6 +236,7 @@ export const PageBuilder = ({
         pageState.zones?.map((zone) => ({
           ...zone,
           componentInstances: zone.componentInstances.map((instance) => ({
+            id: instance.id,
             componentId: instance.componentId,
             config: { ...instance.config },
             order: instance.order,
@@ -330,6 +364,7 @@ export const PageBuilder = ({
         onOpenChange={setIsAuthoringOpen}
         componentInstance={editingInstance}
         component={editingInstance ? components.find((c) => c.id === editingInstance.componentId) || null : null}
+        page={{ id: pageState.id, name: pageState.name }}
         onSave={handleContentSave}
       />
     </div>

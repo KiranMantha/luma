@@ -3,6 +3,7 @@ import {
   getAllPublishedPages,
   getAllPublishedTemplates,
   getPageContent,
+  getPageModel,
   getPublishedPage,
   getPublishedTemplate,
   getTemplateStructure,
@@ -33,5 +34,8 @@ contentRoute.get('/pages/:id/content', getPageContent);
 
 // Get page by slug (for SEO-friendly URLs)
 contentRoute.get('/pages/by-slug/:slug', getPublishedPage);
+
+// Get page model JSON by kebab-case name (e.g., /page/about-us.model.json)
+contentRoute.get('/page/:pageName', getPageModel);
 
 export { contentRoute };

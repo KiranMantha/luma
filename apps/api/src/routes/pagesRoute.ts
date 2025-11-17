@@ -9,6 +9,7 @@ import {
   getPageById,
   publishPage,
   updatePage,
+  updatePageInstance,
 } from '../controllers';
 
 const pagesRoute = new Hono();
@@ -20,6 +21,9 @@ pagesRoute.post('/', createPage);
 pagesRoute.put('/:id', updatePage);
 pagesRoute.delete('/:id', deletePage);
 pagesRoute.post('/:id/publish', publishPage);
+
+// Component instance management
+pagesRoute.put('/:id/instances/:instanceId', updatePageInstance);
 
 // Folder management
 pagesRoute.get('/folders/all', getAllFolders);

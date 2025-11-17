@@ -51,6 +51,12 @@ app.route('/api/pages', pagesRoute);
 // Content delivery routes for remote apps
 app.route('/api/content', contentRoute);
 
+// Direct page model access (e.g., /page/about-us.model.json)
+// app.get('/api/page/:filename', async (c) => {
+//   const { servePageJSON } = await import('./controllers/pagesController');
+//   return servePageJSON(c);
+// });
+
 // 404 handler
 app.notFound((c) => {
   return errorResponse(c, 'Not Found', 404);

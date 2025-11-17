@@ -1,5 +1,12 @@
 import { Hono } from 'hono';
-import { createTemplate, deleteTemplate, getAllTemplates, getTemplateById, updateTemplate } from '../controllers';
+import {
+  createTemplate,
+  deleteTemplate,
+  getAllTemplates,
+  getTemplateById,
+  updateTemplate,
+  updateTemplateInstance,
+} from '../controllers';
 
 const templatesRoute = new Hono();
 
@@ -17,5 +24,8 @@ templatesRoute.put('/:id', updateTemplate);
 
 // Delete template
 templatesRoute.delete('/:id', deleteTemplate);
+
+// Update component instance
+templatesRoute.put('/:id/instances/:instanceId', updateTemplateInstance);
 
 export { templatesRoute };
