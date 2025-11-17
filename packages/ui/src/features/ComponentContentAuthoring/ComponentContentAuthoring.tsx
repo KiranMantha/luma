@@ -4,9 +4,8 @@ import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { Box, Button, Input, Select, Tabs, Text, Textarea } from '../../atoms';
 import { Card, Modal } from '../../molecules';
-import { ControlType } from '../ComponentBuilder/ComponentPreview/ComponentPreview.model';
-import type { ComponentSection, ControlInstance, RepeatableStructure } from '../ComponentBuilder/models';
-import type { ComponentContentAuthoringProps } from './ComponentContentAuthoring.model';
+import { Component, ComponentSection, ControlInstance, ControlType, Fieldset } from '../ComponentBuilder';
+import { ComponentContentAuthoringProps } from './ComponentContentAuthoring.model';
 import styles from './ComponentContentAuthoring.module.scss';
 
 export const ComponentContentAuthoring = ({
@@ -15,104 +14,88 @@ export const ComponentContentAuthoring = ({
   componentInstance,
   component,
   template,
+  page,
   onContentSaved,
   onSave,
 }: ComponentContentAuthoringProps) => {
   const [content, setContent] = useState<Record<string, unknown>>({});
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  // Initialize content when component instance changes
-  useEffect(() => {
-    if (componentInstance && component) {
-      setContent(componentInstance.config || {});
-
-      // Set active tab to first section if sections exist
-      if (component.sections && component.sections.length > 0) {
-        setActiveTabId(component.sections[0].id);
-      }
-    }
-  }, [componentInstance, component]);
-
-  const handleRepeatableChange = (structureId: string, itemIndex: number, fieldId: string, value: unknown) => {
-    setContent((prev) => {
-      const existingStructure = (prev[structureId] as Record<string, unknown>[]) || [];
-      const updatedStructure = [...existingStructure];
-
-      // Ensure the item exists at the specified index
-      while (updatedStructure.length <= itemIndex) {
-        updatedStructure.push({});
-      }
-
-      // Update the specific field
-      updatedStructure[itemIndex] = {
-        ...updatedStructure[itemIndex],
-        [fieldId]: value,
-      };
-
-      return {
-        ...prev,
-        [structureId]: updatedStructure,
-      };
-    });
-  };
-
-  const addRepeatableItem = (structureId: string) => {
-    setContent((prev) => {
-      const existingItems = (prev[structureId] as Record<string, unknown>[]) || [];
-      return {
-        ...prev,
-        [structureId]: [...existingItems, {}],
-      };
-    });
-  };
-
-  const removeRepeatableItem = (structureId: string, itemIndex: number) => {
-    setContent((prev) => {
-      const existingItems = (prev[structureId] as Record<string, unknown>[]) || [];
-      const updatedItems = existingItems.filter((_, index) => index !== itemIndex);
-      return {
-        ...prev,
-        [structureId]: updatedItems,
-      };
-    });
-  };
-
-  // Helper function to migrate content when component structure changes
+  // Helper function to migrate old field references to new field names
   const migrateRepeatableStructureContent = (
-    oldContent: Record<string, unknown>,
-    structure: RepeatableStructure,
-  ): Record<string, unknown>[] => {
-    const existingItems = (oldContent[structure.id] as Record<string, unknown>[]) || [];
+    instanceConfig: Record<string, unknown>,
+    component: Component,
+  ): Record<string, unknown> => {
+    if (!component.sections) return instanceConfig;
 
-    return existingItems.map((item) => {
-      const migratedItem: Record<string, unknown> = {};
+    const migratedConfig = { ...instanceConfig };
 
-      // Preserve values for fields that still exist (by ID)
-      structure.fields.forEach((field) => {
-        if (item[field.id] !== undefined) {
-          migratedItem[field.id] = item[field.id];
+    component.sections.forEach((section) => {
+      section.fieldsets?.forEach((fieldset) => {
+        const structureContent = instanceConfig[fieldset.name] as unknown[];
+        if (Array.isArray(structureContent) && structureContent.length > 0 && fieldset.fields) {
+          // Migrate each item in the repeatable structure
+          const migratedItems = structureContent.map((item) => {
+            if (typeof item === 'object' && item !== null) {
+              const itemObj = item as Record<string, unknown>;
+              const migratedItem: Record<string, unknown> = {};
+
+              const itemKeys = Object.keys(itemObj);
+              const currentFieldIds = fieldset.fields?.map((field) => field.id) || [];
+
+              // Check if any of the current field IDs exist in the item
+              const hasCurrentFields = itemKeys.some((key) => currentFieldIds.includes(key));
+
+              if (!hasCurrentFields && itemKeys.length > 0 && fieldset.fields.length > 0) {
+                // Migrate old field references to new ones by mapping values in order
+                console.log('AUTHORING MIGRATION: Migrating old field references to new structure');
+
+                const oldValues = Object.values(itemObj);
+                const newFields = fieldset.fields;
+
+                // Map old values to new field IDs in order (up to the number of available fields)
+                for (let i = 0; i < Math.min(oldValues.length, newFields.length); i++) {
+                  const value = oldValues[i];
+                  const newField = newFields[i];
+
+                  if (newField?.id && value !== undefined) {
+                    console.log(`AUTHORING MIGRATION: Mapping value ${i} to field ${newField.id}:`, value);
+                    migratedItem[newField.id] = value;
+                  }
+                }
+
+                return migratedItem;
+              } else {
+                // Keep existing mapping if field IDs are current
+                return item;
+              }
+            }
+            return item;
+          });
+
+          migratedConfig[fieldset.name] = migratedItems;
         }
       });
-
-      // If no exact ID matches found, try order-based migration
-      if (Object.keys(migratedItem).length === 0) {
-        const itemValues = Object.values(item);
-        structure.fields.forEach((field, index) => {
-          if (itemValues[index] !== undefined) {
-            migratedItem[field.id] = itemValues[index];
-          }
-        });
-      }
-
-      return migratedItem;
     });
+
+    return migratedConfig;
   };
 
-  const handleApplyChanges = async () => {
+  // Initialize content from component instance config when modal opens
+  useEffect(() => {
+    if (open && componentInstance && component) {
+      const originalConfig = componentInstance.config || {};
+      const migratedConfig = migrateRepeatableStructureContent(originalConfig, component);
+      setContent(migratedConfig);
+    }
+  }, [open, componentInstance, component]);
+
+  const handleSave = async () => {
     if (!componentInstance) return;
 
+    setLoading(true);
     try {
-      // Save directly to the database via the template API endpoint
+      // Save directly to the database via the appropriate API endpoint
       if (template) {
         const response = await fetch(
           `http://localhost:3002/api/templates/${template.id}/instances/${componentInstance.id}`,
@@ -130,6 +113,24 @@ export const ComponentContentAuthoring = ({
         }
 
         console.log('Content saved successfully to database');
+      } else if (page) {
+        const response = await fetch(`http://localhost:3002/api/pages/${page.id}/instances/${componentInstance.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ content }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (response.status === 404 && errorData.error?.includes('save the page first')) {
+            throw new Error('Please save the page first before editing component content.');
+          }
+          throw new Error(`Failed to save content: ${response.statusText}`);
+        }
+
+        console.log('Content saved successfully to database');
       }
 
       // Call the appropriate callback
@@ -141,61 +142,102 @@ export const ComponentContentAuthoring = ({
 
       onOpenChange(false);
     } catch (error) {
-      console.error('Error saving content:', error);
-      alert('Failed to save content. Please try again.');
+      console.error('Failed to save component content:', error);
+      alert(`Failed to save content: ${error instanceof Error ? error.message : error}`);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const renderControl = (control: ControlInstance, sectionId?: string) => {
-    const currentValue = sectionId
-      ? (content[sectionId] as Record<string, unknown>)?.[control.id]
-      : content[control.id];
+  const handleClose = () => {
+    onOpenChange(false);
+    setContent({});
+  };
 
-    const handleChange = (value: unknown) => {
-      if (sectionId) {
-        setContent((prev) => ({
-          ...prev,
-          [sectionId]: {
-            ...((prev[sectionId] as Record<string, unknown>) || {}),
-            [control.id]: value,
-          },
-        }));
-      } else {
-        setContent((prev) => ({
-          ...prev,
-          [control.id]: value,
-        }));
-      }
+  const handleFieldChange = (fieldId: string, value: unknown) => {
+    setContent((prev) => ({
+      ...prev,
+      [fieldId]: value,
+    }));
+  };
+
+  const handleRepeatableAdd = (structureName: string) => {
+    const structureContent = (content[structureName] as unknown[]) || [];
+    const newItem = {}; // Empty object for new instance
+    setContent((prev) => ({
+      ...prev,
+      [structureName]: [...structureContent, newItem],
+    }));
+  };
+
+  const handleRepeatableRemove = (structureName: string, index: number) => {
+    const structureContent = (content[structureName] as unknown[]) || [];
+    const newContent = structureContent.filter((_, i) => i !== index);
+    setContent((prev) => ({
+      ...prev,
+      [structureName]: newContent,
+    }));
+  };
+
+  const handleFieldsetFieldChange = (fieldsetName: string, index: number, fieldId: string, value: unknown) => {
+    const structureContent = (content[fieldsetName] as Record<string, unknown>[]) || [];
+    const updatedContent = [...structureContent];
+
+    if (!updatedContent[index]) {
+      updatedContent[index] = {};
+    }
+
+    updatedContent[index] = {
+      ...updatedContent[index],
+      [fieldId]: value,
     };
+
+    setContent((prev) => ({
+      ...prev,
+      [fieldsetName]: updatedContent,
+    }));
+  };
+
+  const renderControlInput = (control: ControlInstance, fieldsetName?: string, itemIndex?: number) => {
+    const fieldId = control.id;
+
+    // Handle field value based on context (regular field vs repeatable structure field)
+    let currentValue;
+    if (fieldsetName !== undefined && itemIndex !== undefined) {
+      const fieldsetContent = (content[fieldsetName] as Record<string, unknown>[]) || [];
+      currentValue = (fieldsetContent[itemIndex] && fieldsetContent[itemIndex][fieldId]) || '';
+    } else {
+      currentValue = content[fieldId] || '';
+    }
 
     const config = control.config || {};
 
+    // Create change handler based on context
+    const handleChange = (value: unknown) => {
+      if (fieldsetName !== undefined && itemIndex !== undefined) {
+        handleFieldsetFieldChange(fieldsetName, itemIndex, fieldId, value);
+      } else {
+        handleFieldChange(fieldId, value);
+      }
+    };
+
     switch (control.controlType) {
       case ControlType.TEXT: {
-        const textConfig = config as { placeholder?: string; maxLength?: number };
-        const placeholder = textConfig.placeholder || `Enter ${control.label || 'text'}`;
-        const maxLength = textConfig.maxLength;
-        return (
-          <Input
-            placeholder={placeholder}
-            value={currentValue as string}
-            onChange={(e) => handleChange(e.target.value)}
-            maxLength={maxLength}
-          />
-        );
-      }
-
-      case ControlType.RICHTEXT: {
-        const richtextConfig = config as { placeholder?: string; maxLength?: number };
-        const placeholder = richtextConfig.placeholder || `Enter ${control.label || 'rich text content'}`;
-        const maxLength = richtextConfig.maxLength;
-        return (
+        const textConfig = config as { multiline?: boolean; placeholder?: string; maxLength?: number };
+        const placeholder = textConfig.placeholder || `Enter ${control.label || 'value'}`;
+        return textConfig.multiline ? (
           <Textarea
             placeholder={placeholder}
             value={currentValue as string}
             onChange={(e) => handleChange(e.target.value)}
-            rows={4}
-            maxLength={maxLength}
+            rows={3}
+          />
+        ) : (
+          <Input
+            placeholder={placeholder}
+            value={currentValue as string}
+            onChange={(e) => handleChange(e.target.value)}
+            maxLength={textConfig.maxLength}
           />
         );
       }
@@ -226,21 +268,33 @@ export const ComponentContentAuthoring = ({
               value={currentValue as string}
               onChange={(e) => handleChange(e.target.value)}
             />
-            {currentValue ? (
+            {currentValue && (
               <div className={styles.mediaPreview}>
                 <Image
                   src={currentValue as string}
                   alt="Preview"
                   className={styles.previewImage}
                   onError={(e) => {
-                    e.currentTarget.style.display = 'none';
+                    (e.target as HTMLImageElement).style.display = 'none';
                   }}
-                  width={200}
-                  height={120}
                 />
               </div>
-            ) : null}
+            )}
           </div>
+        );
+      }
+
+      case ControlType.RICHTEXT: {
+        const richtextConfig = config as { placeholder?: string };
+        const placeholder =
+          richtextConfig.placeholder || `Enter rich text content for ${control.label || 'this field'}`;
+        return (
+          <Textarea
+            placeholder={placeholder}
+            value={currentValue as string}
+            onChange={(e) => handleChange(e.target.value)}
+            rows={6}
+          />
         );
       }
 
@@ -250,303 +304,179 @@ export const ComponentContentAuthoring = ({
         return (
           <Textarea
             placeholder={placeholder}
-            value={currentValue ? JSON.stringify(currentValue, null, 2) : ''}
+            value={typeof currentValue === 'string' ? currentValue : JSON.stringify(currentValue, null, 2)}
             onChange={(e) => {
               try {
-                const jsonValue = e.target.value ? JSON.parse(e.target.value) : null;
-                handleChange(jsonValue);
-              } catch (error) {
-                // Keep the raw text for editing, but don't update the content yet
-                console.log('JSON parsing error:', error);
+                const parsed = JSON.parse(e.target.value);
+                handleChange(parsed);
+              } catch {
+                handleChange(e.target.value);
               }
             }}
-            rows={6}
+            rows={4}
+            className={styles.jsonInput}
           />
         );
       }
 
       case ControlType.TABLE: {
-        const tableConfig = config as { columns?: string[]; placeholder?: string };
-        const columns = tableConfig.columns || ['Column 1', 'Column 2'];
-        const tableData = (currentValue as string[][]) || [];
+        const tableConfig = config as { headers?: Array<{ id: string; label: string }> };
+        const headers = tableConfig.headers || [];
+        const tableData = (currentValue as Record<string, string>[]) || [{}];
+
         return (
           <div className={styles.tableInput}>
-            <div className={styles.tableControls}>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  const newRow = columns.map(() => '');
-                  handleChange([...tableData, newRow]);
-                }}
-              >
-                Add Row
-              </Button>
-            </div>
-            <div className={styles.table}>
-              <div className={styles.tableHeader}>
-                {columns.map((col, index) => (
-                  <div key={index} className={styles.tableCell}>
-                    <Text size="2" weight="medium">
-                      {col}
-                    </Text>
-                  </div>
-                ))}
-                <div className={styles.tableCell}>
-                  <Text size="2" weight="medium">
-                    Actions
-                  </Text>
-                </div>
-              </div>
-              {tableData.map((row, rowIndex) => (
-                <div key={rowIndex} className={styles.tableRow}>
-                  {columns.map((_, colIndex) => (
-                    <div key={colIndex} className={styles.tableCell}>
-                      <Input
-                        value={row[colIndex] || ''}
-                        onChange={(e) => {
-                          const newTableData = [...tableData];
-                          if (newTableData[rowIndex]) {
-                            newTableData[rowIndex][colIndex] = e.target.value;
-                            handleChange(newTableData);
-                          }
-                        }}
-                        placeholder={`Enter ${columns[colIndex]}`}
-                      />
-                    </div>
+            <table className={styles.dataTable}>
+              <thead>
+                <tr>
+                  {headers.map((header) => (
+                    <th key={header.id}>{header.label}</th>
                   ))}
-                  <div className={styles.tableCell}>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      color="red"
-                      onClick={() => {
-                        const newTableData = tableData.filter((_, index) => index !== rowIndex);
-                        handleChange(newTableData);
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                </tr>
+              </thead>
+              <tbody>
+                {tableData.map((row, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {headers.map((header) => (
+                      <td key={header.id}>
+                        <Input
+                          value={(row[header.id] as string) || ''}
+                          onChange={(e) => {
+                            const newTableData = [...tableData];
+                            newTableData[rowIndex] = { ...row, [header.id]: e.target.value };
+                            handleChange(newTableData);
+                          }}
+                          placeholder={`Enter ${header.label}`}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                const newRow = headers.reduce((acc, header) => ({ ...acc, [header.id]: '' }), {});
+                handleChange([...tableData, newRow]);
+              }}
+            >
+              + Add Row
+            </Button>
           </div>
         );
       }
 
-      default:
+      default: {
+        const defaultConfig = config as { placeholder?: string };
+        const placeholder = defaultConfig.placeholder || `Enter value for ${control.label || 'this field'}`;
         return (
           <Input
-            placeholder={`Enter ${control.label || 'value'}`}
+            placeholder={placeholder}
             value={currentValue as string}
             onChange={(e) => handleChange(e.target.value)}
           />
         );
+      }
     }
   };
 
-  const renderRepeatableStructure = (structure: RepeatableStructure) => {
-    const items = (content[structure.id] as Record<string, unknown>[]) || [];
-    const migratedItems = migrateRepeatableStructureContent(content, structure);
-
-    // Update content with migrated items if needed
-    if (JSON.stringify(items) !== JSON.stringify(migratedItems)) {
-      setContent((prev) => ({
-        ...prev,
-        [structure.id]: migratedItems,
-      }));
-    }
+  const renderFieldsets = (fieldset: Fieldset) => {
+    // Get existing instances of this repeatable structure (stored as an array in content)
+    // For example: content['Submenu'] = [{ title: 'Home', url: '/' }, { title: 'About', url: '/about' }]
+    const structureContent = (content[fieldset.name] as Record<string, unknown>[]) || [];
 
     return (
-      <Card className={styles.repeatableStructure}>
-        <div className={styles.repeatableHeader}>
-          <Text size="3" weight="medium">
-            {structure.name}
+      <div className={styles.repeatableStructure}>
+        <div>
+          <Text size="3" weight="medium" className={styles.fieldLabel}>
+            {fieldset.name}
           </Text>
-          {structure.description && (
+          {fieldset.description && (
             <Text size="2" color="gray">
-              {structure.description}
+              {fieldset.description}
             </Text>
           )}
-          <Button size="sm" variant="ghost" onClick={() => addRepeatableItem(structure.id)}>
-            Add {structure.name}
-          </Button>
         </div>
-
-        {migratedItems.length === 0 ? (
-          <div className={styles.emptyRepeatable}>
-            <Text size="2" color="gray">
-              No {structure.name.toLowerCase()} items yet. Click &quot;Add {structure.name}&quot; to create one.
-            </Text>
-          </div>
-        ) : (
-          <div className={styles.repeatableItems}>
-            {migratedItems.map((item, itemIndex) => (
-              <Card key={itemIndex} className={styles.repeatableItem}>
-                <div className={styles.repeatableItemHeader}>
-                  <Text size="2" weight="medium">
-                    {structure.name} #{itemIndex + 1}
-                  </Text>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    color="red"
-                    onClick={() => removeRepeatableItem(structure.id, itemIndex)}
-                  >
-                    Remove
-                  </Button>
-                </div>
-                <div className={styles.repeatableItemFields}>
-                  {structure.fields.map((field) => {
-                    const fieldValue = item[field.id];
-                    return (
-                      <div key={field.id} className={styles.field}>
-                        <label className={styles.fieldLabel}>
-                          {field.label || `Field ${field.id}`}
-                          {(field.config as { required?: boolean })?.required && (
+        <Card className={styles.structureCard}>
+          <div className={styles.structureInstances}>
+            {structureContent.length === 0 ? (
+              <div className={styles.emptyStructure}>
+                <Text size="2" color="gray">
+                  No {fieldset.name.toLowerCase()} items yet. Click &quot;Add {fieldset.name}&quot; to create the first
+                  one.
+                </Text>
+              </div>
+            ) : (
+              structureContent.map((_, index) => (
+                <Card key={index} className={styles.structureInstance}>
+                  <div className={styles.instanceFields}>
+                    {fieldset.fields.map((field) => (
+                      <Box key={field.id} className={styles.field}>
+                        <Text size="3" weight="medium" className={styles.fieldLabel}>
+                          {field.label || 'Unlabeled Field'}
+                          {Boolean((field.config as Record<string, unknown>)?.required) && (
                             <span className={styles.required}>*</span>
                           )}
-                        </label>
-                        <div>
-                          {(() => {
-                            const handleFieldChange = (value: unknown) => {
-                              handleRepeatableChange(structure.id, itemIndex, field.id, value);
-                            };
-
-                            const config = field.config || {};
-
-                            switch (field.controlType) {
-                              case ControlType.TEXT: {
-                                const textConfig = config as { placeholder?: string; maxLength?: number };
-                                const placeholder = textConfig.placeholder || `Enter ${field.label || 'text'}`;
-                                const maxLength = textConfig.maxLength;
-                                return (
-                                  <Input
-                                    placeholder={placeholder}
-                                    value={(fieldValue as string) || ''}
-                                    onChange={(e) => handleFieldChange(e.target.value)}
-                                    maxLength={maxLength}
-                                  />
-                                );
-                              }
-
-                              case ControlType.RICHTEXT: {
-                                const richtextConfig = config as { placeholder?: string; maxLength?: number };
-                                const placeholder =
-                                  richtextConfig.placeholder || `Enter ${field.label || 'rich text content'}`;
-                                const maxLength = richtextConfig.maxLength;
-                                return (
-                                  <Textarea
-                                    placeholder={placeholder}
-                                    value={(fieldValue as string) || ''}
-                                    onChange={(e) => handleFieldChange(e.target.value)}
-                                    rows={3}
-                                    maxLength={maxLength}
-                                  />
-                                );
-                              }
-
-                              case ControlType.ENUMERATION: {
-                                const enumConfig = config as { options?: string[] };
-                                const options = enumConfig.options || [];
-                                const selectOptions = [
-                                  { value: '', label: 'Select an option...' },
-                                  ...options.map((option) => ({ value: option, label: option })),
-                                ];
-                                return (
-                                  <Select
-                                    options={selectOptions}
-                                    value={(fieldValue as string) || ''}
-                                    onChange={(e) => handleFieldChange(e.target.value)}
-                                  />
-                                );
-                              }
-
-                              case ControlType.MEDIA: {
-                                const mediaConfig = config as { placeholder?: string };
-                                const placeholder =
-                                  mediaConfig.placeholder || `Enter image URL for ${field.label || 'this field'}`;
-                                return (
-                                  <div className={styles.mediaInput}>
-                                    <Input
-                                      placeholder={placeholder}
-                                      value={(fieldValue as string) || ''}
-                                      onChange={(e) => handleFieldChange(e.target.value)}
-                                    />
-                                    {fieldValue ? (
-                                      <div className={styles.mediaPreview}>
-                                        <Image
-                                          src={fieldValue as string}
-                                          alt="Preview"
-                                          className={styles.previewImage}
-                                          onError={(e) => {
-                                            e.currentTarget.style.display = 'none';
-                                          }}
-                                          width={100}
-                                          height={60}
-                                        />
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                );
-                              }
-
-                              default:
-                                return (
-                                  <Input
-                                    placeholder={`Enter ${field.label || 'value'}`}
-                                    value={(fieldValue as string) || ''}
-                                    onChange={(e) => handleFieldChange(e.target.value)}
-                                  />
-                                );
-                            }
-                          })()}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
-            ))}
+                        </Text>
+                        {renderControlInput(field, fieldset.name, index)}
+                      </Box>
+                    ))}
+                  </div>
+                  <Box className="mt-4 text-right">
+                    <Button
+                      size="sm"
+                      variant="danger-outline"
+                      onClick={() => handleRepeatableRemove(fieldset.name, index)}
+                    >
+                      Remove
+                    </Button>
+                  </Box>
+                </Card>
+              ))
+            )}
           </div>
-        )}
-      </Card>
+          <Box className="mt-4 text-center">
+            <Button size="md" variant="primary" onClick={() => handleRepeatableAdd(fieldset.name)}>
+              + Add {fieldset.name}
+            </Button>
+          </Box>
+        </Card>
+      </div>
     );
   };
 
   const renderSectionContent = (section: ComponentSection) => (
-    <div className={styles.section}>
-      <Text size="4" weight="medium" className={styles.sectionTitle}>
-        {section.name}
-      </Text>
-
+    <div className={styles.sectionContent}>
       {/* Regular Controls */}
       {section.controls && section.controls.length > 0 && (
-        <div className={styles.controls}>
+        <div className={styles.controlsList}>
           {section.controls.map((control) => (
-            <div key={control.id} className={styles.field}>
-              <label className={styles.fieldLabel}>
-                {control.label || `Control ${control.id}`}
-                {(control.config as { required?: boolean })?.required && <span className={styles.required}>*</span>}
-              </label>
-              {renderControl(control, section.id)}
-            </div>
+            <Box key={control.id} className={styles.field}>
+              <Text size="3" weight="medium" className={styles.fieldLabel}>
+                {control.label || 'Unlabeled Field'}
+                {Boolean((control.config as Record<string, unknown>)?.required) && (
+                  <span className={styles.required}>*</span>
+                )}
+              </Text>
+              {renderControlInput(control)}
+            </Box>
           ))}
         </div>
       )}
 
       {/* Repeatable Structures */}
-      {section.repeatableStructures && section.repeatableStructures.length > 0 && (
+      {section.fieldsets && section.fieldsets.length > 0 && (
         <div className={styles.repeatableStructures}>
-          {section.repeatableStructures.map((structure) => (
-            <div key={structure.id}>{renderRepeatableStructure(structure)}</div>
+          {section.fieldsets.map((fieldset) => (
+            <div key={fieldset.id}>{renderFieldsets(fieldset)}</div>
           ))}
         </div>
       )}
 
       {(!section.controls || section.controls.length === 0) &&
-        (!section.repeatableStructures || section.repeatableStructures.length === 0) && (
+        (!section.fieldsets || section.fieldsets.length === 0) && (
           <div className={styles.emptyControls}>
             <Text size="3" color="gray">
               No content defined in this section yet.
@@ -562,9 +492,9 @@ export const ComponentContentAuthoring = ({
   const sections = component.sections || [];
 
   // Create tabs for the modal
-  const tabs = sections.map((section: ComponentSection) => {
+  const tabs = sections.map((section) => {
     const controlsCount = (section.controls || []).length;
-    const structuresCount = (section.repeatableStructures || []).length;
+    const structuresCount = (section.fieldsets || []).length;
     const totalCount = controlsCount + structuresCount;
 
     return {
@@ -575,41 +505,30 @@ export const ComponentContentAuthoring = ({
   });
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} size="lg" title="Edit Component Content">
-      <Box className={styles.authoring}>
-        <div className={styles.header}>
-          <Text size="5" weight="bold">
-            Edit Content: {component.name}
-          </Text>
-          <Text size="2" color="gray">
-            Configure the content for this component instance
-          </Text>
-        </div>
+    <Modal open={open} title={`Edit ${component?.name || 'Component'} Content`} size="xl" onOpenChange={onOpenChange}>
+      <div className={styles.content}>
+        {tabs.length > 0 ? (
+          <div className={styles.tabsContainer}>
+            <Tabs tabs={tabs} />
+          </div>
+        ) : (
+          <div className={styles.emptyState}>
+            <Text color="gray">This component has no sections defined yet.</Text>
+            <Text size="2" color="gray">
+              Go to Components page to add sections and fields to this component.
+            </Text>
+          </div>
+        )}
+      </div>
 
-        <div className={styles.content}>
-          {sections.length === 0 ? (
-            <div className={styles.emptyControls}>
-              <Text size="4" color="gray">
-                This component doesn&apos;t have any sections configured yet.
-              </Text>
-              <Text size="2" color="gray">
-                Go to the Component Builder to add sections and controls.
-              </Text>
-            </div>
-          ) : (
-            <Tabs tabs={tabs} activeTab={activeTabId || undefined} onTabChange={(tabId) => setActiveTabId(tabId)} />
-          )}
-        </div>
-
-        <div className={styles.footer}>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={handleApplyChanges}>
-            Apply Changes
-          </Button>
-        </div>
-      </Box>
+      <div className={styles.footer}>
+        <Button variant="ghost" onClick={handleClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave} disabled={loading}>
+          {loading ? 'Applying...' : 'Apply Changes'}
+        </Button>
+      </div>
     </Modal>
   );
 };

@@ -1,0 +1,26 @@
+{
+  "page": {
+    "id": "2cI-G2N0XwIKtbXYVcTBQ",
+    "name": "home",
+    "description": null,
+    "slug": "home",
+    "publishedAt": null,
+    "updatedAt": "2025-11-16T14:18:21.999Z"
+  },
+  "seo": {
+    "title": "home",
+    "description": null,
+    "tags": []
+  },
+  "componentsOrder": [
+    "header"
+  ],
+  "content": {
+    "header": {
+      "general": {},
+      "menu1": {
+        "subMenu": []
+      }
+    }
+  }
+}

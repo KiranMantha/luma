@@ -36,3 +36,182 @@
 .required {
   @apply text-red-500 ml-1;
 }
+
+/* Removed .selectInput since we now use the Select component */
+
+.mediaInput {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mediaPreview {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f9fafb;
+}
+
+.previewImage {
+  max-width: 200px;
+  max-height: 150px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.jsonInput {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+}
+
+.tableInput {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  overflow: hidden;
+
+  th {
+    background: #f3f4f6;
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  td {
+    padding: 4px;
+    border-bottom: 1px solid #f3f4f6;
+
+    &:not(:last-child) {
+      border-right: 1px solid #f3f4f6;
+    }
+
+    input {
+      width: 100%;
+      border: none;
+      padding: 4px 8px;
+      font-size: 14px;
+
+      &:focus {
+        outline: 2px solid #3b82f6;
+        outline-offset: -2px;
+      }
+    }
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.tabsContainer {
+  min-height: 300px;
+}
+
+.controlsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.emptyControls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+  border: 2px dashed #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+}
+
+.subsectionTitle {
+  margin: 16px 0 12px 0;
+  color: #1f2937;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 4px;
+}
+
+.repeatableStructures {
+  margin-top: 24px;
+}
+
+.repeatableStructure {
+  margin-bottom: 24px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.structureCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f9fafb;
+  @apply shadow-none;
+}
+
+.structureHeader {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.structureInstances {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.emptyStructure {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+  border: 2px dashed #d1d5db;
+  border-radius: 6px;
+  background: white;
+}
+
+.structureInstance {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 12px;
+  background: white;
+  @apply shadow-none;
+}
+
+.instanceHeader {
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.instanceFields {
+  display: flex;
+  flex-direction: column;
+}

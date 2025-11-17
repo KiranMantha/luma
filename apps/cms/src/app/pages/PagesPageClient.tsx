@@ -2,9 +2,8 @@
 
 import { createPage, deletePage, updatePage } from '@/actions';
 import type { Component, Page, Template } from '@repo/ui';
-import { Box, Button, Card, Flex, PageBuilder, Text } from '@repo/ui';
+import { Box, Button, Card, ComponentContentAuthoring, Flex, PageBuilder, Text } from '@repo/ui';
 import { use, useState } from 'react';
-import { ComponentContentAuthoring } from '../templates/ComponentContentAuthoring';
 import { AddPageDialog } from './AddPageDialog';
 import styles from './PagesPage.module.scss';
 

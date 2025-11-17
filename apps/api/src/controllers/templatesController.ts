@@ -149,3 +149,66 @@ export const deleteTemplate = async (ctx: Context) => {
     return ctx.json({ error: 'Failed to delete template' }, 500);
   }
 };
+
+// Update component instance content within a template
+export const updateTemplateInstance = async (ctx: Context) => {
+  try {
+    const templateId = ctx.req.param('id');
+    const instanceId = ctx.req.param('instanceId');
+    const { content } = await ctx.req.json();
+
+    // Get the template
+    const templateResult = await db.select().from(templates).where(eq(templates.id, templateId));
+    if (templateResult.length === 0) {
+      return ctx.json({ error: 'Template not found' }, 404);
+    }
+
+    const template = templateResult[0];
+    if (!template) {
+      return ctx.json({ error: 'Template not found' }, 404);
+    }
+
+    // Parse metadata
+    const metadata = template.metadata ? JSON.parse(template.metadata) : {};
+    const zones = metadata.zones || [];
+
+    // Find and update the component instance
+    let instanceFound = false;
+    const updatedZones = zones.map((zone: any) => ({
+      ...zone,
+      componentInstances: zone.componentInstances.map((instance: any) => {
+        if (instance.id === instanceId) {
+          instanceFound = true;
+          return { ...instance, config: content };
+        }
+        return instance;
+      }),
+    }));
+
+    if (!instanceFound) {
+      return ctx.json({ error: 'Component instance not found' }, 404);
+    }
+
+    // Update template metadata
+    const updatedMetadata = {
+      ...metadata,
+      zones: updatedZones,
+    };
+
+    await db
+      .update(templates)
+      .set({
+        metadata: JSON.stringify(updatedMetadata),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(templates.id, templateId));
+
+    return ctx.json({
+      message: 'Instance updated successfully',
+      template: { ...template, metadata: updatedMetadata },
+    });
+  } catch (error) {
+    console.error('Error updating template instance:', error);
+    return ctx.json({ error: 'Failed to update instance' }, 500);
+  }
+};
