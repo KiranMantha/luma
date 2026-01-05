@@ -456,6 +456,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
 
       {/* Component Preview Section */}
       <ComponentPreview
+        key={selectedComponent?.id}
         component={selectedComponent}
         activeTabId={activeTabId}
         onAddControl={handleAddControl}

@@ -23,10 +23,10 @@ export const ComponentPreview = ({
   onRequestAddControlToFieldset,
   onActiveTabChange,
 }: ComponentPreviewProps) => {
-  const [internalActiveTabId, setInternalActiveTabId] = useState<string>('');
+  const [internalActiveTabId, setInternalActiveTabId] = useState<string>((component?.sections || [])[0]?.id || '');
   const [isAddSectionDialogOpen, setIsAddSectionDialogOpen] = useState(false);
   const [isAddFieldsetDialogOpen, setIsAddFieldsetDialogOpen] = useState(false);
-  const [currentSectionId, setCurrentSectionId] = useState<string>('');
+  const [currentSectionId, setCurrentSectionId] = useState<string>((component?.sections || [])[0]?.id || '');
   const [editingFieldset, setEditingFieldset] = useState<Fieldset | null>(null);
 
   // Memoize sections to avoid dependency changes on every render

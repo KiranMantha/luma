@@ -13,6 +13,8 @@ import {
 import type { ComponentContentAuthoringProps } from '../ComponentContentAuthoring/ComponentContentAuthoring.model';
 import styles from './TemplateBuilder.module.scss';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL as string;
+
 type TemplateBuilderProps = {
   template: Template;
   components: Component[];
@@ -182,7 +184,7 @@ export const TemplateBuilder = ({
 
     // Optionally refresh from API to get any other updates, but preserve the content we just saved
     try {
-      const response = await fetch(`http://localhost:3002/api/templates/${templateState.id}`);
+      const response = await fetch(`${API_BASE}/api/templates/${templateState.id}`);
       if (response.ok) {
         const updatedTemplate = await response.json();
 

@@ -48,7 +48,8 @@ export const TemplatesPageClient = ({ initialTemplates, initialComponents }: Pro
   const handleSaveTemplate = async (updatedTemplate: Template) => {
     try {
       // Send the complete template update in one API call
-      const response = await fetch(`http://localhost:3002/api/templates/${updatedTemplate.id}`, {
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL as string;
+      const response = await fetch(`${API_BASE}/api/templates/${updatedTemplate.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedTemplate),

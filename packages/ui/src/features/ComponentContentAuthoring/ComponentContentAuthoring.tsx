@@ -2,11 +2,13 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import { Box, Button, Input, Select, Tabs, Text, Textarea } from '../../atoms';
+import { Box, Button, Flex, Input, Select, Tabs, Text, Textarea } from '../../atoms';
 import { Card, Modal } from '../../molecules';
 import { Component, ComponentSection, ControlInstance, ControlType, Fieldset } from '../ComponentBuilder';
 import { ComponentContentAuthoringProps } from './ComponentContentAuthoring.model';
 import styles from './ComponentContentAuthoring.module.scss';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL as string;
 
 export const ComponentContentAuthoring = ({
   open,
@@ -97,16 +99,13 @@ export const ComponentContentAuthoring = ({
     try {
       // Save directly to the database via the appropriate API endpoint
       if (template) {
-        const response = await fetch(
-          `http://localhost:3002/api/templates/${template.id}/instances/${componentInstance.id}`,
-          {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ content }),
+        const response = await fetch(`${API_BASE}/api/templates/${template.id}/instances/${componentInstance.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
           },
-        );
+          body: JSON.stringify({ content }),
+        });
 
         if (!response.ok) {
           throw new Error(`Failed to save content: ${response.statusText}`);
@@ -114,7 +113,7 @@ export const ComponentContentAuthoring = ({
 
         console.log('Content saved successfully to database');
       } else if (page) {
-        const response = await fetch(`http://localhost:3002/api/pages/${page.id}/instances/${componentInstance.id}`, {
+        const response = await fetch(`${API_BASE}/api/pages/${page.id}/instances/${componentInstance.id}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -420,19 +419,20 @@ export const ComponentContentAuthoring = ({
                             <span className={styles.required}>*</span>
                           )}
                         </Text>
-                        {renderControlInput(field, fieldset.name, index)}
+                        <Flex align="center">
+                          {renderControlInput(field, fieldset.name, index)}
+                          <Button
+                            size="sm"
+                            variant="danger-outline"
+                            onClick={() => handleRepeatableRemove(fieldset.name, index)}
+                          >
+                            Remove
+                          </Button>
+                        </Flex>
                       </Box>
                     ))}
                   </div>
-                  <Box className="mt-4 text-right">
-                    <Button
-                      size="sm"
-                      variant="danger-outline"
-                      onClick={() => handleRepeatableRemove(fieldset.name, index)}
-                    >
-                      Remove
-                    </Button>
-                  </Box>
+                  <Box className="mt-4 text-right"></Box>
                 </Card>
               ))
             )}

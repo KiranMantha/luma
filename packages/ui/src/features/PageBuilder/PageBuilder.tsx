@@ -50,6 +50,25 @@ export const PageBuilder = ({
   const [editingInstance, setEditingInstance] = useState<ComponentInstance | null>(null);
   const [isAuthoringOpen, setIsAuthoringOpen] = useState(false);
 
+  const openJsonInNewTab = () => {
+    try {
+      // Prefer the API model endpoint so the new tab has a reloadable URL
+      const slugFromMeta = pageState.metadata ? pageState.metadata.slug : '';
+      const filename = `${slugFromMeta}.model.json`;
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL as string;
+      const apiUrl = `${API_BASE}/api/content/page/${encodeURIComponent(filename)}`;
+
+      const newWindow = window.open(apiUrl, '_blank');
+      if (!newWindow) {
+        alert('Unable to open new tab. Please allow popups for this site.');
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to open page model URL', err);
+      alert('Failed to open page model URL');
+    }
+  };
+
   // Get components used in the selected template to exclude them
   const getTemplateComponentIds = (): Set<string> => {
     const templateComponentIds = new Set<string>();
@@ -189,7 +208,8 @@ export const PageBuilder = ({
 
     // Optionally refresh from API to get any other updates, but preserve the content we just saved
     try {
-      const response = await fetch(`http://localhost:3002/api/pages/${pageState.id}`);
+      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL as string;
+      const response = await fetch(`${API_BASE}/api/pages/${pageState.id}`);
       if (response.ok) {
         const updatedPage = await response.json();
 
@@ -285,6 +305,9 @@ export const PageBuilder = ({
           </Text>
         </div>
         <Flex gap="3" align="center">
+          <Button variant="ghost" onClick={openJsonInNewTab}>
+            View Model JSON
+          </Button>
           <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>

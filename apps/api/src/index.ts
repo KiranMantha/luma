@@ -23,10 +23,13 @@ app.onError((err, ctx) => {
 });
 
 // Middleware
+const corsOriginsRaw = process.env.CORS_ORIGINS as string;
+const corsOrigins = corsOriginsRaw.split(',').map((s) => s.trim());
+
 app.use(
   '*',
   cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'], // CMS app URLs
+    origin: corsOrigins, // CMS app URLs (configurable via CORS_ORIGINS)
     credentials: true,
   }),
 );
@@ -62,7 +65,7 @@ app.notFound((c) => {
   return errorResponse(c, 'Not Found', 404);
 });
 
-const port = Number(process.env.PORT || '3002');
+const port = Number(process.env.PORT as string);
 
 const server = serve({
   fetch: app.fetch,
