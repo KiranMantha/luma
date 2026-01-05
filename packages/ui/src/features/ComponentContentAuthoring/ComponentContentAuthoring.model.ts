@@ -1,6 +1,6 @@
 import type { Component, ComponentInstance, Template } from '../ComponentBuilder/models';
 
-export type Page = {
+type Page = {
   id: string;
   name: string;
   [key: string]: unknown;

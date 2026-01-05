@@ -133,7 +133,7 @@ export const TemplatesPageClient = ({ initialTemplates, initialComponents }: Pro
       <AddTemplateDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} onSave={handleSave} />
       <DeleteConfirmDialog
         open={isDeleteOpen}
-        onOpenChange={setIsDeleteOpen}
+        onCancel={() => setIsDeleteOpen(false)}
         onConfirm={handleConfirmDelete}
         componentName={toDelete?.name || ''}
         itemType="template"
