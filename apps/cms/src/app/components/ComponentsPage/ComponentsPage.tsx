@@ -498,8 +498,8 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
       />
       <DeleteConfirmDialog
         open={isDeleteConfirmDialogOpen}
-        onOpenChange={setIsDeleteConfirmDialogOpen}
         onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
         componentName={componentToDelete?.name || ''}
       />
     </div>

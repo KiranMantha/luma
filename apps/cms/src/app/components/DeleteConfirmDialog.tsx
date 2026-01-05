@@ -4,7 +4,7 @@ import { Box, Button, Flex, Modal, Text } from '@repo/ui';
 
 export type DeleteConfirmDialogProps = {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onCancel: () => void;
   onConfirm: () => void;
   componentName: string;
   itemType?: 'component' | 'template';
@@ -12,18 +12,13 @@ export type DeleteConfirmDialogProps = {
 
 export const DeleteConfirmDialog = ({
   open,
-  onOpenChange,
   onConfirm,
+  onCancel,
   componentName,
   itemType = 'component',
 }: DeleteConfirmDialogProps) => {
   const handleConfirm = () => {
     onConfirm();
-    onOpenChange(false);
-  };
-
-  const handleCancel = () => {
-    onOpenChange(false);
   };
 
   const itemTypeCapitalized = itemType.charAt(0).toUpperCase() + itemType.slice(1);
@@ -33,7 +28,7 @@ export const DeleteConfirmDialog = ({
       : 'This action cannot be undone. All controls and sections within this component will also be deleted.';
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title={`Delete ${itemTypeCapitalized}`}>
+    <Modal open={open} onOpenChange={onCancel} title={`Delete ${itemTypeCapitalized}`}>
       <Box className="space-y-4">
         <Text size="3">
           Are you sure you want to delete the {itemType} <strong>&ldquo;{componentName}&rdquo;</strong>?
@@ -42,7 +37,7 @@ export const DeleteConfirmDialog = ({
           {deleteMessage}
         </Text>
         <Flex gap="3" justify="end" className="mt-6">
-          <Button variant="ghost" onClick={handleCancel}>
+          <Button variant="ghost" onClick={onCancel}>
             Cancel
           </Button>
           <Button variant="primary" color="red" onClick={handleConfirm}>
