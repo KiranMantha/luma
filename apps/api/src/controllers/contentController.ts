@@ -352,19 +352,7 @@ export const getPageModel = async (ctx: Context) => {
     // Find published page by matching kebab-case name
     const allPublishedPages = await db.select().from(pages).where(eq(pages.status, 'published'));
 
-    const page = allPublishedPages.find((p) => {
-      // First check if there's a custom slug in metadata
-      if (p.metadata) {
-        const metadata = JSON.parse(p.metadata);
-        if (metadata.slug === pageNameWithoutExt) {
-          return true;
-        }
-      }
-
-      // Fallback to converting page name to kebab-case
-      const pageKebabName = toKebabCase(p.name);
-      return pageKebabName === pageNameWithoutExt;
-    });
+    const page = allPublishedPages.find((p) => p.slug === pageNameWithoutExt);
 
     if (!page) {
       return ctx.json(

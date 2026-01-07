@@ -6,15 +6,6 @@ import * as path from 'path';
 import { db } from '../db';
 import { components, componentSections, fieldsetFields, fieldsets, folders, pages, templates } from '../db/schema';
 
-// Utility function to convert page name to kebab-case
-const toKebabCase = (str: string): string => {
-  return str
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-};
-
 // Utility function to ensure output directory exists
 const ensureOutputDir = async () => {
   const outputDir = path.join(process.cwd(), 'public', 'pages');
@@ -179,7 +170,7 @@ const generatePageJSON = async (pageId: string) => {
       id: page.id,
       name: page.name,
       description: page.description,
-      slug: pageMetadata.slug || toKebabCase(page.name),
+      slug: page.slug,
       publishedAt: page.publishedAt,
       updatedAt: page.updatedAt,
     },
@@ -260,7 +251,7 @@ export const getPageById = async (ctx: Context) => {
 
 export const createPage = async (ctx: Context) => {
   try {
-    const { name, description, folderId, templateId, zones, metadata } = await ctx.req.json();
+    const { name, identifier, description, folderId, templateId, zones, metadata } = await ctx.req.json();
     const id = nanoid();
 
     // Create page metadata with zones
@@ -284,6 +275,7 @@ export const createPage = async (ctx: Context) => {
     const newPage = {
       id,
       name,
+      slug: identifier,
       description,
       folderId,
       templateId,
@@ -343,8 +335,7 @@ export const updatePage = async (ctx: Context) => {
       try {
         const pageJSON = await generatePageJSON(id);
         const outputDir = await ensureOutputDir();
-        const kebabName = toKebabCase(pageJSON.page.name);
-        const fileName = `${kebabName}.model.json`;
+        const fileName = `${pageJSON.page.slug}.model.json`;
         const filePath = path.join(outputDir, fileName);
 
         await fs.writeFile(filePath, JSON.stringify(pageJSON, null, 2), 'utf8');
@@ -357,8 +348,7 @@ export const updatePage = async (ctx: Context) => {
       // Delete JSON file if page was unpublished
       try {
         const outputDir = path.join(process.cwd(), 'public', 'pages');
-        const kebabName = toKebabCase(page.name);
-        const fileName = `${kebabName}.model.json`;
+        const fileName = `${page.slug}.model.json`;
         const filePath = path.join(outputDir, fileName);
 
         await fs.unlink(filePath);
@@ -405,8 +395,7 @@ export const deletePage = async (ctx: Context) => {
       // Delete static JSON file if it exists
       try {
         const outputDir = path.join(process.cwd(), 'public', 'pages');
-        const kebabName = toKebabCase(page.name);
-        const fileName = `${kebabName}.model.json`;
+        const fileName = `${page.slug}.model.json`;
         const filePath = path.join(outputDir, fileName);
 
         await fs.unlink(filePath);
@@ -443,8 +432,7 @@ export const publishPage = async (ctx: Context) => {
     try {
       const pageJSON = await generatePageJSON(id);
       const outputDir = await ensureOutputDir();
-      const kebabName = toKebabCase(pageJSON.page.name);
-      const fileName = `${kebabName}.model.json`;
+      const fileName = `${pageJSON.page.slug}.model.json`;
       const filePath = path.join(outputDir, fileName);
 
       await fs.writeFile(filePath, JSON.stringify(pageJSON, null, 2), 'utf8');

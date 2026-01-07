@@ -50,11 +50,10 @@ export const PageBuilder = ({
   const [editingInstance, setEditingInstance] = useState<ComponentInstance | null>(null);
   const [isAuthoringOpen, setIsAuthoringOpen] = useState(false);
 
-  const openJsonInNewTab = () => {
+  const viewPageModelJson = () => {
     try {
       // Prefer the API model endpoint so the new tab has a reloadable URL
-      const slugFromMeta = pageState.metadata ? pageState.metadata.slug : '';
-      const filename = `${slugFromMeta}.model.json`;
+      const filename = `${page.slug}.model.json`;
       const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL as string;
       const apiUrl = `${API_BASE}/api/content/page/${encodeURIComponent(filename)}`;
 
@@ -305,7 +304,7 @@ export const PageBuilder = ({
           </Text>
         </div>
         <Flex gap="3" align="center">
-          <Button variant="ghost" onClick={openJsonInNewTab}>
+          <Button variant="ghost" onClick={viewPageModelJson}>
             View Model JSON
           </Button>
           <Button variant="ghost" onClick={onCancel}>

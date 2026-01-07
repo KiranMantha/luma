@@ -7,8 +7,11 @@
     "build": "tsc && tsc-esm-fix dist",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/db/migrate.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:migrate": "env-cmd -f ../../.env tsx src/db/migrate.ts",
+    "db:update": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "sqlite:backup": "sqlite3 cms.db '.dump' > backup.sql",
+    "sqlite:restore": "sqlite3 cms.db < backup.sql"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.5",

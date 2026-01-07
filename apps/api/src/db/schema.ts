@@ -98,6 +98,7 @@ export const templates = sqliteTable('templates', {
 export const pages = sqliteTable('pages', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  slug: text('slug').notNull(),
   description: text('description'),
   status: text('status', { enum: ['draft', 'published', 'archived'] })
     .notNull()
