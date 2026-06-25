@@ -1,4 +1,6 @@
-import { Box, Button, Flex, Icon, Input, Select, Text } from '@repo/ui';
+'use client';
+
+import { Box, Button, Flex, Icon, Input, Select, Text } from '#atoms';
 import { BaseControlConfigProps, InputChangeEvent, TableControlConfig } from './types';
 
 type TableConfigProps = BaseControlConfigProps<TableControlConfig>;
@@ -29,17 +31,9 @@ export const TableConfig = ({ config, onConfigChange }: TableConfigProps) => {
     if (!currentHeader) return;
 
     if (field === 'type') {
-      headers[index] = {
-        id: currentHeader.id,
-        label: currentHeader.label,
-        type: value as 'text' | 'textarea',
-      };
+      headers[index] = { id: currentHeader.id, label: currentHeader.label, type: value as 'text' | 'textarea' };
     } else {
-      headers[index] = {
-        id: currentHeader.id,
-        label: value,
-        type: currentHeader.type,
-      };
+      headers[index] = { id: currentHeader.id, label: value, type: currentHeader.type };
     }
     updateConfig({ headers });
   };

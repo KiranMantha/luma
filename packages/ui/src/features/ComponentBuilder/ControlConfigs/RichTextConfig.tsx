@@ -1,4 +1,6 @@
-import { Box, Flex, Input, Text } from '@repo/ui';
+'use client';
+
+import { Box, Flex, Input, Text } from '#atoms';
 import { BaseControlConfigProps, InputChangeEvent, RichTextControlConfig } from './types';
 
 type RichTextConfigProps = BaseControlConfigProps<RichTextControlConfig>;

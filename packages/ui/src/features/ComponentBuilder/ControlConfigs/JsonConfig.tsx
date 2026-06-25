@@ -1,4 +1,6 @@
-import { Flex, Input, Text, Textarea } from '@repo/ui';
+'use client';
+
+import { Flex, Input, Text, Textarea } from '#atoms';
 import { BaseControlConfigProps, InputChangeEvent, JsonControlConfig, TextAreaChangeEvent } from './types';
 
 type JsonConfigProps = BaseControlConfigProps<JsonControlConfig>;

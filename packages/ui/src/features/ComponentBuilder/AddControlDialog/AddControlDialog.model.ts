@@ -1,10 +1,9 @@
-import { ControlType } from '@repo/ui';
-import { ControlInstance } from './controls';
+import type { ControlInstance } from '../models';
 
 export type AddControlDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddControl: (controlType: ControlType, label: string, config: Record<string, unknown>) => void;
+  onAddControl: (controlType: string, label: string, config: Record<string, unknown>) => void;
   initialControl?: ControlInstance | null;
   mode?: 'add' | 'edit';
 };

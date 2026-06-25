@@ -4,7 +4,7 @@ import { deleteTemplate, saveTemplate } from '@/actions';
 import type { Component, Template } from '@repo/ui';
 import { Box, Button, Card, Flex, TemplateBuilder, Text } from '@repo/ui';
 import { use, useState } from 'react';
-import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
+import { DeleteConfirmDialog } from '@repo/ui';
 import { AddTemplateDialog } from './AddTemplateDialog';
 import styles from './TemplatesPage.module.scss';
 

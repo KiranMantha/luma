@@ -1,8 +1,9 @@
 'use client';
 
-import { Box, Button, Card, CONTROL_METADATA, ControlType, Flex, Grid, Modal, Text } from '@repo/ui';
+import { Box, Button, Flex, Grid, Text } from '#atoms';
+import { Card, Modal } from '#molecules';
 import { FormEvent, useEffect, useState } from 'react';
-import { AddControlDialogProps, ConfigStep } from './AddControlDialog.model';
+import { CONTROL_METADATA, ControlType } from '../ComponentPreview/ComponentPreview.model';
 import {
   ControlConfig,
   EnumerationConfig,
@@ -17,8 +18,9 @@ import {
   TableControlConfig,
   TextConfig,
   TextControlConfig,
-} from './ControlConfigs';
-import { BUILT_IN_CONTROLS, ControlDefinition } from './controls';
+} from '../ControlConfigs';
+import { BUILT_IN_CONTROLS } from '../controls';
+import type { AddControlDialogProps, ConfigStep } from './AddControlDialog.model';
 
 export const AddControlDialog = ({
   open,
@@ -28,7 +30,7 @@ export const AddControlDialog = ({
   mode = 'add',
 }: AddControlDialogProps) => {
   const [step, setStep] = useState<ConfigStep>(mode === 'edit' ? 'configure' : 'select');
-  const [selectedControl, setSelectedControl] = useState<ControlDefinition | null>(null);
+  const [selectedControlType, setSelectedControlType] = useState<ControlType | null>(null);
   const [config, setConfig] = useState<ControlConfig | null>(null);
 
   const createDefaultConfig = (controlType: ControlType): ControlConfig => {
@@ -57,14 +59,14 @@ export const AddControlDialog = ({
     }
   };
 
-  const buildApiConfig = (controlType: ControlType, config: ControlConfig): Record<string, unknown> => {
+  const buildApiConfig = (controlType: ControlType, cfg: ControlConfig): Record<string, unknown> => {
     switch (controlType) {
       case ControlType.TEXT: {
-        const c = config as TextControlConfig;
+        const c = cfg as TextControlConfig;
         return { required: c.required, placeholder: c.placeholder, multiline: c.multiline, maxLength: c.maxLength };
       }
       case ControlType.ENUMERATION: {
-        const c = config as EnumerationControlConfig;
+        const c = cfg as EnumerationControlConfig;
         return {
           required: c.required,
           placeholder: c.placeholder,
@@ -75,31 +77,34 @@ export const AddControlDialog = ({
         };
       }
       case ControlType.MEDIA: {
-        const c = config as ImageControlConfig;
+        const c = cfg as ImageControlConfig;
         return { required: c.required, allowedTypes: c.allowedTypes, maxSize: c.maxSize };
       }
       case ControlType.RICHTEXT: {
-        const c = config as RichTextControlConfig;
+        const c = cfg as RichTextControlConfig;
         return { required: c.required, toolbar: c.toolbar, maxLength: c.maxLength };
       }
       case ControlType.JSON: {
-        const c = config as JsonControlConfig;
+        const c = cfg as JsonControlConfig;
         let parsedSchema;
         if (c.schema.trim()) {
-          try { parsedSchema = JSON.parse(c.schema); } catch { parsedSchema = undefined; }
+          try {
+            parsedSchema = JSON.parse(c.schema);
+          } catch {
+            parsedSchema = undefined;
+          }
         }
         return { required: c.required, schema: parsedSchema, pretty: c.pretty };
       }
       case ControlType.TABLE: {
-        const c = config as TableControlConfig;
+        const c = cfg as TableControlConfig;
         return { required: c.required, title: c.title, caption: c.caption, footnote: c.footnote, headers: c.headers };
       }
       default:
-        return config as Record<string, unknown>;
+        return cfg as Record<string, unknown>;
     }
   };
 
-  // Initialize form with existing values when editing
   useEffect(() => {
     if (mode === 'edit' && initialControl) {
       const c = initialControl.config as Record<string, unknown>;
@@ -161,55 +166,54 @@ export const AddControlDialog = ({
             headers: headers.map((header, index) =>
               typeof header === 'string'
                 ? { id: `header-${index + 1}`, label: header, type: 'text' as const }
-                : { id: header.id || `header-${index + 1}`, label: header.label, type: (header.type as 'text' | 'textarea') || 'text' },
+                : {
+                    id: header.id || `header-${index + 1}`,
+                    label: header.label,
+                    type: (header.type as 'text' | 'textarea') || 'text',
+                  },
             ),
           } as TableControlConfig;
           break;
         }
         default:
-          newConfig = createDefaultConfig(initialControl.controlType);
+          newConfig = createDefaultConfig(initialControl.controlType as ControlType);
           newConfig.label = label;
           newConfig.required = (c.required as boolean) || false;
       }
 
       setConfig(newConfig);
-
-      // Set the selected control for editing
-      const controlDef = BUILT_IN_CONTROLS.find((c) => c.controlType === initialControl.controlType);
-      setSelectedControl(controlDef || null);
+      setSelectedControlType(initialControl.controlType as ControlType);
       setStep('configure');
     } else if (mode === 'add') {
-      // Reset to select step for adding new controls
       setStep('select');
       setConfig(null);
-      setSelectedControl(null);
+      setSelectedControlType(null);
     }
   }, [mode, initialControl, open]);
 
-  // Update config when a new control is selected
   useEffect(() => {
-    if (selectedControl && !config) {
-      setConfig(createDefaultConfig(selectedControl.controlType));
+    if (selectedControlType && !config) {
+      setConfig(createDefaultConfig(selectedControlType));
     }
-  }, [selectedControl, config]);
+  }, [selectedControlType, config]);
 
-  const handleControlSelect = (control: ControlDefinition) => {
-    setSelectedControl(control);
-    setConfig(createDefaultConfig(control.controlType));
+  const handleControlSelect = (controlType: ControlType) => {
+    setSelectedControlType(controlType);
+    setConfig(createDefaultConfig(controlType));
     setStep('configure');
   };
 
   const handleAddOrUpdateControl = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedControl || !config || !config.label.trim()) return;
+    if (!selectedControlType || !config || !config.label.trim()) return;
 
-    const apiConfig = buildApiConfig(selectedControl.controlType, config);
-    onAddControl(selectedControl.controlType, config.label.trim(), apiConfig);
+    const apiConfig = buildApiConfig(selectedControlType, config);
+    onAddControl(selectedControlType, config.label.trim(), apiConfig);
     handleClose();
   };
 
   const handleClose = () => {
-    setSelectedControl(null);
+    setSelectedControlType(null);
     setConfig(null);
     onOpenChange(false);
   };
@@ -218,7 +222,7 @@ export const AddControlDialog = ({
     <Box>
       <Grid columns="1" gap="3">
         {BUILT_IN_CONTROLS.map((control) => (
-          <Card key={control.controlType} onClick={() => handleControlSelect(control)} className="cursor-pointer">
+          <Card key={control.controlType} onClick={() => handleControlSelect(control.controlType)} className="cursor-pointer">
             <Flex gap="3">
               <Box
                 style={{
@@ -251,62 +255,40 @@ export const AddControlDialog = ({
   );
 
   const renderConfigureStep = () => {
-    if (!selectedControl || !config) return null;
+    if (!selectedControlType || !config) return null;
 
     const renderControlSpecificConfig = () => {
-      switch (selectedControl.controlType) {
+      switch (selectedControlType) {
         case ControlType.TEXT:
-          return (
-            <TextConfig config={config as TextControlConfig} onConfigChange={(newConfig) => setConfig(newConfig)} />
-          );
+          return <TextConfig config={config as TextControlConfig} onConfigChange={(c) => setConfig(c)} />;
         case ControlType.ENUMERATION:
-          return (
-            <EnumerationConfig
-              config={config as EnumerationControlConfig}
-              onConfigChange={(newConfig) => setConfig(newConfig)}
-            />
-          );
+          return <EnumerationConfig config={config as EnumerationControlConfig} onConfigChange={(c) => setConfig(c)} />;
         case ControlType.MEDIA:
-          return (
-            <ImageConfig config={config as ImageControlConfig} onConfigChange={(newConfig) => setConfig(newConfig)} />
-          );
+          return <ImageConfig config={config as ImageControlConfig} onConfigChange={(c) => setConfig(c)} />;
         case ControlType.RICHTEXT:
-          return (
-            <RichTextConfig
-              config={config as RichTextControlConfig}
-              onConfigChange={(newConfig) => setConfig(newConfig)}
-            />
-          );
+          return <RichTextConfig config={config as RichTextControlConfig} onConfigChange={(c) => setConfig(c)} />;
         case ControlType.JSON:
-          return (
-            <JsonConfig config={config as JsonControlConfig} onConfigChange={(newConfig) => setConfig(newConfig)} />
-          );
+          return <JsonConfig config={config as JsonControlConfig} onConfigChange={(c) => setConfig(c)} />;
         case ControlType.TABLE:
-          return (
-            <TableConfig config={config as TableControlConfig} onConfigChange={(newConfig) => setConfig(newConfig)} />
-          );
+          return <TableConfig config={config as TableControlConfig} onConfigChange={(c) => setConfig(c)} />;
         default:
           return null;
       }
     };
 
     const isFormValid = () => {
-      if (!config.label.trim()) return false; // Control name is required
+      if (!config.label.trim()) return false;
 
-      switch (selectedControl.controlType) {
-        case ControlType.ENUMERATION: {
-          const enumConfig = config as EnumerationControlConfig;
-          return enumConfig.options.length > 0;
-        }
-        case ControlType.MEDIA: {
-          const imageConfig = config as ImageControlConfig;
-          return imageConfig.allowedTypes.length > 0;
-        }
+      switch (selectedControlType) {
+        case ControlType.ENUMERATION:
+          return (config as EnumerationControlConfig).options.length > 0;
+        case ControlType.MEDIA:
+          return (config as ImageControlConfig).allowedTypes.length > 0;
         case ControlType.JSON: {
-          const jsonConfig = config as JsonControlConfig;
-          if (jsonConfig.schema.trim()) {
+          const schema = (config as JsonControlConfig).schema.trim();
+          if (schema) {
             try {
-              JSON.parse(jsonConfig.schema.trim());
+              JSON.parse(schema);
               return true;
             } catch {
               return false;
@@ -316,9 +298,7 @@ export const AddControlDialog = ({
         }
         case ControlType.TABLE: {
           const tableConfig = config as TableControlConfig;
-          return (
-            tableConfig.headers.length > 0 && tableConfig.headers.every((header) => header.label.trim().length > 0)
-          );
+          return tableConfig.headers.length > 0 && tableConfig.headers.every((h) => h.label.trim().length > 0);
         }
         default:
           return true;
@@ -328,13 +308,13 @@ export const AddControlDialog = ({
     return (
       <Box as="form" onSubmit={handleAddOrUpdateControl}>
         <Flex gap="2" style={{ marginBottom: '16px' }}>
-          {mode === 'add' ? (
+          {mode === 'add' && (
             <Button size="sm" variant="primary-outline" onClick={() => setStep('select')}>
               ← Back
             </Button>
-          ) : null}
+          )}
           <Text size="3" weight="medium">
-            Configure {CONTROL_METADATA[selectedControl.controlType].displayName}
+            Configure {CONTROL_METADATA[selectedControlType].displayName}
           </Text>
         </Flex>
 
@@ -346,8 +326,8 @@ export const AddControlDialog = ({
           </Button>
           <Button type="submit" disabled={!isFormValid()}>
             {mode === 'edit'
-              ? `Update ${CONTROL_METADATA[selectedControl.controlType].displayName}`
-              : `Add ${CONTROL_METADATA[selectedControl.controlType].displayName}`}
+              ? `Update ${CONTROL_METADATA[selectedControlType].displayName}`
+              : `Add ${CONTROL_METADATA[selectedControlType].displayName}`}
           </Button>
         </Flex>
       </Box>

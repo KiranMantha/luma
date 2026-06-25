@@ -1,12 +1,10 @@
 import { ChangeEvent } from 'react';
 
-// Base config type that all control configs extend
 export type BaseControlConfig = {
-  label: string; // Control name/identifier that becomes the display label during authoring
+  label: string;
   required: boolean;
 };
 
-// Specific config types for each control type
 export type TextControlConfig = BaseControlConfig & {
   placeholder: string;
   multiline: boolean;
@@ -45,7 +43,6 @@ export type TableControlConfig = BaseControlConfig & {
   }>;
 };
 
-// Union type for all possible configs
 export type ControlConfig =
   | TextControlConfig
   | EnumerationControlConfig
@@ -54,12 +51,10 @@ export type ControlConfig =
   | JsonControlConfig
   | TableControlConfig;
 
-// Base props that all control config components will receive
 export type BaseControlConfigProps<T = BaseControlConfig> = {
   config: T;
   onConfigChange: (config: T) => void;
 };
 
-// Common input event type
 export type InputChangeEvent = ChangeEvent<HTMLInputElement>;
 export type TextAreaChangeEvent = ChangeEvent<HTMLTextAreaElement>;

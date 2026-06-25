@@ -7,14 +7,20 @@ import { ComponentType } from '../models';
 import styles from './ComponentLibrary.module.scss';
 
 export const ComponentLibrary = () => {
-  const { components, selectedComponent, onAddComponent, onEditComponent, onDeleteComponent, onSelectComponent } =
-    useComponentBuilder();
+  const {
+    components,
+    selectedComponent,
+    onTriggerAddComponent,
+    onTriggerEditComponent,
+    onTriggerDeleteComponent,
+    onSelectComponent,
+  } = useComponentBuilder();
 
   return (
     <Flex direction="column" align="stretch" className={styles.componentLibrary}>
       <Flex justify="between" className={styles.header}>
         <Text size="5" weight="bold">Components</Text>
-        <Button variant="ghost" color="blue" size="reg" onClick={onAddComponent}>
+        <Button variant="ghost" color="blue" size="reg" onClick={onTriggerAddComponent}>
           Add Component
         </Button>
       </Flex>
@@ -47,7 +53,7 @@ export const ComponentLibrary = () => {
                       <Button
                         size="sm"
                         variant="primary-outline"
-                        onClick={(e) => { e.stopPropagation(); onEditComponent(component); }}
+                        onClick={(e) => { e.stopPropagation(); onTriggerEditComponent(component); }}
                       >
                         Edit
                       </Button>
@@ -55,7 +61,7 @@ export const ComponentLibrary = () => {
                         size="sm"
                         variant="primary-outline"
                         color="red"
-                        onClick={(e) => { e.stopPropagation(); onDeleteComponent(component.id); }}
+                        onClick={(e) => { e.stopPropagation(); onTriggerDeleteComponent(component.id); }}
                       >
                         Delete
                       </Button>

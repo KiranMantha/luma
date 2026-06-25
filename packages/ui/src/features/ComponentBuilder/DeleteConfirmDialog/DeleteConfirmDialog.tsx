@@ -1,6 +1,7 @@
 'use client';
 
-import { Box, Button, Flex, Modal, Text } from '@repo/ui';
+import { Box, Button, Flex, Text } from '#atoms';
+import { Modal } from '#molecules';
 
 export type DeleteConfirmDialogProps = {
   open: boolean;

@@ -1,4 +1,6 @@
-import { Box, Input, Text, Textarea } from '@repo/ui';
+'use client';
+
+import { Box, Input, Text, Textarea } from '#atoms';
 import { BaseControlConfigProps, EnumerationControlConfig, InputChangeEvent, TextAreaChangeEvent } from './types';
 
 type EnumerationConfigProps = BaseControlConfigProps<EnumerationControlConfig>;

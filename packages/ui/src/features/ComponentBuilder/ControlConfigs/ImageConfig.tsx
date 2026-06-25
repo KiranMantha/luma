@@ -1,4 +1,6 @@
-import { Box, Flex, Input, Text } from '@repo/ui';
+'use client';
+
+import { Box, Flex, Input, Text } from '#atoms';
 import { BaseControlConfigProps, ImageControlConfig, InputChangeEvent } from './types';
 
 type ImageConfigProps = BaseControlConfigProps<ImageControlConfig>;

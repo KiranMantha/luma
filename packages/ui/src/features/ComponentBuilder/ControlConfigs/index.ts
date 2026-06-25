@@ -6,7 +6,6 @@ export { TableConfig } from './TableConfig';
 export { TextConfig } from './TextConfig';
 export type { BaseControlConfigProps } from './types';
 
-// Export all config types
 export type {
   ControlConfig,
   EnumerationControlConfig,

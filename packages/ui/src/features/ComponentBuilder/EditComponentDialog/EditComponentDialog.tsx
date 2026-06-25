@@ -1,41 +1,56 @@
 'use client';
 
-import { Box, Button, Flex, Input, Modal } from '@repo/ui';
-import { ChangeEvent, FormEvent, useState } from 'react';
-import type { AddComponentDialogProps } from './AddComponentDialog.model';
+import { Box, Button, Flex, Input } from '#atoms';
+import { Modal } from '#molecules';
+import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import type { Component } from '../models';
 
-export const AddComponentDialog = ({ open, onOpenChange, onSave }: AddComponentDialogProps) => {
+export type EditComponentDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (id: string, name: string, description?: string) => Promise<void>;
+  component: Component | null;
+};
+
+export const EditComponentDialog = ({ open, onOpenChange, onSave, component }: EditComponentDialogProps) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (component) {
+      setName(component.name);
+      setDescription(component.description || '');
+    }
+  }, [component]);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim() || !component) return;
 
     setLoading(true);
     try {
-      await onSave(name.trim(), description.trim() || undefined);
-      setName('');
-      setDescription('');
+      await onSave(component.id, name.trim(), description.trim() || undefined);
       onOpenChange(false);
     } catch (error) {
-      console.error('Failed to save component:', error);
+      console.error('Failed to update component:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancel = () => {
-    setName('');
-    setDescription('');
+    if (component) {
+      setName(component.name);
+      setDescription(component.description || '');
+    }
     onOpenChange(false);
   };
 
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title="Add New Component">
-      <Box as="form" onSubmit={handleSubmit}>
-        <Box className="mb-4">
+    <Modal open={open} onOpenChange={onOpenChange} title="Edit Component">
+      <Box as="form" onSubmit={handleSubmit} className="space-y-4">
+        <Box>
           <Input
             label="Component Name"
             value={name}
@@ -57,7 +72,7 @@ export const AddComponentDialog = ({ open, onOpenChange, onSave }: AddComponentD
             Cancel
           </Button>
           <Button type="submit" disabled={!name.trim() || loading}>
-            {loading ? 'Saving...' : 'Save Component'}
+            {loading ? 'Updating...' : 'Update Component'}
           </Button>
         </Flex>
       </Box>
