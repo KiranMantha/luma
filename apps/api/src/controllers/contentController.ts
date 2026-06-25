@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { Context } from 'hono';
 import { db } from '../db';
 import {
@@ -457,9 +457,9 @@ export const getPageModel = async (ctx: Context) => {
             .where(eq(componentControls.componentId, component.id));
 
           const sectionIds = sectionsResult.map((s) => s.id);
-          const fieldsetsResult = sectionIds.length > 0 ? await db.select().from(fieldsets) : [];
+          const fieldsetsResult = sectionIds.length > 0 ? await db.select().from(fieldsets).where(inArray(fieldsets.sectionId, sectionIds)) : [];
           const fieldsetIds = fieldsetsResult.map((f) => f.id);
-          const fieldsetFieldsResult = fieldsetIds.length > 0 ? await db.select().from(fieldsetFields) : [];
+          const fieldsetFieldsResult = fieldsetIds.length > 0 ? await db.select().from(fieldsetFields).where(inArray(fieldsetFields.fieldsetId, fieldsetIds)) : [];
 
           const componentContent: any = {};
           // Parse instance config (contains actual values with control IDs as keys)
