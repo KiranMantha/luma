@@ -585,9 +585,19 @@ export const updatePageInstance = async (ctx: Context) => {
       })
       .where(eq(pages.id, pageId));
 
-    // Regenerate static JSON if page is published
+    // Regenerate and write static JSON if page is published
     if (page.status === 'published') {
-      await generatePageJSON(pageId);
+      try {
+        const pageJSON = await generatePageJSON(pageId);
+        const outputDir = await ensureOutputDir();
+        const kebabName = toKebabCase(pageJSON.page.name);
+        const fileName = `${kebabName}.model.json`;
+        const filePath = path.join(outputDir, fileName);
+        await fs.writeFile(filePath, JSON.stringify(pageJSON, null, 2), 'utf8');
+        console.log(`✅ Regenerated static JSON for updated instance: ${fileName}`);
+      } catch (jsonError) {
+        console.error('Error regenerating static JSON:', jsonError);
+      }
     }
 
     return ctx.json({ message: 'Instance updated successfully', page: { ...page, metadata: updatedMetadata } });
