@@ -1,6 +1,5 @@
 @reference 'tailwindcss';
 
-/* Page Builder Styles - Similar to Template Builder */
 .pageBuilder {
   display: flex;
   flex-direction: column;
@@ -50,15 +49,15 @@
   background: white;
   cursor: grab;
   transition: all 0.2s;
-}
 
-.componentCard:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
-}
+  &:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+  }
 
-.componentCard:active {
-  cursor: grabbing;
+  &:active {
+    cursor: grabbing;
+  }
 }
 
 .componentUsed {
@@ -73,79 +72,6 @@
   overflow: auto;
 }
 
-/* Removed layoutGrid - not needed for single zone */
-
-.zoneArea {
-  border: 2px dashed #cbd5e1;
-  border-radius: 12px;
-  padding: 1rem;
-  min-height: calc(100vh - 200px); /* Full height minus header and padding */
-  display: flex;
-  flex-direction: column;
-  transition: all 0.2s;
-  background-color: rgba(34, 197, 94, 0.05);
-  border-color: #bbf7d0;
-}
-
-.zoneArea.dragOver {
-  border-color: #3b82f6;
-  background-color: rgba(59, 130, 246, 0.05);
-}
-
-.zoneHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.zoneContent {
-  flex: 1;
-}
-
-.emptyZone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  text-align: center;
-  opacity: 0.7;
-}
-
-.instanceList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.zoneInstance {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.zoneInstance:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.1);
-}
-
-.instanceInfo {
-  flex: 1;
-}
-
-.instanceActions {
-  display: flex;
-  gap: 10px;
-}
-
 .statusSelect {
   padding: 4px 8px;
   border: 1px solid #d1d5db;
@@ -155,14 +81,14 @@
   color: #374151;
   cursor: pointer;
   transition: border-color 0.2s;
-}
 
-.statusSelect:hover {
-  border-color: #3b82f6;
-}
+  &:hover {
+    border-color: #3b82f6;
+  }
 
-.statusSelect:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
 }

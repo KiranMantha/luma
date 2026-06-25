@@ -1,0 +1,83 @@
+@reference 'tailwindcss';
+
+.zoneArea {
+  border: 2px dashed transparent;
+  border-radius: 8px;
+  padding: 16px;
+  min-height: 120px;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &.dragOver {
+    border-color: #3b82f6;
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    transform: scale(1.02);
+  }
+}
+
+/* Zone type colour variants */
+.zoneHeader_color  { background-color: rgba(59, 130, 246, 0.05); border-color: #bfdbfe; }
+.zoneHero_color    { background-color: rgba(147, 51, 234, 0.05); border-color: #c4b5fd; }
+.zoneContent_color { background-color: rgba(34, 197, 94, 0.05);  border-color: #bbf7d0; }
+.zoneSidebar_color { background-color: rgba(234, 179, 8, 0.05);  border-color: #fde68a; }
+.zoneFooter_color  { background-color: rgba(107, 114, 128, 0.05); border-color: #e5e7eb; }
+.zoneCustom_color  { background-color: rgba(236, 72, 153, 0.05); border-color: #f9a8d4; }
+.zoneLocked_color  { background-color: rgba(107, 114, 128, 0.05); border-color: #d1d5db; }
+
+.zoneHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.zoneContent {
+  flex: 1;
+}
+
+.emptyZone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  text-align: center;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  padding: 20px;
+}
+
+.instanceList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zoneInstance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.1);
+  }
+}
+
+.instanceInfo {
+  flex: 1;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.instanceActions {
+  display: flex;
+  gap: 10px;
+}

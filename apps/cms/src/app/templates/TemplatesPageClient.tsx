@@ -2,7 +2,7 @@
 
 import { deleteTemplate, saveTemplate } from '@/actions';
 import type { Component, Template } from '@repo/ui';
-import { Box, Button, Card, ComponentContentAuthoring, Flex, TemplateBuilder, Text } from '@repo/ui';
+import { Box, Button, Card, Flex, TemplateBuilder, Text } from '@repo/ui';
 import { use, useState } from 'react';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { AddTemplateDialog } from './AddTemplateDialog';
@@ -77,7 +77,6 @@ export const TemplatesPageClient = ({ initialTemplates, initialComponents }: Pro
       <TemplateBuilder
         template={editingTemplate}
         components={components}
-        ComponentContentAuthoring={ComponentContentAuthoring}
         onSave={handleSaveTemplate}
         onCancel={handleCancelEdit}
       />
