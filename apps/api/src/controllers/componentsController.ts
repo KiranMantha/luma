@@ -3,7 +3,15 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { nanoid } from 'nanoid';
 import { db } from '../db';
-import { componentControls, components, componentSections, fieldsetFields, fieldsets, pages, templates } from '../db/schema';
+import {
+  componentControls,
+  components,
+  componentSections,
+  fieldsetFields,
+  fieldsets,
+  pages,
+  templates,
+} from '../db/schema';
 import type {
   CreateComponentControlRequest,
   CreateComponentRequest,
@@ -92,9 +100,10 @@ export const getAllComponents = async (ctx: Context) => {
 
                 return {
                   ...fieldset,
-                  fields: fields.map((field) => ({
-                    ...field,
-                    config: field.config ? JSON.parse(field.config) : {},
+                  fields: fields.map(({ type, config, ...rest }) => ({
+                    ...rest,
+                    controlType: type,
+                    config: config ? JSON.parse(config) : {},
                   })),
                 };
               }),
@@ -181,9 +190,10 @@ export const getAvailableComponentsForPages = async (ctx: Context) => {
 
                 return {
                   ...structure,
-                  fields: fields.map((field) => ({
-                    ...field,
-                    config: field.config ? JSON.parse(field.config) : {},
+                  fields: fields.map(({ type, config, ...rest }) => ({
+                    ...rest,
+                    controlType: type,
+                    config: config ? JSON.parse(config) : {},
                   })),
                 };
               }),
@@ -264,9 +274,10 @@ export const getAllComponentsForTemplates = async (ctx: Context) => {
 
                 return {
                   ...structure,
-                  fields: fields.map((field) => ({
-                    ...field,
-                    config: field.config ? JSON.parse(field.config) : {},
+                  fields: fields.map(({ type, config, ...rest }) => ({
+                    ...rest,
+                    controlType: type,
+                    config: config ? JSON.parse(config) : {},
                   })),
                 };
               }),
@@ -353,9 +364,10 @@ export const getComponentById = async (ctx: Context) => {
 
             return {
               ...structure,
-              fields: fields.map((field) => ({
-                ...field,
-                config: field.config ? JSON.parse(field.config) : {},
+              fields: fields.map(({ type, config, ...rest }) => ({
+                ...rest,
+                controlType: type,
+                config: config ? JSON.parse(config) : {},
               })),
             };
           }),
@@ -800,9 +812,10 @@ export const addFieldsetToSection = async (ctx: Context) => {
 
   const fieldsetData = {
     ...newStructure,
-    fields: fields.map((field) => ({
-      ...field,
-      config: field.config ? JSON.parse(field.config) : {},
+    fields: fields.map(({ type, config, ...rest }) => ({
+      ...rest,
+      controlType: type,
+      config: config ? JSON.parse(config) : {},
     })),
   };
 
@@ -890,9 +903,10 @@ export const updateFieldset = async (ctx: Context) => {
 
   const fieldsetData = {
     ...updatedFieldset,
-    fields: fields.map((field) => ({
-      ...field,
-      config: field.config ? JSON.parse(field.config) : {},
+    fields: fields.map(({ type, config, ...rest }) => ({
+      ...rest,
+      controlType: type,
+      config: config ? JSON.parse(config) : {},
     })),
   };
 

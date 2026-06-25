@@ -116,37 +116,29 @@ const generatePageJSON = async (pageId: string) => {
       const componentName = component.name;
       const config = instance.config || {};
 
-      // Build component content from sections
+      // Build component content from sections.
+      // config is stored flat: { [controlId]: value, [fieldsetName]: [{...}] }
       const componentContent: Record<string, any> = {};
 
       if (component.sections && component.sections.length > 0) {
         for (const section of component.sections) {
           const sectionKey = toCamelCase(section.name);
-          const sectionData = config[section.name] || {};
           const sectionObject: Record<string, any> = {};
 
-          // Check if section has fieldsets
-          if (section.fieldsets && section.fieldsets.length > 0) {
-            // Add regular controls to section object
-            for (const key in sectionData) {
-              // Skip fieldset data, only get regular controls
-              if (!section.fieldsets.find((f: any) => f.name === key)) {
-                sectionObject[key] = sectionData[key];
-              }
+          // Regular controls — keyed by control.id in config
+          for (const control of section.controls || []) {
+            if (config[control.id] !== undefined) {
+              sectionObject[toCamelCase(control.label || control.id)] = config[control.id];
             }
-
-            // Add fieldsets as arrays within the section object
-            for (const fieldset of section.fieldsets) {
-              const fieldsetKey = toCamelCase(fieldset.name);
-              const fieldsetData = sectionData[fieldset.name] || [];
-              sectionObject[fieldsetKey] = Array.isArray(fieldsetData) ? fieldsetData : [fieldsetData];
-            }
-          } else {
-            // No fieldsets, add all section data
-            Object.assign(sectionObject, sectionData);
           }
 
-          // Add section as an object under camelCased section key
+          // Fieldsets — keyed by fieldset.name in config
+          for (const fieldset of section.fieldsets || []) {
+            const fieldsetKey = toCamelCase(fieldset.name);
+            const fieldsetData = config[fieldset.name] ?? [];
+            sectionObject[fieldsetKey] = Array.isArray(fieldsetData) ? fieldsetData : [fieldsetData];
+          }
+
           componentContent[sectionKey] = sectionObject;
         }
       } else {
