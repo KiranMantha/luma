@@ -1,3 +1,6 @@
+export * from './AddFieldsetDialog';
+export * from './AddSectionDialog';
+export * from './ComponentBuilderContext';
 export * from './ComponentLibrary';
 export * from './ComponentPreview';
 export * from './models';

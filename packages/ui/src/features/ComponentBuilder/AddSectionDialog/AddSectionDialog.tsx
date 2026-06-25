@@ -1,6 +1,7 @@
 import { Box, Button, Flex, Input, Text } from '#atoms';
 import { Modal } from '#molecules';
 import { FormEvent, useState } from 'react';
+import styles from './AddSectionDialog.module.scss';
 
 export type AddSectionDialogProps = {
   open: boolean;
@@ -20,12 +21,10 @@ export const AddSectionDialog = ({ open, onOpenChange, onAddSection }: AddSectio
       setError('Section name is required');
       return;
     }
-
     if (trimmedName.length < 2) {
       setError('Section name must be at least 2 characters');
       return;
     }
-
     if (trimmedName.length > 50) {
       setError('Section name must be less than 50 characters');
       return;
@@ -55,7 +54,7 @@ export const AddSectionDialog = ({ open, onOpenChange, onAddSection }: AddSectio
             value={sectionName}
             onChange={(e) => {
               setSectionName(e.target.value);
-              if (error) setError(''); // Clear error on change
+              if (error) setError('');
             }}
             placeholder="e.g., Header, Content, Footer"
             autoFocus
@@ -69,7 +68,7 @@ export const AddSectionDialog = ({ open, onOpenChange, onAddSection }: AddSectio
         </Box>
 
         <Box>
-          <Text size="2" className="text-gray-600">
+          <Text size="2" className={styles.hint}>
             Sections organize your component into logical groups. You can add repeatable structures within sections
             later.
           </Text>
