@@ -1,19 +1,18 @@
 'use client';
 
-import { deleteTemplate, saveTemplate } from '@/actions';
+import { deleteTemplate, saveTemplate, updateTemplate } from '@/actions';
 import type { Component, Template } from '@repo/ui';
-import { Box, Button, Card, Flex, TemplateBuilder, Text } from '@repo/ui';
+import { Box, Button, Card, DeleteConfirmDialog, Flex, TemplateBuilder, Text } from '@repo/ui';
 import { use, useState } from 'react';
-import { DeleteConfirmDialog } from '@repo/ui';
 import { AddTemplateDialog } from './AddTemplateDialog';
 import styles from './TemplatesPage.module.scss';
 
-type Props = {
+type TemplatesPageProps = {
   initialTemplates: Promise<Template[]>;
   initialComponents: Promise<Component[]>;
 };
 
-export const TemplatesPageClient = ({ initialTemplates, initialComponents }: Props) => {
+export const TemplatesPage = ({ initialTemplates, initialComponents }: TemplatesPageProps) => {
   const initial = use(initialTemplates);
   const components = use(initialComponents);
   const [templates, setTemplates] = useState<Template[]>(initial || []);
@@ -22,7 +21,6 @@ export const TemplatesPageClient = ({ initialTemplates, initialComponents }: Pro
   const [toDelete, setToDelete] = useState<Template | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
 
-  const handleOpenAdd = () => setIsDialogOpen(true);
   const handleSave = async (name: string, description?: string) => {
     const created = await saveTemplate(name, description);
     setTemplates((p) => [...p, created]);
@@ -41,25 +39,9 @@ export const TemplatesPageClient = ({ initialTemplates, initialComponents }: Pro
     setIsDeleteOpen(false);
   };
 
-  const handleEditTemplate = (template: Template) => {
-    setEditingTemplate(template);
-  };
-
   const handleSaveTemplate = async (updatedTemplate: Template) => {
     try {
-      // Send the complete template update in one API call
-      const response = await fetch(`http://localhost:3002/api/templates/${updatedTemplate.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedTemplate),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to update template: ${response.statusText} - ${errorText}`);
-      }
-
-      const saved = await response.json();
+      const saved = await updateTemplate(updatedTemplate.id, updatedTemplate);
       setTemplates((p) => p.map((t) => (t.id === saved.id ? saved : t)));
       setEditingTemplate(null);
     } catch (error) {
@@ -67,18 +49,14 @@ export const TemplatesPageClient = ({ initialTemplates, initialComponents }: Pro
       alert(`Failed to save template: ${error instanceof Error ? error.message : error}`);
     }
   };
-  const handleCancelEdit = () => {
-    setEditingTemplate(null);
-  };
 
-  // Show template builder if editing
   if (editingTemplate) {
     return (
       <TemplateBuilder
         template={editingTemplate}
         components={components}
         onSave={handleSaveTemplate}
-        onCancel={handleCancelEdit}
+        onCancel={() => setEditingTemplate(null)}
       />
     );
   }
@@ -87,14 +65,10 @@ export const TemplatesPageClient = ({ initialTemplates, initialComponents }: Pro
     <Box className="p-4">
       <Flex justify="between" align="center" className="mb-4">
         <div>
-          <Text size="7" weight="bold">
-            Templates
-          </Text>
-          <Text size="2" color="gray">
-            Zone-based template builder
-          </Text>
+          <Text size="7" weight="bold">Templates</Text>
+          <Text size="2" color="gray">Zone-based template builder</Text>
         </div>
-        <Button variant="primary" onClick={handleOpenAdd}>
+        <Button variant="primary" onClick={() => setIsDialogOpen(true)}>
           New Template
         </Button>
       </Flex>
@@ -106,16 +80,12 @@ export const TemplatesPageClient = ({ initialTemplates, initialComponents }: Pro
           <div className={styles.list}>
             {templates.map((template) => (
               <Card key={template.id} className={styles.card}>
-                <Text size="4" weight="medium">
-                  {template.name}
-                </Text>
+                <Text size="4" weight="medium">{template.name}</Text>
                 {template.description && (
-                  <Text size="2" color="gray" className="mt-1">
-                    {template.description}
-                  </Text>
+                  <Text size="2" color="gray" className="mt-1">{template.description}</Text>
                 )}
                 <Flex gap="2" justify="end">
-                  <Button size="sm" variant="primary-outline" onClick={() => handleEditTemplate(template)}>
+                  <Button size="sm" variant="primary-outline" onClick={() => setEditingTemplate(template)}>
                     Edit
                   </Button>
                   <Button size="sm" variant="primary-outline" color="red" onClick={() => confirmDelete(template)}>

@@ -9,15 +9,14 @@ interface AddPageDialogPropsWithTemplates extends AddPageDialogProps {
   templates: Template[];
 }
 
-// Helper function to convert page name to hyphen-separated identifier
 const generatePageIdentifier = (name: string): string => {
   return name
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 };
 
 export const AddPageDialog = ({ open, onOpenChange, onSave, templates }: AddPageDialogPropsWithTemplates) => {
@@ -26,7 +25,6 @@ export const AddPageDialog = ({ open, onOpenChange, onSave, templates }: AddPage
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
-  // Auto-generate page identifier from name
   const pageIdentifier = generatePageIdentifier(name);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -35,9 +33,7 @@ export const AddPageDialog = ({ open, onOpenChange, onSave, templates }: AddPage
 
     setLoading(true);
     try {
-      // Pass empty string as null for "No Template", otherwise pass the actual templateId
       const templateId = selectedTemplateId === '' ? null : selectedTemplateId;
-
       await onSave(name.trim(), pageIdentifier, description.trim() || undefined, templateId);
       setName('');
       setDescription('');
@@ -90,29 +86,23 @@ export const AddPageDialog = ({ open, onOpenChange, onSave, templates }: AddPage
         </Box>
 
         <Box className="mb-4">
-          {(() => {
-            const selectOptions = [
+          <Select
+            label="Template (Optional)"
+            value={selectedTemplateId}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedTemplateId(e.target.value)}
+            options={[
               { label: 'No Template (Blank Page)', value: '' },
-              ...templates.map((template) => ({
-                label: template.name + (template.description ? ` - ${template.description}` : ''),
-                value: template.id,
+              ...templates.map((t) => ({
+                label: t.name + (t.description ? ` - ${t.description}` : ''),
+                value: t.id,
               })),
-            ];
-
-            return (
-              <Select
-                label="Template (Optional)"
-                value={selectedTemplateId}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedTemplateId(e.target.value)}
-                options={selectOptions}
-                hint={
-                  selectedTemplateId
-                    ? 'Page will inherit header/footer from selected template'
-                    : 'Create a blank page with just a body content area'
-                }
-              />
-            );
-          })()}
+            ]}
+            hint={
+              selectedTemplateId
+                ? 'Page will inherit header/footer from selected template'
+                : 'Create a blank page with just a body content area'
+            }
+          />
         </Box>
 
         <Flex justify="end" gap="3">

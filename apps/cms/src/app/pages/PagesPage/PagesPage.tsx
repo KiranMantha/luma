@@ -7,13 +7,22 @@ import { use, useState } from 'react';
 import { AddPageDialog } from './AddPageDialog';
 import styles from './PagesPage.module.scss';
 
-type PagesPageClientProps = {
+type PagesPageProps = {
   initialPages: Promise<Page[]>;
   initialTemplates: Promise<Template[]>;
   initialComponents: Promise<Component[]>;
 };
 
-export default function PagesPageClient({ initialPages, initialTemplates, initialComponents }: PagesPageClientProps) {
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case 'published': return 'text-green-600';
+    case 'draft': return 'text-yellow-600';
+    case 'archived': return 'text-gray-500';
+    default: return 'text-gray-600';
+  }
+};
+
+export const PagesPage = ({ initialPages, initialTemplates, initialComponents }: PagesPageProps) => {
   const initialPagesData = use(initialPages);
   const initialTemplatesData = use(initialTemplates);
   const initialComponentsData = use(initialComponents);
@@ -26,10 +35,6 @@ export default function PagesPageClient({ initialPages, initialTemplates, initia
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
-  const handleNewPage = () => {
-    setIsAddDialogOpen(true);
-  };
-
   const handleCreatePage = async (
     name: string,
     identifier: string,
@@ -37,7 +42,6 @@ export default function PagesPageClient({ initialPages, initialTemplates, initia
     templateId?: string | null,
   ) => {
     try {
-      // Convert null to undefined for the API call
       const apiTemplateId = templateId === null ? undefined : templateId;
       const newPage = await createPage(name, identifier, description, apiTemplateId);
       setPages((prev) => [...prev, newPage]);
@@ -50,7 +54,6 @@ export default function PagesPageClient({ initialPages, initialTemplates, initia
 
   const handleEditPage = (page: Page) => {
     setSelectedPage(page);
-    // Find the template if page has templateId
     const template = page.templateId ? templates.find((t) => t.id === page.templateId) || null : null;
     setSelectedTemplate(template);
     setIsEditMode(true);
@@ -71,7 +74,6 @@ export default function PagesPageClient({ initialPages, initialTemplates, initia
 
   const handleDeletePage = async (pageId: string) => {
     if (!confirm('Are you sure you want to delete this page?')) return;
-
     try {
       await deletePage(pageId);
       setPages((prev) => prev.filter((p) => p.id !== pageId));
@@ -87,20 +89,6 @@ export default function PagesPageClient({ initialPages, initialTemplates, initia
     setIsEditMode(false);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published':
-        return 'text-green-600';
-      case 'draft':
-        return 'text-yellow-600';
-      case 'archived':
-        return 'text-gray-500';
-      default:
-        return 'text-gray-600';
-    }
-  };
-
-  // Show page builder if in edit mode
   if (isEditMode && selectedPage) {
     return (
       <PageBuilder
@@ -117,14 +105,10 @@ export default function PagesPageClient({ initialPages, initialTemplates, initia
     <Box className="p-4">
       <Flex justify="between" align="center" className="mb-4">
         <div>
-          <Text size="7" weight="bold">
-            Pages
-          </Text>
-          <Text size="2" color="gray">
-            Create and manage your content pages with template inheritance
-          </Text>
+          <Text size="7" weight="bold">Pages</Text>
+          <Text size="2" color="gray">Create and manage your content pages with template inheritance</Text>
         </div>
-        <Button variant="primary" onClick={handleNewPage}>
+        <Button variant="primary" onClick={() => setIsAddDialogOpen(true)}>
           New Page
         </Button>
       </Flex>
@@ -138,20 +122,14 @@ export default function PagesPageClient({ initialPages, initialTemplates, initia
             <Card key={page.id} className={styles.pageCard}>
               <div>
                 <Flex justify="between" align="start" className="mb-2">
-                  <Text size="4" weight="medium">
-                    {page.name}
-                  </Text>
+                  <Text size="4" weight="medium">{page.name}</Text>
                   <span className={`text-sm font-medium ${getStatusColor(page.status || 'draft')}`}>
                     ● {page.status || 'draft'}
                   </span>
                 </Flex>
-
                 {page.description && (
-                  <Text size="2" color="gray" className="mb-2">
-                    {page.description}
-                  </Text>
+                  <Text size="2" color="gray" className="mb-2">{page.description}</Text>
                 )}
-
                 <Text size="1" color="gray">
                   {componentCount} components
                   {pageTemplate && ` • Template: ${pageTemplate.name}`}
@@ -159,19 +137,14 @@ export default function PagesPageClient({ initialPages, initialTemplates, initia
                 </Text>
               </div>
               <Flex gap="2" justify="end">
-                <Button size="sm" variant="primary-outline" onClick={() => handleEditPage(page)}>
-                  Edit
-                </Button>
-                <Button size="sm" variant="primary-outline" color="red" onClick={() => handleDeletePage(page.id)}>
-                  Delete
-                </Button>
+                <Button size="sm" variant="primary-outline" onClick={() => handleEditPage(page)}>Edit</Button>
+                <Button size="sm" variant="primary-outline" color="red" onClick={() => handleDeletePage(page.id)}>Delete</Button>
               </Flex>
             </Card>
           );
         })}
       </Box>
 
-      {/* Add Page Dialog */}
       <AddPageDialog
         open={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
@@ -180,4 +153,4 @@ export default function PagesPageClient({ initialPages, initialTemplates, initia
       />
     </Box>
   );
-}
+};
