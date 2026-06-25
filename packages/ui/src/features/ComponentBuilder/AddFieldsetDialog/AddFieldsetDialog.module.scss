@@ -1,0 +1,13 @@
+@reference 'tailwindcss';
+
+.controlItem {
+  @apply mb-3 rounded-sm border border-gray-300 bg-gray-100 p-4;
+}
+
+.emptyFields {
+  @apply rounded border border-gray-200 bg-gray-50 p-4 text-center;
+}
+
+.addControlRow {
+  @apply text-center;
+}

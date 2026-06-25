@@ -1,0 +1,72 @@
+'use client';
+
+import { Box, Button, Flex, Input } from '#atoms';
+import { Modal } from '#molecules';
+import { ChangeEvent, FormEvent, useState } from 'react';
+
+export type AddComponentDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (name: string, description?: string) => Promise<void>;
+};
+
+export const AddComponentDialog = ({ open, onOpenChange, onSave }: AddComponentDialogProps) => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    setLoading(true);
+    try {
+      await onSave(name.trim(), description.trim() || undefined);
+      setName('');
+      setDescription('');
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to save component:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setName('');
+    setDescription('');
+    onOpenChange(false);
+  };
+
+  return (
+    <Modal open={open} onOpenChange={onOpenChange} title="Add New Component">
+      <Box as="form" onSubmit={handleSubmit}>
+        <Box className="mb-4">
+          <Input
+            label="Component Name"
+            value={name}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+            placeholder="Enter component name"
+            required
+          />
+        </Box>
+        <Box className="mb-4">
+          <Input
+            label="Description (Optional)"
+            value={description}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
+            placeholder="Enter component description"
+          />
+        </Box>
+        <Flex justify="end" gap="3">
+          <Button variant="ghost" onClick={handleCancel} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={!name.trim() || loading}>
+            {loading ? 'Saving...' : 'Save Component'}
+          </Button>
+        </Flex>
+      </Box>
+    </Modal>
+  );
+};

@@ -1,16 +1,16 @@
 import { getAllComponentsForTemplates, getPages } from '@/actions';
 import { getTemplates } from '@/actions/templates';
 import { Suspense } from 'react';
-import PagesPageClient from './PagesPageClient';
+import { PagesPage } from './PagesPage';
 
-export default function PagesPage() {
+export default function PagesRoute() {
   const pagesPromise = getPages();
   const templatesPromise = getTemplates();
-  const componentsPromise = getAllComponentsForTemplates(); // Use all components for template-specific filtering in PageBuilder
+  const componentsPromise = getAllComponentsForTemplates();
 
   return (
     <Suspense fallback={<div>Loading pages...</div>}>
-      <PagesPageClient
+      <PagesPage
         initialPages={pagesPromise}
         initialTemplates={templatesPromise}
         initialComponents={componentsPromise}

@@ -3,7 +3,15 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { nanoid } from 'nanoid';
 import { db } from '../db';
-import { componentControls, components, componentSections, fieldsetFields, fieldsets, templates } from '../db/schema';
+import {
+  componentControls,
+  components,
+  componentSections,
+  fieldsetFields,
+  fieldsets,
+  pages,
+  templates,
+} from '../db/schema';
 import type {
   CreateComponentControlRequest,
   CreateComponentRequest,
@@ -92,9 +100,10 @@ export const getAllComponents = async (ctx: Context) => {
 
                 return {
                   ...fieldset,
-                  fields: fields.map((field) => ({
-                    ...field,
-                    config: field.config ? JSON.parse(field.config) : {},
+                  fields: fields.map(({ type, config, ...rest }) => ({
+                    ...rest,
+                    controlType: type,
+                    config: config ? JSON.parse(config) : {},
                   })),
                 };
               }),
@@ -181,9 +190,10 @@ export const getAvailableComponentsForPages = async (ctx: Context) => {
 
                 return {
                   ...structure,
-                  fields: fields.map((field) => ({
-                    ...field,
-                    config: field.config ? JSON.parse(field.config) : {},
+                  fields: fields.map(({ type, config, ...rest }) => ({
+                    ...rest,
+                    controlType: type,
+                    config: config ? JSON.parse(config) : {},
                   })),
                 };
               }),
@@ -264,9 +274,10 @@ export const getAllComponentsForTemplates = async (ctx: Context) => {
 
                 return {
                   ...structure,
-                  fields: fields.map((field) => ({
-                    ...field,
-                    config: field.config ? JSON.parse(field.config) : {},
+                  fields: fields.map(({ type, config, ...rest }) => ({
+                    ...rest,
+                    controlType: type,
+                    config: config ? JSON.parse(config) : {},
                   })),
                 };
               }),
@@ -353,9 +364,10 @@ export const getComponentById = async (ctx: Context) => {
 
             return {
               ...structure,
-              fields: fields.map((field) => ({
-                ...field,
-                config: field.config ? JSON.parse(field.config) : {},
+              fields: fields.map(({ type, config, ...rest }) => ({
+                ...rest,
+                controlType: type,
+                config: config ? JSON.parse(config) : {},
               })),
             };
           }),
@@ -500,12 +512,45 @@ export const deleteComponent = async (ctx: Context) => {
     throw new HTTPException(404, { message: 'Component not found' });
   }
 
+  // Block deletion if the component is used in any template zone
+  const allTemplates = await db.select().from(templates);
+  for (const template of allTemplates) {
+    if (!template.metadata) continue;
+    const meta = JSON.parse(template.metadata);
+    const zones = meta.zones || [];
+    const inUse = zones.some((zone: any) =>
+      (zone.componentInstances || []).some((inst: any) => inst.componentId === id),
+    );
+    if (inUse) {
+      throw new HTTPException(400, {
+        message: `Component is in use by template "${template.name}" and cannot be deleted. Remove it from the template first.`,
+      });
+    }
+  }
+
+  // Block deletion if the component is used in any page zone
+  const allPages = await db.select().from(pages);
+  for (const page of allPages) {
+    if (!page.metadata) continue;
+    const meta = JSON.parse(page.metadata);
+    const zones = meta.zones || [];
+    const inUse = zones.some((zone: any) =>
+      (zone.componentInstances || []).some((inst: any) => inst.componentId === id),
+    );
+    if (inUse) {
+      throw new HTTPException(400, {
+        message: `Component is in use by page "${page.name}" and cannot be deleted. Remove it from the page first.`,
+      });
+    }
+  }
+
   await db.delete(components).where(eq(components.id, id));
   return successResponse(ctx, { message: 'Component deleted successfully' }, 200);
 };
 
 export const addControlToComponent = async (ctx: Context) => {
   const componentId = ctx.req.param('id');
+  const sectionId = ctx.req.param('sectionId');
   const data: CreateComponentControlRequest = await ctx.req.json();
   const component = await db
     .select()
@@ -517,26 +562,22 @@ export const addControlToComponent = async (ctx: Context) => {
   if (!component) {
     throw new HTTPException(404, { message: 'Component not found' });
   }
-
   const controlId = nanoid();
 
-  await db.insert(componentControls).values({
-    id: controlId,
-    componentId,
-    ...data,
-    config: JSON.stringify(data.config),
-  });
-
   const newControl = await db
-    .select()
-    .from(componentControls)
-    .where(eq(componentControls.id, controlId))
-    .limit(1)
-    .then((rows) => rows[0]);
+    .insert(componentControls)
+    .values({
+      id: controlId,
+      componentId,
+      sectionId,
+      ...data,
+      config: JSON.stringify(data.config),
+    })
+    .returning();
 
   const controlData = {
-    ...newControl,
-    config: newControl?.config ? JSON.parse(newControl.config) : {},
+    ...newControl[0],
+    config: newControl[0]?.config ? JSON.parse(newControl[0].config) : {},
   };
 
   return successResponse(ctx, controlData, 201);
@@ -562,18 +603,15 @@ export const updateControl = async (ctx: Context) => {
     updateData.config = JSON.stringify(data.config);
   }
 
-  await db.update(componentControls).set(updateData).where(eq(componentControls.id, controlId));
-
   const updatedControl = await db
-    .select()
-    .from(componentControls)
+    .update(componentControls)
+    .set(updateData)
     .where(eq(componentControls.id, controlId))
-    .limit(1)
-    .then((rows) => rows[0]);
+    .returning();
 
   const controlData = {
-    ...updatedControl,
-    config: updatedControl?.config ? JSON.parse(updatedControl.config) : {},
+    ...updatedControl[0],
+    config: updatedControl[0]?.config ? JSON.parse(updatedControl[0].config) : {},
   };
 
   return successResponse(ctx, controlData, 200);
@@ -774,9 +812,10 @@ export const addFieldsetToSection = async (ctx: Context) => {
 
   const fieldsetData = {
     ...newStructure,
-    fields: fields.map((field) => ({
-      ...field,
-      config: field.config ? JSON.parse(field.config) : {},
+    fields: fields.map(({ type, config, ...rest }) => ({
+      ...rest,
+      controlType: type,
+      config: config ? JSON.parse(config) : {},
     })),
   };
 
@@ -864,9 +903,10 @@ export const updateFieldset = async (ctx: Context) => {
 
   const fieldsetData = {
     ...updatedFieldset,
-    fields: fields.map((field) => ({
-      ...field,
-      config: field.config ? JSON.parse(field.config) : {},
+    fields: fields.map(({ type, config, ...rest }) => ({
+      ...rest,
+      controlType: type,
+      config: config ? JSON.parse(config) : {},
     })),
   };
 

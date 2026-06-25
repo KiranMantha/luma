@@ -50,10 +50,14 @@ componentsRoute.put('/:id', zValidator('json', UpdateComponentSchema), updateCom
 componentsRoute.delete('/:id', deleteComponent);
 
 // Add control to component
-componentsRoute.post('/:id/controls', zValidator('json', CreateComponentControlSchema), addControlToComponent);
+componentsRoute.post(
+  '/:id/section/:sectionId/controls',
+  zValidator('json', CreateComponentControlSchema),
+  addControlToComponent,
+);
 
 // Update control
-componentsRoute.put('/:id/controls/:controlId', zValidator('json', UpdateComponentControlSchema), updateControl);
+componentsRoute.post('/:id/controls/:controlId', zValidator('json', UpdateComponentControlSchema), updateControl);
 
 // Delete control
 componentsRoute.delete('/:id/controls/:controlId', deleteControl);

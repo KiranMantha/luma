@@ -104,19 +104,19 @@ export const updateTemplate = async (ctx: Context) => {
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
 
-    // Store layout and zones in metadata for zone-based templates
-    const templateMetadata: any = {};
-    if (metadata) templateMetadata.metadata = metadata;
-    if (layout) templateMetadata.layout = layout;
-    if (zones) templateMetadata.zones = zones;
-
-    if (Object.keys(templateMetadata).length > 0) {
-      updateData.metadata = JSON.stringify(templateMetadata);
+    // Merge incoming fields into the existing metadata blob to avoid partial-update data loss
+    const existingTemplate = await db.select().from(templates).where(eq(templates.id, id));
+    if (existingTemplate.length === 0 || !existingTemplate[0]) {
+      return ctx.json({ error: 'Template not found' }, 404);
     }
+    const existingMetadata = existingTemplate[0].metadata ? JSON.parse(existingTemplate[0].metadata) : {};
+    const templateMetadata: any = { ...existingMetadata };
+    if (metadata !== undefined) templateMetadata.metadata = metadata;
+    if (layout !== undefined) templateMetadata.layout = layout;
+    if (zones !== undefined) templateMetadata.zones = zones;
+    updateData.metadata = JSON.stringify(templateMetadata);
 
     await db.update(templates).set(updateData).where(eq(templates.id, id));
-
-    // Zone-based templates store all component info in metadata - no separate component instances needed
 
     // Return updated template with zone structure
     const updatedTemplate = await db.select().from(templates).where(eq(templates.id, id));
@@ -176,7 +176,7 @@ export const updateTemplateInstance = async (ctx: Context) => {
     let instanceFound = false;
     const updatedZones = zones.map((zone: any) => ({
       ...zone,
-      componentInstances: zone.componentInstances.map((instance: any) => {
+      componentInstances: (zone.componentInstances || []).map((instance: any) => {
         if (instance.id === instanceId) {
           instanceFound = true;
           return { ...instance, config: content };

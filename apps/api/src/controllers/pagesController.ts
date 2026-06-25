@@ -107,37 +107,29 @@ const generatePageJSON = async (pageId: string) => {
       const componentName = component.name;
       const config = instance.config || {};
 
-      // Build component content from sections
+      // Build component content from sections.
+      // config is stored flat: { [controlId]: value, [fieldsetName]: [{...}] }
       const componentContent: Record<string, any> = {};
 
       if (component.sections && component.sections.length > 0) {
         for (const section of component.sections) {
           const sectionKey = toCamelCase(section.name);
-          const sectionData = config[section.name] || {};
           const sectionObject: Record<string, any> = {};
 
-          // Check if section has fieldsets
-          if (section.fieldsets && section.fieldsets.length > 0) {
-            // Add regular controls to section object
-            for (const key in sectionData) {
-              // Skip fieldset data, only get regular controls
-              if (!section.fieldsets.find((f: any) => f.name === key)) {
-                sectionObject[key] = sectionData[key];
-              }
+          // Regular controls — keyed by control.id in config
+          for (const control of section.controls || []) {
+            if (config[control.id] !== undefined) {
+              sectionObject[toCamelCase(control.label || control.id)] = config[control.id];
             }
-
-            // Add fieldsets as arrays within the section object
-            for (const fieldset of section.fieldsets) {
-              const fieldsetKey = toCamelCase(fieldset.name);
-              const fieldsetData = sectionData[fieldset.name] || [];
-              sectionObject[fieldsetKey] = Array.isArray(fieldsetData) ? fieldsetData : [fieldsetData];
-            }
-          } else {
-            // No fieldsets, add all section data
-            Object.assign(sectionObject, sectionData);
           }
 
-          // Add section as an object under camelCased section key
+          // Fieldsets — keyed by fieldset.name in config
+          for (const fieldset of section.fieldsets || []) {
+            const fieldsetKey = toCamelCase(fieldset.name);
+            const fieldsetData = config[fieldset.name] ?? [];
+            sectionObject[fieldsetKey] = Array.isArray(fieldsetData) ? fieldsetData : [fieldsetData];
+          }
+
           componentContent[sectionKey] = sectionObject;
         }
       } else {
@@ -316,14 +308,16 @@ export const updatePage = async (ctx: Context) => {
     if (folderId !== undefined) updateData.folderId = folderId;
     if (templateId !== undefined) updateData.templateId = templateId;
 
-    // Store zones in metadata for zone-based pages
-    const pageMetadata: any = {};
-    if (metadata) pageMetadata.metadata = metadata;
-    if (zones) pageMetadata.zones = zones;
-
-    if (Object.keys(pageMetadata).length > 0) {
-      updateData.metadata = JSON.stringify(pageMetadata);
+    // Merge incoming metadata/zones into the existing blob to avoid partial-update data loss
+    const existingPage = await db.select().from(pages).where(eq(pages.id, id));
+    if (existingPage.length === 0 || !existingPage[0]) {
+      return ctx.json({ error: 'Page not found' }, 404);
     }
+    const existingMetadata = existingPage[0].metadata ? JSON.parse(existingPage[0].metadata) : {};
+    const pageMetadata: any = { ...existingMetadata };
+    if (metadata !== undefined) pageMetadata.metadata = metadata;
+    if (zones !== undefined) pageMetadata.zones = zones;
+    updateData.metadata = JSON.stringify(pageMetadata);
 
     await db.update(pages).set(updateData).where(eq(pages.id, id));
 
@@ -345,10 +339,11 @@ export const updatePage = async (ctx: Context) => {
         console.error('Error regenerating static JSON:', jsonError);
       }
     } else if (page && (page.status === 'draft' || page.status === 'archived')) {
-      // Delete JSON file if page was unpublished
+      // Delete JSON file if page was unpublished — use the stored filename from publish time
       try {
+        const parsedMeta = page.metadata ? JSON.parse(page.metadata) : {};
+        const fileName = parsedMeta.publishedFileName || `${toKebabCase(page.name)}.model.json`;
         const outputDir = path.join(process.cwd(), 'public', 'pages');
-        const fileName = `${page.slug}.model.json`;
         const filePath = path.join(outputDir, fileName);
 
         await fs.unlink(filePath);
@@ -394,8 +389,9 @@ export const deletePage = async (ctx: Context) => {
 
       // Delete static JSON file if it exists
       try {
+        const parsedMeta = page.metadata ? JSON.parse(page.metadata) : {};
+        const fileName = parsedMeta.publishedFileName || `${toKebabCase(page.name)}.model.json`;
         const outputDir = path.join(process.cwd(), 'public', 'pages');
-        const fileName = `${page.slug}.model.json`;
         const filePath = path.join(outputDir, fileName);
 
         await fs.unlink(filePath);
@@ -420,6 +416,11 @@ export const publishPage = async (ctx: Context) => {
   try {
     const id = ctx.req.param('id');
 
+    const existingPage = await db.select().from(pages).where(eq(pages.id, id));
+    if (existingPage.length === 0 || !existingPage[0]) {
+      return ctx.json({ error: 'Page not found' }, 404);
+    }
+
     const updateData = {
       status: 'published' as const,
       publishedAt: new Date().toISOString(),
@@ -428,7 +429,7 @@ export const publishPage = async (ctx: Context) => {
 
     await db.update(pages).set(updateData).where(eq(pages.id, id));
 
-    // Generate static JSON file for the published page
+    // Generate static JSON file for the published page and record the filename in metadata
     try {
       const pageJSON = await generatePageJSON(id);
       const outputDir = await ensureOutputDir();
@@ -437,6 +438,18 @@ export const publishPage = async (ctx: Context) => {
 
       await fs.writeFile(filePath, JSON.stringify(pageJSON, null, 2), 'utf8');
 
+      // Store the published filename so cleanup can find it even after a rename
+      const publishedPage = await db.select().from(pages).where(eq(pages.id, id));
+      if (publishedPage[0]) {
+        const currentMetadata = publishedPage[0].metadata ? JSON.parse(publishedPage[0].metadata) : {};
+        await db
+          .update(pages)
+          .set({
+            metadata: JSON.stringify({ ...currentMetadata, publishedFileName: fileName }),
+          })
+          .where(eq(pages.id, id));
+      }
+
       console.log(`✅ Generated static JSON for page: ${fileName}`);
     } catch (jsonError) {
       console.error('Error generating static JSON:', jsonError);
@@ -444,6 +457,9 @@ export const publishPage = async (ctx: Context) => {
     }
 
     const updatedPage = await db.select().from(pages).where(eq(pages.id, id));
+    if (!updatedPage[0]) {
+      return ctx.json({ error: 'Page not found' }, 404);
+    }
     return ctx.json(updatedPage[0]);
   } catch (error) {
     console.error('Error publishing page:', error);
@@ -571,9 +587,19 @@ export const updatePageInstance = async (ctx: Context) => {
       })
       .where(eq(pages.id, pageId));
 
-    // Regenerate static JSON if page is published
+    // Regenerate and write static JSON if page is published
     if (page.status === 'published') {
-      await generatePageJSON(pageId);
+      try {
+        const pageJSON = await generatePageJSON(pageId);
+        const outputDir = await ensureOutputDir();
+        const kebabName = toKebabCase(pageJSON.page.name);
+        const fileName = `${kebabName}.model.json`;
+        const filePath = path.join(outputDir, fileName);
+        await fs.writeFile(filePath, JSON.stringify(pageJSON, null, 2), 'utf8');
+        console.log(`✅ Regenerated static JSON for updated instance: ${fileName}`);
+      } catch (jsonError) {
+        console.error('Error regenerating static JSON:', jsonError);
+      }
     }
 
     return ctx.json({ message: 'Instance updated successfully', page: { ...page, metadata: updatedMetadata } });

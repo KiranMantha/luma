@@ -242,11 +242,11 @@ export const ComponentContentAuthoring = ({
       }
 
       case ControlType.ENUMERATION: {
-        const enumConfig = config as { options?: string[] };
+        const enumConfig = config as { options?: Array<{ label: string; value: string }> };
         const options = enumConfig.options || [];
         const selectOptions = [
           { value: '', label: 'Select an option...' },
-          ...options.map((option) => ({ value: option, label: option })),
+          ...options.map((option) => ({ value: option.value, label: option.label })),
         ];
         return (
           <Select

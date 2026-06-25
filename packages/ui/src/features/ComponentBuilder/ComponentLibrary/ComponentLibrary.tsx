@@ -2,25 +2,25 @@
 
 import { Box, Button, Flex, Text } from '#atoms';
 import { Card } from '#molecules';
+import { useComponentBuilder } from '../ComponentBuilderContext';
 import { ComponentType } from '../models';
-import type { ComponentLibraryProps } from './ComponentLibrary.model';
 import styles from './ComponentLibrary.module.scss';
 
-export const ComponentLibrary = ({
-  components,
-  selectedComponent,
-  onAddComponent,
-  onEditComponent,
-  onDeleteComponent,
-  onSelectComponent,
-}: ComponentLibraryProps) => {
+export const ComponentLibrary = () => {
+  const {
+    components,
+    selectedComponent,
+    onTriggerAddComponent,
+    onTriggerEditComponent,
+    onTriggerDeleteComponent,
+    onSelectComponent,
+  } = useComponentBuilder();
+
   return (
     <Flex direction="column" align="stretch" className={styles.componentLibrary}>
       <Flex justify="between" className={styles.header}>
-        <Text size="5" weight="bold">
-          Components
-        </Text>
-        <Button variant="ghost" color="blue" size="reg" onClick={onAddComponent}>
+        <Text size="5" weight="bold">Components</Text>
+        <Button variant="ghost" color="blue" size="reg" onClick={onTriggerAddComponent}>
           Add Component
         </Button>
       </Flex>
@@ -38,27 +38,22 @@ export const ComponentLibrary = ({
             } ${isSelected ? styles.selected : ''}`;
 
             return (
-              <Card key={component.id} className={cardClassName} onClick={() => onSelectComponent?.(component)}>
+              <Card key={component.id} className={cardClassName} onClick={() => onSelectComponent(component)}>
                 <Flex align="start" justify="between" className={styles.cardContent}>
                   <div className={styles.cardInfo}>
-                    <Text size="3" weight="medium">
-                      {component.name}
-                    </Text>
+                    <Text size="3" weight="medium">{component.name}</Text>
                     {component.description && (
                       <Text size="2" color="gray" style={{ display: 'block', marginTop: '4px' }}>
                         {component.description}
                       </Text>
                     )}
                   </div>
-                  {component.type === ComponentType.USER_DEFINED ? (
+                  {component.type === ComponentType.USER_DEFINED && (
                     <Flex gap="2">
                       <Button
                         size="sm"
                         variant="primary-outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEditComponent?.(component);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); onTriggerEditComponent(component); }}
                       >
                         Edit
                       </Button>
@@ -66,15 +61,12 @@ export const ComponentLibrary = ({
                         size="sm"
                         variant="primary-outline"
                         color="red"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDeleteComponent?.(component.id);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); onTriggerDeleteComponent(component.id); }}
                       >
                         Delete
                       </Button>
                     </Flex>
-                  ) : null}
+                  )}
                 </Flex>
               </Card>
             );

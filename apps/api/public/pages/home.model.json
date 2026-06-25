@@ -5,16 +5,14 @@
     "description": null,
     "slug": "home",
     "publishedAt": null,
-    "updatedAt": "2026-01-07T06:25:31.913Z"
+    "updatedAt": "2026-06-25T06:55:33.344Z"
   },
   "seo": {
     "title": "home",
     "description": null,
     "tags": []
   },
-  "componentsOrder": [
-    "header"
-  ],
+  "componentsOrder": ["header"],
   "content": {
     "header": {
       "general": {},

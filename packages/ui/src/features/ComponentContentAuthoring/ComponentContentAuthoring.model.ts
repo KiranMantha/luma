@@ -1,10 +1,6 @@
-import type { Component, ComponentInstance, Template } from '../ComponentBuilder/models';
+import type { Component, ComponentInstance, Page, Template } from '../ComponentBuilder/models';
 
-type Page = {
-  id: string;
-  name: string;
-  [key: string]: unknown;
-};
+export type { Page };
 
 export type ComponentContentAuthoringProps = {
   open: boolean;
