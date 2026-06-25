@@ -3,7 +3,7 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { nanoid } from 'nanoid';
 import { db } from '../db';
-import { componentControls, components, componentSections, fieldsetFields, fieldsets, templates } from '../db/schema';
+import { componentControls, components, componentSections, fieldsetFields, fieldsets, pages, templates } from '../db/schema';
 import type {
   CreateComponentControlRequest,
   CreateComponentRequest,
@@ -498,6 +498,38 @@ export const deleteComponent = async (ctx: Context) => {
 
   if (!existingComponent) {
     throw new HTTPException(404, { message: 'Component not found' });
+  }
+
+  // Block deletion if the component is used in any template zone
+  const allTemplates = await db.select().from(templates);
+  for (const template of allTemplates) {
+    if (!template.metadata) continue;
+    const meta = JSON.parse(template.metadata);
+    const zones = meta.zones || [];
+    const inUse = zones.some((zone: any) =>
+      (zone.componentInstances || []).some((inst: any) => inst.componentId === id),
+    );
+    if (inUse) {
+      throw new HTTPException(400, {
+        message: `Component is in use by template "${template.name}" and cannot be deleted. Remove it from the template first.`,
+      });
+    }
+  }
+
+  // Block deletion if the component is used in any page zone
+  const allPages = await db.select().from(pages);
+  for (const page of allPages) {
+    if (!page.metadata) continue;
+    const meta = JSON.parse(page.metadata);
+    const zones = meta.zones || [];
+    const inUse = zones.some((zone: any) =>
+      (zone.componentInstances || []).some((inst: any) => inst.componentId === id),
+    );
+    if (inUse) {
+      throw new HTTPException(400, {
+        message: `Component is in use by page "${page.name}" and cannot be deleted. Remove it from the page first.`,
+      });
+    }
   }
 
   await db.delete(components).where(eq(components.id, id));
