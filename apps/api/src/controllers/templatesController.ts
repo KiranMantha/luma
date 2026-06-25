@@ -176,7 +176,7 @@ export const updateTemplateInstance = async (ctx: Context) => {
     let instanceFound = false;
     const updatedZones = zones.map((zone: any) => ({
       ...zone,
-      componentInstances: zone.componentInstances.map((instance: any) => {
+      componentInstances: (zone.componentInstances || []).map((instance: any) => {
         if (instance.id === instanceId) {
           instanceFound = true;
           return { ...instance, config: content };
