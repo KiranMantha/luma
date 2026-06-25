@@ -15,6 +15,7 @@ export const ComponentPreview = () => {
   const {
     selectedComponent: component,
     activeTabId: controlledActiveTabId,
+    pendingFieldsetControls,
     onAddControl,
     onEditControl,
     onDeleteControl,
@@ -254,6 +255,7 @@ export const ComponentPreview = () => {
         onAddFieldset={handleAddFieldsetSubmit}
         onRequestAddControl={onRequestAddControlToFieldset}
         editingStructure={editingFieldset}
+        pendingControls={pendingFieldsetControls}
       />
     </div>
   );

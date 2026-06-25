@@ -61,14 +61,13 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     return allComponents;
   };
 
-  const handleAddControlToNewFieldset = async (controlType: ControlType, config: unknown) => {
+  const handleAddControlToNewFieldset = async (controlType: ControlType, label: string, config: Record<string, unknown>) => {
     if (!isAddingControlToFieldset) return;
-    const configObj = config as Record<string, unknown>;
     const newControl: ControlInstance = {
       id: `ctrl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       controlType,
-      label: (configObj.label as string) || 'Untitled Control',
-      config: configObj,
+      label: label || 'Untitled Control',
+      config,
       order: pendingFieldsetControls.length,
     };
     setPendingFieldsetControls((prev) => [...prev, newControl]);
@@ -93,14 +92,11 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     setIsEditControlDialogOpen(true);
   };
 
-  const handleUpdateControlInComponent = async (controlType: ControlType, config: unknown) => {
+  const handleUpdateControlInComponent = async (controlType: ControlType, label: string, config: Record<string, unknown>) => {
     if (!selectedComponent || !controlToEdit) return;
     try {
       setError(null);
-      await updateControl(selectedComponent.id, controlToEdit.id, {
-        controlType,
-        config: config as Record<string, unknown>,
-      });
+      await updateControl(selectedComponent.id, controlToEdit.id, { controlType, label, config });
       await refreshComponents(selectedComponent.id);
     } catch {
       setError('Failed to update control');
@@ -118,7 +114,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
     }
   };
 
-  const handleAddControlToComponent = async (controlType: ControlType, config: unknown) => {
+  const handleAddControlToComponent = async (controlType: ControlType, label: string, config: Record<string, unknown>) => {
     if (!selectedComponent) return;
     try {
       setError(null);
@@ -126,14 +122,11 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
       if (selectedComponent.sections && selectedComponent.sections.length > 0) {
         targetSection = targetSectionId || selectedComponent.sections[0]?.id;
       }
-      const configObj = config as Record<string, unknown>;
-      const label = (configObj.label as string) || '';
-      const { label: _label, ...configWithoutLabel } = configObj;
       await addControlToComponent(
         selectedComponent.id,
         controlType,
         label,
-        configWithoutLabel,
+        config,
         getTotalControlsCount(selectedComponent.sections || []) + 1,
         targetSection,
       );
@@ -282,6 +275,7 @@ export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
         onAddFieldset: handleAddFieldset,
         onDeleteFieldset: handleDeleteFieldset,
         onUpdateFieldset: handleUpdateFieldset,
+        pendingFieldsetControls,
         onRequestAddControlToFieldset: handleRequestAddControlToFieldset,
         onActiveTabChange: setActiveTabId,
       }}

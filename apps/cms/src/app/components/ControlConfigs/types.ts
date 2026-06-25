@@ -13,6 +13,7 @@ export type TextControlConfig = BaseControlConfig & {
   maxLength?: number;
 };
 
+// options is string[] in dialog form state; buildApiConfig converts to Array<{label,value}> before saving.
 export type EnumerationControlConfig = BaseControlConfig & {
   placeholder: string;
   options: string[];

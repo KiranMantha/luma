@@ -31,10 +31,8 @@ export const AddControlDialog = ({
   const [selectedControl, setSelectedControl] = useState<ControlDefinition | null>(null);
   const [config, setConfig] = useState<ControlConfig | null>(null);
 
-  // Helper function to create default config for a control type
   const createDefaultConfig = (controlType: ControlType): ControlConfig => {
     const baseConfig = { label: '', required: false };
-
     switch (controlType) {
       case ControlType.TEXT:
         return { ...baseConfig, placeholder: '', multiline: false } as TextControlConfig;
@@ -59,167 +57,119 @@ export const AddControlDialog = ({
     }
   };
 
-  // Helper function to transform config to legacy format for backward compatibility
-  const transformConfigToLegacy = (controlType: ControlType, config: ControlConfig): unknown => {
+  const buildApiConfig = (controlType: ControlType, config: ControlConfig): Record<string, unknown> => {
     switch (controlType) {
       case ControlType.TEXT: {
-        const textConfig = config as TextControlConfig;
-        return {
-          label: textConfig.label,
-          required: textConfig.required,
-          placeholder: textConfig.placeholder,
-          multiline: textConfig.multiline,
-          maxLength: textConfig.maxLength,
-        };
+        const c = config as TextControlConfig;
+        return { required: c.required, placeholder: c.placeholder, multiline: c.multiline, maxLength: c.maxLength };
       }
       case ControlType.ENUMERATION: {
-        const enumConfig = config as EnumerationControlConfig;
+        const c = config as EnumerationControlConfig;
         return {
-          label: enumConfig.label,
-          required: enumConfig.required,
-          placeholder: enumConfig.placeholder,
-          options: enumConfig.options.map((option: string) => ({
+          required: c.required,
+          placeholder: c.placeholder,
+          options: c.options.map((option) => ({
             label: option,
             value: option.toUpperCase().replace(/\s+/g, '_'),
           })),
         };
       }
       case ControlType.MEDIA: {
-        const imageConfig = config as ImageControlConfig;
-        return {
-          label: imageConfig.label,
-          required: imageConfig.required,
-          allowedTypes: imageConfig.allowedTypes,
-          maxSize: imageConfig.maxSize,
-        };
+        const c = config as ImageControlConfig;
+        return { required: c.required, allowedTypes: c.allowedTypes, maxSize: c.maxSize };
       }
       case ControlType.RICHTEXT: {
-        const richConfig = config as RichTextControlConfig;
-        return {
-          label: richConfig.label,
-          required: richConfig.required,
-          toolbar: richConfig.toolbar,
-          maxLength: richConfig.maxLength,
-        };
+        const c = config as RichTextControlConfig;
+        return { required: c.required, toolbar: c.toolbar, maxLength: c.maxLength };
       }
       case ControlType.JSON: {
-        const jsonConfig = config as JsonControlConfig;
+        const c = config as JsonControlConfig;
         let parsedSchema;
-        if (jsonConfig.schema.trim()) {
-          try {
-            parsedSchema = JSON.parse(jsonConfig.schema);
-          } catch {
-            parsedSchema = undefined;
-          }
+        if (c.schema.trim()) {
+          try { parsedSchema = JSON.parse(c.schema); } catch { parsedSchema = undefined; }
         }
-        return {
-          label: jsonConfig.label,
-          required: jsonConfig.required,
-          schema: parsedSchema,
-          pretty: jsonConfig.pretty,
-        };
+        return { required: c.required, schema: parsedSchema, pretty: c.pretty };
       }
       case ControlType.TABLE: {
-        const tableConfig = config as TableControlConfig;
-        return {
-          label: tableConfig.label,
-          required: tableConfig.required,
-          title: tableConfig.title,
-          caption: tableConfig.caption,
-          footnote: tableConfig.footnote,
-          headers: tableConfig.headers,
-        };
+        const c = config as TableControlConfig;
+        return { required: c.required, title: c.title, caption: c.caption, footnote: c.footnote, headers: c.headers };
       }
       default:
-        return config;
+        return config as Record<string, unknown>;
     }
   };
 
   // Initialize form with existing values when editing
   useEffect(() => {
     if (mode === 'edit' && initialControl) {
-      const legacyConfig = initialControl.config as Record<string, unknown>;
+      const c = initialControl.config as Record<string, unknown>;
+      const label = initialControl.label || '';
 
-      // Convert legacy config to new config format
       let newConfig: ControlConfig;
       switch (initialControl.controlType) {
-        case ControlType.TEXT: {
+        case ControlType.TEXT:
           newConfig = {
-            label: (legacyConfig.label as string) || '',
-            required: (legacyConfig.required as boolean) || false,
-            placeholder: (legacyConfig.placeholder as string) || '',
-            multiline: (legacyConfig.multiline as boolean) || false,
-            maxLength: legacyConfig.maxLength as number | undefined,
+            label,
+            required: (c.required as boolean) || false,
+            placeholder: (c.placeholder as string) || '',
+            multiline: (c.multiline as boolean) || false,
+            maxLength: c.maxLength as number | undefined,
           } as TextControlConfig;
           break;
-        }
         case ControlType.ENUMERATION: {
-          const options = (legacyConfig.options as Array<{ label: string; value: string }>) || [];
+          const options = (c.options as Array<{ label: string; value: string }>) || [];
           newConfig = {
-            label: (legacyConfig.label as string) || '',
-            required: (legacyConfig.required as boolean) || false,
-            placeholder: (legacyConfig.placeholder as string) || 'Select an option...',
+            label,
+            required: (c.required as boolean) || false,
+            placeholder: (c.placeholder as string) || 'Select an option...',
             options: options.map((opt) => opt.label),
           } as EnumerationControlConfig;
           break;
         }
-        case ControlType.MEDIA: {
+        case ControlType.MEDIA:
           newConfig = {
-            label: (legacyConfig.label as string) || '',
-            required: (legacyConfig.required as boolean) || false,
-            allowedTypes: (legacyConfig.allowedTypes as string[]) || ['jpg', 'png', 'gif', 'webp'],
-            maxSize: legacyConfig.maxSize as number | undefined,
+            label,
+            required: (c.required as boolean) || false,
+            allowedTypes: (c.allowedTypes as string[]) || ['jpg', 'png', 'gif', 'webp'],
+            maxSize: c.maxSize as number | undefined,
           } as ImageControlConfig;
           break;
-        }
-        case ControlType.RICHTEXT: {
+        case ControlType.RICHTEXT:
           newConfig = {
-            label: (legacyConfig.label as string) || '',
-            required: (legacyConfig.required as boolean) || false,
-            toolbar: (legacyConfig.toolbar as string[]) || ['bold', 'italic', 'link'],
-            maxLength: legacyConfig.maxLength as number | undefined,
+            label,
+            required: (c.required as boolean) || false,
+            toolbar: (c.toolbar as string[]) || ['bold', 'italic', 'link'],
+            maxLength: c.maxLength as number | undefined,
           } as RichTextControlConfig;
           break;
-        }
-        case ControlType.JSON: {
+        case ControlType.JSON:
           newConfig = {
-            label: (legacyConfig.label as string) || '',
-            required: (legacyConfig.required as boolean) || false,
-            schema: legacyConfig.schema ? JSON.stringify(legacyConfig.schema, null, 2) : '',
-            pretty: (legacyConfig.pretty as boolean) || false,
+            label,
+            required: (c.required as boolean) || false,
+            schema: c.schema ? JSON.stringify(c.schema, null, 2) : '',
+            pretty: (c.pretty as boolean) || false,
           } as JsonControlConfig;
           break;
-        }
         case ControlType.TABLE: {
-          const headers = (legacyConfig.headers as Array<string | { id: string; label: string; type?: string }>) || [];
+          const headers = (c.headers as Array<string | { id: string; label: string; type?: string }>) || [];
           newConfig = {
-            label: (legacyConfig.label as string) || '',
-            required: (legacyConfig.required as boolean) || false,
-            title: (legacyConfig.title as string) || '',
-            caption: (legacyConfig.caption as string) || '',
-            footnote: (legacyConfig.footnote as string) || '',
-            headers: headers.map((header, index) => {
-              if (typeof header === 'string') {
-                return {
-                  id: `header-${index + 1}`,
-                  label: header,
-                  type: 'text' as const,
-                };
-              } else {
-                return {
-                  id: header.id || `header-${index + 1}`,
-                  label: header.label,
-                  type: (header.type as 'text' | 'textarea') || 'text',
-                };
-              }
-            }),
+            label,
+            required: (c.required as boolean) || false,
+            title: (c.title as string) || '',
+            caption: (c.caption as string) || '',
+            footnote: (c.footnote as string) || '',
+            headers: headers.map((header, index) =>
+              typeof header === 'string'
+                ? { id: `header-${index + 1}`, label: header, type: 'text' as const }
+                : { id: header.id || `header-${index + 1}`, label: header.label, type: (header.type as 'text' | 'textarea') || 'text' },
+            ),
           } as TableControlConfig;
           break;
         }
         default:
           newConfig = createDefaultConfig(initialControl.controlType);
-          newConfig.label = (legacyConfig.label as string) || '';
-          newConfig.required = (legacyConfig.required as boolean) || false;
+          newConfig.label = label;
+          newConfig.required = (c.required as boolean) || false;
       }
 
       setConfig(newConfig);
@@ -253,8 +203,8 @@ export const AddControlDialog = ({
     e.preventDefault();
     if (!selectedControl || !config || !config.label.trim()) return;
 
-    const legacyConfig = transformConfigToLegacy(selectedControl.controlType, config);
-    onAddControl(selectedControl.controlType, legacyConfig);
+    const apiConfig = buildApiConfig(selectedControl.controlType, config);
+    onAddControl(selectedControl.controlType, config.label.trim(), apiConfig);
     handleClose();
   };
 

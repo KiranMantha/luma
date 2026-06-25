@@ -4,7 +4,7 @@ import { ControlInstance } from './controls';
 export type AddControlDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddControl: (controlType: ControlType, config: unknown) => void;
+  onAddControl: (controlType: ControlType, label: string, config: Record<string, unknown>) => void;
   initialControl?: ControlInstance | null;
   mode?: 'add' | 'edit';
 };

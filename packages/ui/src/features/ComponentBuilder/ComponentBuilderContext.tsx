@@ -18,6 +18,7 @@ export type ComponentBuilderContextValue = {
   onAddFieldset: (sectionId: string, name: string, description?: string, controls?: ControlInstance[]) => void;
   onDeleteFieldset: (fieldsetId: string) => void;
   onUpdateFieldset: (fieldsetId: string, name: string, description?: string, controls?: ControlInstance[]) => void;
+  pendingFieldsetControls: ControlInstance[];
   onRequestAddControlToFieldset: () => void;
   onActiveTabChange: (tabId: string) => void;
 };
