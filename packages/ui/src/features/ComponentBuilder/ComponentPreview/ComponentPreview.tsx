@@ -24,8 +24,8 @@ export const ComponentPreview = ({
   onActiveTabChange,
 }: ComponentPreviewProps) => {
   const [internalActiveTabId, setInternalActiveTabId] = useState<string>('');
-  const [isAddSectionDialogOpen, setIsAddSectionDialogOpen] = useState(false);
-  const [isAddFieldsetDialogOpen, setIsAddFieldsetDialogOpen] = useState(false);
+  const [showAddSectionDialog, setShowAddSectionDialog] = useState(false);
+  const [showAddFieldsetDialog, setShowAddFieldsetDialog] = useState(false);
   const [currentSectionId, setCurrentSectionId] = useState<string>('');
   const [editingFieldset, setEditingFieldset] = useState<Fieldset | null>(null);
 
@@ -74,7 +74,7 @@ export const ComponentPreview = ({
 
   const handleAddFieldset = (sectionId: string) => {
     setCurrentSectionId(sectionId);
-    setIsAddFieldsetDialogOpen(true);
+    setShowAddFieldsetDialog(true);
   };
 
   const handleAddFieldsetSubmit = (name: string, description?: string, controls?: ControlInstance[]) => {
@@ -102,7 +102,7 @@ export const ComponentPreview = ({
   const handleEditFieldset = (fieldset: Fieldset) => {
     setEditingFieldset(fieldset);
     setCurrentSectionId(getSectionIdForFieldset(fieldset.id));
-    setIsAddFieldsetDialogOpen(true);
+    setShowAddFieldsetDialog(true);
   };
 
   const getSectionIdForFieldset = (fieldsetId: string): string => {
@@ -308,7 +308,7 @@ export const ComponentPreview = ({
         </Text>
         <Flex gap="2">
           {onAddSection && (
-            <Button variant="ghost" onClick={() => setIsAddSectionDialogOpen(true)}>
+            <Button variant="ghost" onClick={() => setShowAddSectionDialog(true)}>
               + Add Section
             </Button>
           )}
@@ -320,15 +320,15 @@ export const ComponentPreview = ({
       </Card>
 
       <AddSectionDialog
-        open={isAddSectionDialogOpen}
-        onOpenChange={setIsAddSectionDialogOpen}
+        open={showAddSectionDialog}
+        onOpenChange={setShowAddSectionDialog}
         onAddSection={handleAddSection}
       />
 
       <AddFieldsetDialog
-        open={isAddFieldsetDialogOpen}
+        open={showAddFieldsetDialog}
         onOpenChange={(open: boolean) => {
-          setIsAddFieldsetDialogOpen(open);
+          setShowAddFieldsetDialog(open);
           if (!open) {
             setEditingFieldset(null);
           }

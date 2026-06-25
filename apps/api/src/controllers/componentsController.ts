@@ -506,6 +506,7 @@ export const deleteComponent = async (ctx: Context) => {
 
 export const addControlToComponent = async (ctx: Context) => {
   const componentId = ctx.req.param('id');
+  const sectionId = ctx.req.param('sectionId');
   const data: CreateComponentControlRequest = await ctx.req.json();
   const component = await db
     .select()
@@ -517,26 +518,22 @@ export const addControlToComponent = async (ctx: Context) => {
   if (!component) {
     throw new HTTPException(404, { message: 'Component not found' });
   }
-
   const controlId = nanoid();
 
-  await db.insert(componentControls).values({
-    id: controlId,
-    componentId,
-    ...data,
-    config: JSON.stringify(data.config),
-  });
-
   const newControl = await db
-    .select()
-    .from(componentControls)
-    .where(eq(componentControls.id, controlId))
-    .limit(1)
-    .then((rows) => rows[0]);
+    .insert(componentControls)
+    .values({
+      id: controlId,
+      componentId,
+      sectionId,
+      ...data,
+      config: JSON.stringify(data.config),
+    })
+    .returning();
 
   const controlData = {
-    ...newControl,
-    config: newControl?.config ? JSON.parse(newControl.config) : {},
+    ...newControl[0],
+    config: newControl[0]?.config ? JSON.parse(newControl[0].config) : {},
   };
 
   return successResponse(ctx, controlData, 201);
@@ -562,18 +559,15 @@ export const updateControl = async (ctx: Context) => {
     updateData.config = JSON.stringify(data.config);
   }
 
-  await db.update(componentControls).set(updateData).where(eq(componentControls.id, controlId));
-
   const updatedControl = await db
-    .select()
-    .from(componentControls)
+    .update(componentControls)
+    .set(updateData)
     .where(eq(componentControls.id, controlId))
-    .limit(1)
-    .then((rows) => rows[0]);
+    .returning();
 
   const controlData = {
-    ...updatedControl,
-    config: updatedControl?.config ? JSON.parse(updatedControl.config) : {},
+    ...updatedControl[0],
+    config: updatedControl[0]?.config ? JSON.parse(updatedControl[0].config) : {},
   };
 
   return successResponse(ctx, controlData, 200);
