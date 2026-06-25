@@ -1,3 +1,5 @@
+'use client';
+
 import { Box, Button, Flex, Input, Text } from '#atoms';
 import { Modal } from '#molecules';
 import { FormEvent, useState } from 'react';

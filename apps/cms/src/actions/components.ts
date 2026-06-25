@@ -161,7 +161,11 @@ export async function addControlToComponent(
   sectionId?: string,
 ): Promise<ControlInstance> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/components/${componentId}/controls`, {
+    const url = sectionId
+      ? `${API_BASE_URL}/api/components/${componentId}/section/${sectionId}/controls`
+      : `${API_BASE_URL}/api/components/${componentId}/controls`;
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -171,7 +175,6 @@ export async function addControlToComponent(
         label,
         config,
         orderIndex,
-        sectionId,
       }),
     });
 
