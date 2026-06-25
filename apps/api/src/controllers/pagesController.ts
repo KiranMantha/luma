@@ -356,11 +356,11 @@ export const updatePage = async (ctx: Context) => {
         console.error('Error regenerating static JSON:', jsonError);
       }
     } else if (page && (page.status === 'draft' || page.status === 'archived')) {
-      // Delete JSON file if page was unpublished
+      // Delete JSON file if page was unpublished — use the stored filename from publish time
       try {
+        const parsedMeta = page.metadata ? JSON.parse(page.metadata) : {};
+        const fileName = parsedMeta.publishedFileName || `${toKebabCase(page.name)}.model.json`;
         const outputDir = path.join(process.cwd(), 'public', 'pages');
-        const kebabName = toKebabCase(page.name);
-        const fileName = `${kebabName}.model.json`;
         const filePath = path.join(outputDir, fileName);
 
         await fs.unlink(filePath);
@@ -406,9 +406,9 @@ export const deletePage = async (ctx: Context) => {
 
       // Delete static JSON file if it exists
       try {
+        const parsedMeta = page.metadata ? JSON.parse(page.metadata) : {};
+        const fileName = parsedMeta.publishedFileName || `${toKebabCase(page.name)}.model.json`;
         const outputDir = path.join(process.cwd(), 'public', 'pages');
-        const kebabName = toKebabCase(page.name);
-        const fileName = `${kebabName}.model.json`;
         const filePath = path.join(outputDir, fileName);
 
         await fs.unlink(filePath);
@@ -446,7 +446,7 @@ export const publishPage = async (ctx: Context) => {
 
     await db.update(pages).set(updateData).where(eq(pages.id, id));
 
-    // Generate static JSON file for the published page
+    // Generate static JSON file for the published page and record the filename in metadata
     try {
       const pageJSON = await generatePageJSON(id);
       const outputDir = await ensureOutputDir();
@@ -455,6 +455,15 @@ export const publishPage = async (ctx: Context) => {
       const filePath = path.join(outputDir, fileName);
 
       await fs.writeFile(filePath, JSON.stringify(pageJSON, null, 2), 'utf8');
+
+      // Store the published filename so cleanup can find it even after a rename
+      const publishedPage = await db.select().from(pages).where(eq(pages.id, id));
+      if (publishedPage[0]) {
+        const currentMetadata = publishedPage[0].metadata ? JSON.parse(publishedPage[0].metadata) : {};
+        await db.update(pages).set({
+          metadata: JSON.stringify({ ...currentMetadata, publishedFileName: fileName }),
+        }).where(eq(pages.id, id));
+      }
 
       console.log(`✅ Generated static JSON for page: ${fileName}`);
     } catch (jsonError) {
