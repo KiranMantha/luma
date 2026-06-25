@@ -324,14 +324,16 @@ export const updatePage = async (ctx: Context) => {
     if (folderId !== undefined) updateData.folderId = folderId;
     if (templateId !== undefined) updateData.templateId = templateId;
 
-    // Store zones in metadata for zone-based pages
-    const pageMetadata: any = {};
-    if (metadata) pageMetadata.metadata = metadata;
-    if (zones) pageMetadata.zones = zones;
-
-    if (Object.keys(pageMetadata).length > 0) {
-      updateData.metadata = JSON.stringify(pageMetadata);
+    // Merge incoming metadata/zones into the existing blob to avoid partial-update data loss
+    const existingPage = await db.select().from(pages).where(eq(pages.id, id));
+    if (existingPage.length === 0 || !existingPage[0]) {
+      return ctx.json({ error: 'Page not found' }, 404);
     }
+    const existingMetadata = existingPage[0].metadata ? JSON.parse(existingPage[0].metadata) : {};
+    const pageMetadata: any = { ...existingMetadata };
+    if (metadata !== undefined) pageMetadata.metadata = metadata;
+    if (zones !== undefined) pageMetadata.zones = zones;
+    updateData.metadata = JSON.stringify(pageMetadata);
 
     await db.update(pages).set(updateData).where(eq(pages.id, id));
 
