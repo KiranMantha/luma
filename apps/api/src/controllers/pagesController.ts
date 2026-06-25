@@ -433,6 +433,11 @@ export const publishPage = async (ctx: Context) => {
   try {
     const id = ctx.req.param('id');
 
+    const existingPage = await db.select().from(pages).where(eq(pages.id, id));
+    if (existingPage.length === 0 || !existingPage[0]) {
+      return ctx.json({ error: 'Page not found' }, 404);
+    }
+
     const updateData = {
       status: 'published' as const,
       publishedAt: new Date().toISOString(),
@@ -458,6 +463,9 @@ export const publishPage = async (ctx: Context) => {
     }
 
     const updatedPage = await db.select().from(pages).where(eq(pages.id, id));
+    if (!updatedPage[0]) {
+      return ctx.json({ error: 'Page not found' }, 404);
+    }
     return ctx.json(updatedPage[0]);
   } catch (error) {
     console.error('Error publishing page:', error);
