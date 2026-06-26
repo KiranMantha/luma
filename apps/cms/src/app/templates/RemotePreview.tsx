@@ -21,7 +21,7 @@ export const RemotePreview = ({
 
   // Construct the preview URL with content parameters
   const getPreviewUrl = () => {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3002';
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
     const contentApiUrl = `${apiBaseUrl}/api/content/${contentType}s/${contentId}`;
 
     // Pass the content API URL to the remote app
