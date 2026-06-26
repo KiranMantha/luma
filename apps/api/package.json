@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc && tsc-esm-fix dist",
+    "dev": "env-cmd -f .env tsx watch src/index.ts",
+    "build": "env-cmd -f .env tsc && tsc-esm-fix dist",
     "start": "node dist/index.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",

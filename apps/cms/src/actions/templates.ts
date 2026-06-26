@@ -3,7 +3,7 @@
 import type { Template } from '@repo/ui';
 import { revalidatePath } from 'next/cache';
 
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3002';
+const API_BASE_URL = process.env.API_BASE_URL;
 
 export async function getTemplates(): Promise<Template[]> {
   try {
