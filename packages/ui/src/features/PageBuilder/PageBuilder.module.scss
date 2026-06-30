@@ -23,13 +23,6 @@
   overflow: hidden;
 }
 
-.workspaceWithPreview {
-  display: grid;
-  grid-template-columns: 280px 1fr 40%;
-  flex: 1;
-  overflow: hidden;
-}
-
 .previewPane {
   border-left: 1px solid #e2e8f0;
   display: flex;
