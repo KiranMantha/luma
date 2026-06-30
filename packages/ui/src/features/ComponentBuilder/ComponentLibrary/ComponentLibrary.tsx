@@ -2,11 +2,13 @@
 
 import { Box, Button, Flex, Text } from '#atoms';
 import { Card } from '#molecules';
+import { useRouter } from 'next/navigation';
 import { useComponentBuilder } from '../ComponentBuilderContext';
 import { ComponentType } from '../models';
 import styles from './ComponentLibrary.module.scss';
 
 export const ComponentLibrary = () => {
+  const router = useRouter();
   const {
     components,
     selectedComponent,
@@ -15,6 +17,11 @@ export const ComponentLibrary = () => {
     onTriggerDeleteComponent,
     onSelectComponent,
   } = useComponentBuilder();
+
+  const handleSelect = (component: Parameters<typeof onSelectComponent>[0]) => {
+    onSelectComponent(component);
+    router.push(`/components/${component.id}`, { scroll: false });
+  };
 
   return (
     <Flex direction="column" align="stretch" className={styles.componentLibrary}>
@@ -38,7 +45,7 @@ export const ComponentLibrary = () => {
             } ${isSelected ? styles.selected : ''}`;
 
             return (
-              <Card key={component.id} className={cardClassName} onClick={() => onSelectComponent(component)}>
+              <Card key={component.id} className={cardClassName} onClick={() => handleSelect(component)}>
                 <Flex align="start" justify="between" className={styles.cardContent}>
                   <div className={styles.cardInfo}>
                     <Text size="3" weight="medium">{component.name}</Text>

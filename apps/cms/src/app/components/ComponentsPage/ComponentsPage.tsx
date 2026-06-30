@@ -37,11 +37,11 @@ const actions: ComponentBuilderActions = {
   onRefreshComponents: () => getComponents(),
 };
 
-export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
+export const ComponentsPage = ({ initialComponents, componentId }: ComponentsPageProps) => {
   const initialComponentsData = use(initialComponents);
 
   return (
-    <ComponentBuilder components={initialComponentsData} actions={actions}>
+    <ComponentBuilder components={initialComponentsData} actions={actions} componentId={componentId}>
       <div className={styles.componentsPage}>
         <div className={styles.libraryPanel}>
           <ComponentLibrary />

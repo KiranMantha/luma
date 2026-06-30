@@ -14,7 +14,6 @@ import styles from './ComponentPreview.module.scss';
 export const ComponentPreview = () => {
   const {
     selectedComponent: component,
-    activeTabId: controlledActiveTabId,
     pendingFieldsetControls,
     onTriggerAddControl: onAddControl,
     onTriggerEditControl: onEditControl,
@@ -24,39 +23,27 @@ export const ComponentPreview = () => {
     onDeleteFieldset,
     onUpdateFieldset,
     onRequestAddControlToFieldset,
-    onActiveTabChange,
   } = useComponentBuilder();
 
-  const [internalActiveTabId, setInternalActiveTabId] = useState<string>('');
+  const [activeTabId, setActiveTabId] = useState<string>('');
   const [showAddSectionDialog, setShowAddSectionDialog] = useState(false);
   const [showAddFieldsetDialog, setShowAddFieldsetDialog] = useState(false);
   const [currentSectionId, setCurrentSectionId] = useState<string>('');
   const [editingFieldset, setEditingFieldset] = useState<Fieldset | null>(null);
 
   const sections = useMemo(() => component?.sections || [], [component?.sections]);
-  const activeTabId = controlledActiveTabId || internalActiveTabId;
 
   useEffect(() => {
-    if (sections.length > 0 && !activeTabId && sections[0]) {
-      const firstSectionId = sections[0].id;
-      if (controlledActiveTabId !== undefined) {
-        onActiveTabChange(firstSectionId);
-      } else {
-        setInternalActiveTabId(firstSectionId);
-      }
-    }
-  }, [sections, activeTabId, controlledActiveTabId, onActiveTabChange]);
+    if (!sections[0]) return;
+    setActiveTabId(sections[0].id);
+  }, [sections, component?.id]);
 
   if (!component) {
     return <div className={styles.componentPreviewContainer} />;
   }
 
   const handleTabChange = (tabId: string) => {
-    if (controlledActiveTabId !== undefined) {
-      onActiveTabChange(tabId);
-    } else {
-      setInternalActiveTabId(tabId);
-    }
+    setActiveTabId(tabId);
   };
 
   const handleAddControl = (sectionId?: string) => {
@@ -95,13 +82,19 @@ export const ComponentPreview = () => {
   const renderFieldsetPreview = (fieldset: Fieldset) => (
     <Card className={styles.fieldsetPreview}>
       <Flex justify="between">
-        <Text size="3" weight="medium">{fieldset.name}</Text>
+        <Text size="3" weight="medium">
+          {fieldset.name}
+        </Text>
         <Flex gap="2" className={styles.controlActions}>
           <Text size="1" className={styles.controlMeta}>
             Fieldset ({fieldset.fields?.length || 0} field{(fieldset.fields?.length || 0) !== 1 ? 's' : ''})
           </Text>
-          <Button size="sm" variant="primary-outline" onClick={() => handleEditFieldset(fieldset)}>Edit</Button>
-          <Button size="sm" variant="danger-outline" onClick={() => onDeleteFieldset(fieldset.id)}>Delete</Button>
+          <Button size="sm" variant="primary-outline" onClick={() => handleEditFieldset(fieldset)}>
+            Edit
+          </Button>
+          <Button size="sm" variant="danger-outline" onClick={() => onDeleteFieldset(fieldset.id)}>
+            Delete
+          </Button>
         </Flex>
       </Flex>
     </Card>
@@ -145,8 +138,7 @@ export const ComponentPreview = () => {
           if (config.pretty) metadataItems.push('Pretty print');
           break;
         case ControlType.TABLE:
-          if (config.headers && Array.isArray(config.headers))
-            metadataItems.push(`${config.headers.length} columns`);
+          if (config.headers && Array.isArray(config.headers)) metadataItems.push(`${config.headers.length} columns`);
           if (config.caption) metadataItems.push('With caption');
           if (config.footnote) metadataItems.push('With footnote');
           break;
@@ -158,14 +150,24 @@ export const ComponentPreview = () => {
     return (
       <Card className={styles.controlPreview}>
         <Flex justify="between">
-          <Text size="3" weight="medium">{control.label || 'Unlabeled Control'}</Text>
+          <Text size="3" weight="medium">
+            {control.label || 'Unlabeled Control'}
+          </Text>
           <Flex gap="2" className={styles.controlActions}>
-            <Text size="1" className={styles.controlMeta}>{getControlMetadata()}</Text>
+            <Text size="1" className={styles.controlMeta}>
+              {getControlMetadata()}
+            </Text>
             {baseConfig.required && (
-              <Text size="1" weight="medium" className={styles.requiredIndicator}>Required</Text>
+              <Text size="1" weight="medium" className={styles.requiredIndicator}>
+                Required
+              </Text>
             )}
-            <Button size="sm" variant="primary-outline" onClick={() => onEditControl(control)}>Edit</Button>
-            <Button size="sm" variant="danger-outline" onClick={() => onDeleteControl(control.id)}>Delete</Button>
+            <Button size="sm" variant="primary-outline" onClick={() => onEditControl(control)}>
+              Edit
+            </Button>
+            <Button size="sm" variant="danger-outline" onClick={() => onDeleteControl(control.id)}>
+              Delete
+            </Button>
           </Flex>
         </Flex>
       </Card>
@@ -177,7 +179,8 @@ export const ComponentPreview = () => {
       <Flex justify="between" align="center" className={styles.sectionHeader}>
         <Text size="4" weight="medium">
           {section.controls.length} control{section.controls.length !== 1 ? 's' : ''}
-          {section.fieldsets && section.fieldsets.length > 0 &&
+          {section.fieldsets &&
+            section.fieldsets.length > 0 &&
             `, ${section.fieldsets.length} fieldset${section.fieldsets.length !== 1 ? 's' : ''}`}{' '}
           in {section.name}
         </Text>
@@ -228,7 +231,9 @@ export const ComponentPreview = () => {
   return (
     <div className={styles.componentPreviewContainer}>
       <Flex justify="between" className={styles.header}>
-        <Text as="h2" size="5" weight="bold">{component.name} Preview</Text>
+        <Text as="h2" size="5" weight="bold">
+          {component.name} Preview
+        </Text>
         <Flex gap="2">
           <Button variant="ghost" onClick={() => setShowAddSectionDialog(true)}>
             + Add Section
@@ -243,7 +248,10 @@ export const ComponentPreview = () => {
       <AddSectionDialog
         open={showAddSectionDialog}
         onOpenChange={setShowAddSectionDialog}
-        onAddSection={onAddSection}
+        onAddSection={async (name) => {
+          const newId = await onAddSection(name);
+          if (newId) setActiveTabId(newId);
+        }}
       />
 
       <AddFieldsetDialog

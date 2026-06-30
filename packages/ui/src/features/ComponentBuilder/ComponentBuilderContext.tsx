@@ -25,7 +25,6 @@ export type ComponentBuilderActions = {
 export type ComponentBuilderContextValue = {
   components: Component[];
   selectedComponent: Component | null;
-  activeTabId: string;
   pendingFieldsetControls: ControlInstance[];
   onSelectComponent: (component: Component) => void;
   onTriggerAddComponent: () => void;
@@ -34,12 +33,11 @@ export type ComponentBuilderContextValue = {
   onTriggerAddControl: (sectionId?: string) => void;
   onTriggerEditControl: (control: ControlInstance) => void;
   onTriggerDeleteControl: (controlId: string) => void;
-  onAddSection: (sectionName: string) => void;
+  onAddSection: (sectionName: string) => Promise<string>;
   onAddFieldset: (sectionId: string, name: string, description?: string, controls?: ControlInstance[]) => void;
   onDeleteFieldset: (fieldsetId: string) => void;
   onUpdateFieldset: (fieldsetId: string, name: string, description?: string, controls?: ControlInstance[]) => void;
   onRequestAddControlToFieldset: () => void;
-  onActiveTabChange: (tabId: string) => void;
 };
 
 const ComponentBuilderContext = createContext<ComponentBuilderContextValue | null>(null);
@@ -56,17 +54,16 @@ export type ComponentBuilderProps = {
   components: Component[];
   actions: ComponentBuilderActions;
   children: React.ReactNode;
+  componentId?: string;
 };
 
-export const ComponentBuilder = ({ components: initialComponents, actions, children }: ComponentBuilderProps) => {
+export const ComponentBuilder = ({ components: initialComponents, actions, children, componentId }: ComponentBuilderProps) => {
   const [components, setComponents] = useState<Component[]>(initialComponents);
-  const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
-  const [activeTabId, setActiveTabId] = useState<string>('');
+  const [selectedComponent, setSelectedComponent] = useState<Component | null>(
+    componentId ? (initialComponents.find((c) => c.id === componentId) ?? null) : null,
+  );
 
   const selectComponent = (component: Component) => {
-    if (component.id !== selectedComponent?.id) {
-      setActiveTabId('');
-    }
     setSelectedComponent(component);
   };
 
@@ -99,7 +96,6 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
     const newest = allComponents[allComponents.length - 1];
     if (newest) {
       setSelectedComponent(newest);
-      if (newest.sections?.[0]) setActiveTabId(newest.sections[0].id);
     }
   };
 
@@ -114,7 +110,6 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
     setComponents((prev) => prev.filter((c) => c.id !== componentToDelete.id));
     if (selectedComponent?.id === componentToDelete.id) {
       setSelectedComponent(null);
-      setActiveTabId('');
     }
     setIsDeleteConfirmOpen(false);
     setComponentToDelete(null);
@@ -164,11 +159,11 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
     await refreshComponents(selectedComponent.id);
   };
 
-  const handleAddSection = async (sectionName: string) => {
-    if (!selectedComponent) return;
+  const handleAddSection = async (sectionName: string): Promise<string> => {
+    if (!selectedComponent) return '';
     const newSection = await actions.onAddSection(selectedComponent.id, sectionName);
     await refreshComponents(selectedComponent.id);
-    setActiveTabId(newSection.id);
+    return newSection.id;
   };
 
   const handleAddFieldset = async (sectionId: string, name: string, description?: string, controls?: ControlInstance[]) => {
@@ -215,7 +210,6 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
   const contextValue: ComponentBuilderContextValue = {
     components,
     selectedComponent,
-    activeTabId,
     pendingFieldsetControls,
     onSelectComponent: selectComponent,
     onTriggerAddComponent: () => setIsAddComponentOpen(true),
@@ -248,7 +242,6 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
       setIsAddingControlToFieldset(true);
       setIsAddControlOpen(true);
     },
-    onActiveTabChange: setActiveTabId,
   };
 
   return (
