@@ -2,7 +2,7 @@
 
 import { deleteTemplate, saveTemplate, updateTemplate } from '@/actions';
 import type { Component, Template } from '@repo/ui';
-import { Box, Button, Card, DeleteConfirmDialog, Flex, TemplateBuilder, Text } from '@repo/ui';
+import { Box, Button, Card, DeleteComponentDialog, Flex, TemplateBuilder, Text } from '@repo/ui';
 import { use, useState } from 'react';
 import { AddTemplateDialog } from './AddTemplateDialog';
 import styles from './TemplatesPage.module.scss';
@@ -99,7 +99,7 @@ export const TemplatesPage = ({ initialTemplates, initialComponents }: Templates
       </Box>
 
       <AddTemplateDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} onSave={handleSave} />
-      <DeleteConfirmDialog
+      <DeleteComponentDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
         onConfirm={handleConfirmDelete}

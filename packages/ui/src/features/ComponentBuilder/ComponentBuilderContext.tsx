@@ -3,7 +3,7 @@
 import { createContext, useContext, useState } from 'react';
 import { AddComponentDialog } from './AddComponentDialog';
 import { AddControlDialog } from './AddControlDialog';
-import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { DeleteComponentDialog } from './DeleteComponentDialog';
 import { EditComponentDialog } from './EditComponentDialog';
 import type { Component, ControlInstance } from './models';
 import { ControlType } from './ComponentPreview/ComponentPreview.model';
@@ -283,7 +283,7 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
         initialControl={controlToEdit}
         mode="edit"
       />
-      <DeleteConfirmDialog
+      <DeleteComponentDialog
         open={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
         onConfirm={handleConfirmDelete}
