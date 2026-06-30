@@ -16,6 +16,7 @@ export type ComponentBuilderActions = {
   onUpdateControl: (componentId: string, controlId: string, data: { controlType: ControlType; label: string; config: Record<string, unknown> }) => Promise<unknown>;
   onDeleteControl: (componentId: string, controlId: string) => Promise<void>;
   onAddSection: (componentId: string, sectionName: string) => Promise<{ id: string }>;
+  onDeleteSection: (componentId: string, sectionId: string) => Promise<void>;
   onAddFieldset: (componentId: string, sectionId: string, name: string, description?: string, controls?: ControlInstance[]) => Promise<unknown>;
   onDeleteFieldset: (componentId: string, sectionId: string, fieldsetId: string) => Promise<void>;
   onUpdateFieldset: (componentId: string, sectionId: string, fieldsetId: string, name: string, description?: string, controls?: ControlInstance[]) => Promise<unknown>;
@@ -34,6 +35,7 @@ export type ComponentBuilderContextValue = {
   onTriggerEditControl: (control: ControlInstance) => void;
   onTriggerDeleteControl: (controlId: string) => void;
   onAddSection: (sectionName: string) => Promise<string>;
+  onDeleteSection: (sectionId: string) => Promise<void>;
   onAddFieldset: (sectionId: string, name: string, description?: string, controls?: ControlInstance[]) => void;
   onDeleteFieldset: (fieldsetId: string) => void;
   onUpdateFieldset: (fieldsetId: string, name: string, description?: string, controls?: ControlInstance[]) => void;
@@ -159,6 +161,12 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
     await refreshComponents(selectedComponent.id);
   };
 
+  const handleDeleteSection = async (sectionId: string) => {
+    if (!selectedComponent) return;
+    await actions.onDeleteSection(selectedComponent.id, sectionId);
+    await refreshComponents(selectedComponent.id);
+  };
+
   const handleAddSection = async (sectionName: string): Promise<string> => {
     if (!selectedComponent) return '';
     const newSection = await actions.onAddSection(selectedComponent.id, sectionName);
@@ -235,6 +243,7 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
     },
     onTriggerDeleteControl: handleDeleteControl,
     onAddSection: handleAddSection,
+    onDeleteSection: handleDeleteSection,
     onAddFieldset: handleAddFieldset,
     onDeleteFieldset: handleDeleteFieldset,
     onUpdateFieldset: handleUpdateFieldset,

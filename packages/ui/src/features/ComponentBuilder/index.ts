@@ -6,6 +6,7 @@ export * from './ComponentBuilderContext';
 export * from './ComponentLibrary';
 export * from './ComponentPreview';
 export * from './DeleteConfirmDialog';
+export * from './DeleteSectionDialog';
 export * from './EditComponentDialog';
 export * from './models';
 export * from './utils/sectionUtils';

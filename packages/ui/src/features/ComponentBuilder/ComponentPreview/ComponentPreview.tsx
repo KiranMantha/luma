@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AddFieldsetDialog } from '../AddFieldsetDialog';
 import { AddSectionDialog } from '../AddSectionDialog';
 import { useComponentBuilder } from '../ComponentBuilderContext';
+import { DeleteSectionDialog } from '../DeleteSectionDialog';
 import type { ComponentSection, ControlInstance, Fieldset } from '../models';
 import type { BaseControlConfig } from './ComponentPreview.model';
 import { CONTROL_METADATA, ControlType } from './ComponentPreview.model';
@@ -19,6 +20,7 @@ export const ComponentPreview = () => {
     onTriggerEditControl: onEditControl,
     onTriggerDeleteControl: onDeleteControl,
     onAddSection,
+    onDeleteSection,
     onAddFieldset,
     onDeleteFieldset,
     onUpdateFieldset,
@@ -27,6 +29,8 @@ export const ComponentPreview = () => {
 
   const [activeTabId, setActiveTabId] = useState<string>('');
   const [showAddSectionDialog, setShowAddSectionDialog] = useState(false);
+  const [showDeleteSectionDialog, setShowDeleteSectionDialog] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState<{ id: string; name: string } | null>(null);
   const [showAddFieldsetDialog, setShowAddFieldsetDialog] = useState(false);
   const [currentSectionId, setCurrentSectionId] = useState<string>('');
   const [editingFieldset, setEditingFieldset] = useState<Fieldset | null>(null);
@@ -191,6 +195,18 @@ export const ComponentPreview = () => {
           <Button size="sm" variant="primary" onClick={() => handleAddControl(section.id)}>
             + Add Control
           </Button>
+          {activeTabId !== sections[0]?.id ? (
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={() => {
+                setSectionToDelete({ id: section.id, name: section.name });
+                setShowDeleteSectionDialog(true);
+              }}
+            >
+              Delete Section
+            </Button>
+          ) : null}
         </Flex>
       </Flex>
 
@@ -251,6 +267,18 @@ export const ComponentPreview = () => {
         onAddSection={async (name) => {
           const newId = await onAddSection(name);
           if (newId) setActiveTabId(newId);
+        }}
+      />
+
+      <DeleteSectionDialog
+        open={showDeleteSectionDialog}
+        onOpenChange={setShowDeleteSectionDialog}
+        sectionName={sectionToDelete?.name ?? ''}
+        onConfirm={async () => {
+          if (!sectionToDelete) return;
+          await onDeleteSection(sectionToDelete.id);
+          setActiveTabId(sections[0]?.id ?? '');
+          setSectionToDelete(null);
         }}
       />
 
