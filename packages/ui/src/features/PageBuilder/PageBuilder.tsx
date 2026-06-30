@@ -386,7 +386,7 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
             <div className={styles.previewPane}>
               <div className={styles.previewPaneHeader}>
                 <span>Live Preview</span>
-                <span className={styles.previewPaneUrl}>{previewIframeSrc}</span>
+                <span className={styles.previewPaneUrl}>({previewIframeSrc})</span>
               </div>
               <iframe ref={iframeRef} src={previewIframeSrc} className={styles.previewIframe} title="Live Preview" />
             </div>
