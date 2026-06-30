@@ -1,6 +1,7 @@
 'use client';
 
 import { createPage, deletePage, updatePage } from '@/actions';
+import type { ProjectSettings } from '@/actions/settings';
 import type { Component, Page, Template } from '@repo/ui';
 import { Box, Button, Card, Flex, PageBuilder, Text } from '@repo/ui';
 import { use, useState } from 'react';
@@ -11,6 +12,7 @@ type PagesPageProps = {
   initialPages: Promise<Page[]>;
   initialTemplates: Promise<Template[]>;
   initialComponents: Promise<Component[]>;
+  initialSettings: Promise<ProjectSettings>;
 };
 
 const getStatusColor = (status: string) => {
@@ -22,10 +24,11 @@ const getStatusColor = (status: string) => {
   }
 };
 
-export const PagesPage = ({ initialPages, initialTemplates, initialComponents }: PagesPageProps) => {
+export const PagesPage = ({ initialPages, initialTemplates, initialComponents, initialSettings }: PagesPageProps) => {
   const initialPagesData = use(initialPages);
   const initialTemplatesData = use(initialTemplates);
   const initialComponentsData = use(initialComponents);
+  const { previewUrl } = use(initialSettings);
 
   const [pages, setPages] = useState<Page[]>(initialPagesData);
   const [templates] = useState<Template[]>(initialTemplatesData);
@@ -37,13 +40,13 @@ export const PagesPage = ({ initialPages, initialTemplates, initialComponents }:
 
   const handleCreatePage = async (
     name: string,
-    identifier: string,
+    slug: string,
     description?: string,
     templateId?: string | null,
   ) => {
     try {
       const apiTemplateId = templateId === null ? undefined : templateId;
-      const newPage = await createPage(name, identifier, description, apiTemplateId);
+      const newPage = await createPage(name, slug, description, apiTemplateId);
       setPages((prev) => [...prev, newPage]);
       setIsAddDialogOpen(false);
     } catch (error) {
@@ -97,6 +100,7 @@ export const PagesPage = ({ initialPages, initialTemplates, initialComponents }:
         selectedTemplate={selectedTemplate || undefined}
         onSave={handleSavePage}
         onCancel={handleCancelEdit}
+        previewUrl={previewUrl || undefined}
       />
     );
   }
@@ -133,7 +137,7 @@ export const PagesPage = ({ initialPages, initialTemplates, initialComponents }:
                 <Text size="1" color="gray">
                   {componentCount} components
                   {pageTemplate && ` • Template: ${pageTemplate.name}`}
-                  {page.metadata?.slug && ` • Slug: /${page.metadata.slug}`}
+                  {page.slug && ` • Slug: /${page.slug}`}
                 </Text>
               </div>
               <Flex gap="2" justify="end">

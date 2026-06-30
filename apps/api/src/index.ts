@@ -4,7 +4,7 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
-import { componentsRoute, contentRoute, pagesRoute, templatesRoute } from './routes';
+import { componentsRoute, contentRoute, pagesRoute, settingsRoute, templatesRoute } from './routes';
 import { errorResponse, successResponse } from './types/response';
 
 const app = new Hono();
@@ -22,14 +22,14 @@ app.onError((err, ctx) => {
   return errorResponse(ctx, 'Internal Server Error', 500);
 });
 
+console.log('\ncors origins:', process.env.CORS_ORIGINS, '\n');
+
 // Middleware
-app.use(
-  '*',
-  cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'], // CMS app URLs
-    credentials: true,
-  }),
-);
+const allowedOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:3001')
+  .split(',')
+  .map((s) => s.trim());
+
+app.use('*', cors({ origin: allowedOrigins, credentials: true }));
 app.use('*', logger());
 app.use('*', prettyJSON());
 
@@ -50,6 +50,9 @@ app.route('/api/pages', pagesRoute);
 
 // Content delivery routes for remote apps
 app.route('/api/content', contentRoute);
+
+// Project settings (preview URL, etc.)
+app.route('/api/settings', settingsRoute);
 
 // Direct page model access (e.g., /page/about-us.model.json)
 // app.get('/api/page/:filename', async (c) => {

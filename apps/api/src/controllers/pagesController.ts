@@ -1,10 +1,10 @@
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import { Context } from 'hono';
 import { nanoid } from 'nanoid';
 import * as path from 'path';
 import { db } from '../db';
-import { components, componentSections, fieldsetFields, fieldsets, folders, pages, templates } from '../db/schema';
+import { componentControls, components, componentSections, fieldsetFields, fieldsets, folders, pages, projectSettings, templates } from '../db/schema';
 
 // Utility function to convert page name to kebab-case
 const toKebabCase = (str: string): string => {
@@ -15,20 +15,146 @@ const toKebabCase = (str: string): string => {
     .replace(/^-|-$/g, '');
 };
 
-// Utility function to ensure output directory exists
+// Resolve the pages output dir — configurable via PUBLIC_PAGES_DIR env var so the
+// API can write directly into the CMS's public/pages folder for static serving.
 const ensureOutputDir = async () => {
-  const outputDir = path.join(process.cwd(), 'public', 'pages');
-  try {
-    await fs.access(outputDir);
-  } catch {
-    await fs.mkdir(outputDir, { recursive: true });
-  }
+  const configured = process.env.PUBLIC_PAGES_DIR;
+  const outputDir = configured
+    ? path.resolve(process.cwd(), configured)
+    : path.join(process.cwd(), 'public', 'pages');
+  await fs.mkdir(outputDir, { recursive: true });
   return outputDir;
 };
 
 // Utility to convert string to camelCase
 const toCamelCase = (str: string): string => {
   return str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase());
+};
+
+// Resolve a single component instance's raw config (keyed by opaque IDs) into the
+// structured shape: { id, type, name, <sectionName>: { <fieldLabel>: value, <fieldsetName>: [{<fieldLabel>: value}] } }
+const resolveInstanceContent = async (instance: any, projectName?: string | null): Promise<any> => {
+  const componentResult = await db.select().from(components).where(eq(components.id, instance.componentId));
+  const component = componentResult[0];
+  if (!component) return { id: instance.id, componentId: instance.componentId, config: instance.config, order: instance.order };
+
+  const config: Record<string, any> =
+    typeof instance.config === 'string' ? JSON.parse(instance.config) : instance.config || {};
+
+  const sectionsResult = await db.select().from(componentSections).where(eq(componentSections.componentId, component.id));
+  const controlsResult = await db.select().from(componentControls).where(eq(componentControls.componentId, component.id));
+
+  const sectionIds = sectionsResult.map((s) => s.id);
+  const fieldsetsResult = sectionIds.length > 0
+    ? await db.select().from(fieldsets).where(inArray(fieldsets.sectionId, sectionIds))
+    : [];
+  const fieldsetIds = fieldsetsResult.map((f) => f.id);
+  const fieldsetFieldsResult = fieldsetIds.length > 0
+    ? await db.select().from(fieldsetFields).where(inArray(fieldsetFields.fieldsetId, fieldsetIds))
+    : [];
+
+  const componentType = toCamelCase(component.name);
+  const type = projectName
+    ? `${toKebabCase(projectName)}/components/${componentType}`
+    : componentType;
+
+  const resolved: Record<string, any> = {
+    id: instance.id,
+    componentId: component.id,
+    type,
+    name: component.name,
+    order: instance.order,
+  };
+
+  for (const section of sectionsResult) {
+    const sectionKey = toCamelCase(section.name);
+    const sectionObj: Record<string, any> = {};
+
+    // Individual controls — config key is control.id, output key is camelCased label
+    const sectionControls = controlsResult.filter((c) => c.sectionId === section.id);
+    for (const control of sectionControls) {
+      if (config[control.id] !== undefined) {
+        sectionObj[toCamelCase(control.label || control.id)] = config[control.id];
+      }
+    }
+
+    // Fieldsets — config key is "<sectionId>:<fieldset.name>" (scoped to avoid collisions
+    // when multiple sections share a fieldset name). Falls back to un-scoped fieldset.name
+    // for configs saved before this scoping was introduced.
+    const sectionFieldsets = fieldsetsResult.filter((f) => f.sectionId === section.id);
+    for (const fieldset of sectionFieldsets) {
+      const fieldsetKey = toCamelCase(fieldset.name);
+      const scopedConfigKey = `${section.id}:${fieldset.name}`;
+      const raw = config[scopedConfigKey] ?? config[fieldset.name];
+      const fields = fieldsetFieldsResult.filter((f) => f.fieldsetId === fieldset.id);
+
+      if (Array.isArray(raw)) {
+        sectionObj[fieldsetKey] = raw.map((item: Record<string, any>) => {
+          const mapped: Record<string, any> = {};
+          for (const field of fields) {
+            if (item[field.id] !== undefined) mapped[toCamelCase(field.label)] = item[field.id];
+          }
+          return mapped;
+        });
+      } else {
+        sectionObj[fieldsetKey] = [];
+      }
+    }
+
+    resolved[sectionKey] = sectionObj;
+  }
+
+  return resolved;
+};
+
+// Merge template zones with page zones so locked/header/footer zones from the template
+// are included alongside the editable page zones.
+const mergeZones = async (pageRow: { templateId: string | null; metadata: string | null }) => {
+  const pageMetadata = pageRow.metadata ? JSON.parse(pageRow.metadata) : {};
+  const pageZones: any[] = pageMetadata.zones || [
+    { id: 'body', name: 'Body', type: 'content', componentInstances: [], policy: { maxComponents: null, locked: false } },
+  ];
+
+  const settingsRows = await db.select().from(projectSettings);
+  const projectName = settingsRows.find((r) => r.key === 'project_name')?.value ?? null;
+
+  const resolveZones = (zones: any[]) =>
+    Promise.all(
+      zones.map(async (zone: any) => {
+        const { componentInstances, ...zoneRest } = zone;
+        return {
+          ...zoneRest,
+          components: await Promise.all(
+            (componentInstances || []).map((inst: any) => resolveInstanceContent(inst, projectName)),
+          ),
+        };
+      }),
+    );
+
+  if (!pageRow.templateId) return resolveZones(pageZones);
+
+  const templateResult = await db.select().from(templates).where(eq(templates.id, pageRow.templateId));
+  if (templateResult.length === 0 || !templateResult[0]) return resolveZones(pageZones);
+
+  const templateMetadata = templateResult[0].metadata ? JSON.parse(templateResult[0].metadata) : {};
+  const templateZones: any[] = templateMetadata.zones || [];
+  if (templateZones.length === 0) return resolveZones(pageZones);
+
+  // Merge template zones with matching page zones; append page-only zones (e.g. body) afterward.
+  const merged = templateZones.map((tz: any) => {
+    const pageZone = pageZones.find((pz: any) => pz.id === tz.id);
+    return {
+      ...tz,
+      componentInstances: [...(tz.componentInstances || []), ...(pageZone?.componentInstances || [])],
+    };
+  });
+
+  const templateZoneIds = new Set(templateZones.map((tz: any) => tz.id));
+  for (const pz of pageZones) {
+    if (!templateZoneIds.has(pz.id)) merged.push(pz);
+  }
+
+  return resolveZones(merged);
 };
 
 // Generate complete page JSON structure
@@ -132,10 +258,11 @@ const generatePageJSON = async (pageId: string) => {
             }
           }
 
-          // Fieldsets — keyed by fieldset.name in config
+          // Fieldsets — scoped key "<sectionId>:<fieldsetName>" avoids collision across sections
           for (const fieldset of section.fieldsets || []) {
             const fieldsetKey = toCamelCase(fieldset.name);
-            const fieldsetData = config[fieldset.name] ?? [];
+            const scopedConfigKey = `${section.id}:${fieldset.name}`;
+            const fieldsetData = config[scopedConfigKey] ?? config[fieldset.name] ?? [];
             sectionObject[fieldsetKey] = Array.isArray(fieldsetData) ? fieldsetData : [fieldsetData];
           }
 
@@ -195,6 +322,7 @@ export const getAllPages = async (ctx: Context) => {
 
       return {
         ...page,
+        slug: metadata.slug || toKebabCase(page.name),
         zones: metadata.zones || [
           {
             id: 'body',
@@ -215,6 +343,64 @@ export const getAllPages = async (ctx: Context) => {
   }
 };
 
+// Collect all resolved components from every zone, sorted by order.
+const flattenComponents = (zones: any[]): any[] =>
+  zones.flatMap((z) => z.components || []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+const buildPageResponse = (pageRow: any, metadata: any, components: any[]) => ({
+  id: pageRow.id,
+  name: pageRow.name,
+  description: pageRow.description,
+  slug: metadata.slug || toKebabCase(pageRow.name),
+  status: pageRow.status,
+  templateId: pageRow.templateId,
+  publishedAt: pageRow.publishedAt,
+  updatedAt: pageRow.updatedAt,
+  components,
+});
+
+// Write <slug>.model.json to the configured output dir — called after every page save.
+// Uses the same pipeline as getPageBySlug so the static file matches the live API response.
+const writePageModelJSON = async (pageId: string) => {
+  const pageResult = await db.select().from(pages).where(eq(pages.id, pageId));
+  const pageRow = pageResult[0];
+  if (!pageRow) throw new Error('Page not found');
+
+  const metadata = pageRow.metadata ? JSON.parse(pageRow.metadata) : {};
+  const zones = await mergeZones(pageRow);
+  const components = flattenComponents(zones);
+  const pageModel = buildPageResponse(pageRow, metadata, components);
+
+  const outputDir = await ensureOutputDir();
+  const fileName = `${pageModel.slug}.model.json`;
+  await fs.writeFile(path.join(outputDir, fileName), JSON.stringify(pageModel, null, 2), 'utf8');
+  console.log(`✅ Written ${fileName}`);
+  return fileName;
+};
+
+export const getPageBySlug = async (ctx: Context) => {
+  try {
+    const slug = ctx.req.param('slug');
+    const allPages = await db.select().from(pages);
+    const matched = allPages.find((p) => {
+      const meta = p.metadata ? JSON.parse(p.metadata) : {};
+      const pageSlug = meta.slug || toKebabCase(p.name);
+      return pageSlug === slug;
+    });
+
+    if (!matched) {
+      return ctx.json({ error: 'Page not found' }, 404);
+    }
+
+    const metadata = matched.metadata ? JSON.parse(matched.metadata) : {};
+    const zones = await mergeZones(matched);
+    return ctx.json(buildPageResponse(matched, metadata, flattenComponents(zones)));
+  } catch (error) {
+    console.error('Error fetching page by slug:', error);
+    return ctx.json({ error: 'Failed to fetch page' }, 500);
+  }
+};
+
 export const getPageById = async (ctx: Context) => {
   try {
     const id = ctx.req.param('id');
@@ -224,26 +410,10 @@ export const getPageById = async (ctx: Context) => {
       return ctx.json({ error: 'Page not found' }, 404);
     }
 
-    // Parse metadata to get zones
-    const pageData = page[0];
-    const metadata = pageData?.metadata ? JSON.parse(pageData.metadata) : {};
-
-    // Return clean zone-based page structure
-    const cleanPage = {
-      ...pageData,
-      zones: metadata.zones || [
-        {
-          id: 'body',
-          name: 'Body',
-          type: 'content',
-          componentInstances: [],
-          policy: { maxComponents: null, locked: false },
-        },
-      ],
-      metadata: metadata.metadata || {},
-    };
-
-    return ctx.json(cleanPage);
+    const pageData = page[0]!;
+    const metadata = pageData.metadata ? JSON.parse(pageData.metadata) : {};
+    const zones = await mergeZones(pageData);
+    return ctx.json(buildPageResponse(pageData, metadata, flattenComponents(zones)));
   } catch (error) {
     console.error('Error fetching page:', error);
     return ctx.json({ error: 'Failed to fetch page' }, 500);
@@ -252,11 +422,11 @@ export const getPageById = async (ctx: Context) => {
 
 export const createPage = async (ctx: Context) => {
   try {
-    const { name, description, folderId, templateId, zones, metadata } = await ctx.req.json();
+    const { name, slug, description, folderId, templateId, zones, metadata } = await ctx.req.json();
     const id = nanoid();
 
-    // Create page metadata with zones
     const pageMetadata: any = {};
+    pageMetadata.slug = slug || toKebabCase(name);
     if (metadata) pageMetadata.metadata = metadata;
     if (zones) {
       pageMetadata.zones = zones;
@@ -284,10 +454,17 @@ export const createPage = async (ctx: Context) => {
 
     await db.insert(pages).values(newPage);
 
-    // Return clean zone-based page
+    // Write initial model.json so CMS can serve it immediately
+    try {
+      await writePageModelJSON(id);
+    } catch (jsonError) {
+      console.error('Error writing page model JSON:', jsonError);
+    }
+
     return ctx.json(
       {
         ...newPage,
+        slug: pageMetadata.slug,
         zones: pageMetadata.zones || [],
         metadata: metadata || {},
       },
@@ -329,37 +506,11 @@ export const updatePage = async (ctx: Context) => {
 
     await db.update(pages).set(updateData).where(eq(pages.id, id));
 
-    // Regenerate static JSON if page is published, delete if unpublished
-    const updatedPage = await db.select().from(pages).where(eq(pages.id, id));
-    const page = updatedPage[0];
-
-    if (page && page.status === 'published') {
-      try {
-        const pageJSON = await generatePageJSON(id);
-        const outputDir = await ensureOutputDir();
-        const kebabName = toKebabCase(pageJSON.page.name);
-        const fileName = `${kebabName}.model.json`;
-        const filePath = path.join(outputDir, fileName);
-
-        await fs.writeFile(filePath, JSON.stringify(pageJSON, null, 2), 'utf8');
-
-        console.log(`✅ Regenerated static JSON for updated page: ${fileName}`);
-      } catch (jsonError) {
-        console.error('Error regenerating static JSON:', jsonError);
-      }
-    } else if (page && (page.status === 'draft' || page.status === 'archived')) {
-      // Delete JSON file if page was unpublished — use the stored filename from publish time
-      try {
-        const parsedMeta = page.metadata ? JSON.parse(page.metadata) : {};
-        const fileName = parsedMeta.publishedFileName || `${toKebabCase(page.name)}.model.json`;
-        const outputDir = path.join(process.cwd(), 'public', 'pages');
-        const filePath = path.join(outputDir, fileName);
-
-        await fs.unlink(filePath);
-        console.log(`🗑️ Deleted static JSON file (page unpublished): ${fileName}`);
-      } catch (fileError) {
-        // File might not exist, ignore
-      }
+    // Always regenerate model.json so CMS static files stay current
+    try {
+      await writePageModelJSON(id);
+    } catch (jsonError) {
+      console.error('Error writing page model JSON:', jsonError);
     }
 
     // Return updated page with zone structure
@@ -399,15 +550,13 @@ export const deletePage = async (ctx: Context) => {
       // Delete static JSON file if it exists
       try {
         const parsedMeta = page.metadata ? JSON.parse(page.metadata) : {};
-        const fileName = parsedMeta.publishedFileName || `${toKebabCase(page.name)}.model.json`;
-        const outputDir = path.join(process.cwd(), 'public', 'pages');
-        const filePath = path.join(outputDir, fileName);
-
-        await fs.unlink(filePath);
-        console.log(`🗑️ Deleted static JSON file: ${fileName}`);
-      } catch (fileError) {
-        // File might not exist, ignore error
-        console.log('No static JSON file to delete or already deleted');
+        const slug = parsedMeta.slug || toKebabCase(page.name);
+        const fileName = `${slug}.model.json`;
+        const outputDir = await ensureOutputDir();
+        await fs.unlink(path.join(outputDir, fileName));
+        console.log(`🗑️ Deleted ${fileName}`);
+      } catch {
+        // File might not exist — ignore
       }
     }
 
@@ -438,29 +587,10 @@ export const publishPage = async (ctx: Context) => {
 
     await db.update(pages).set(updateData).where(eq(pages.id, id));
 
-    // Generate static JSON file for the published page and record the filename in metadata
     try {
-      const pageJSON = await generatePageJSON(id);
-      const outputDir = await ensureOutputDir();
-      const kebabName = toKebabCase(pageJSON.page.name);
-      const fileName = `${kebabName}.model.json`;
-      const filePath = path.join(outputDir, fileName);
-
-      await fs.writeFile(filePath, JSON.stringify(pageJSON, null, 2), 'utf8');
-
-      // Store the published filename so cleanup can find it even after a rename
-      const publishedPage = await db.select().from(pages).where(eq(pages.id, id));
-      if (publishedPage[0]) {
-        const currentMetadata = publishedPage[0].metadata ? JSON.parse(publishedPage[0].metadata) : {};
-        await db.update(pages).set({
-          metadata: JSON.stringify({ ...currentMetadata, publishedFileName: fileName }),
-        }).where(eq(pages.id, id));
-      }
-
-      console.log(`✅ Generated static JSON for page: ${fileName}`);
+      await writePageModelJSON(id);
     } catch (jsonError) {
-      console.error('Error generating static JSON:', jsonError);
-      // Don't fail the publish if JSON generation fails
+      console.error('Error writing page model JSON:', jsonError);
     }
 
     const updatedPage = await db.select().from(pages).where(eq(pages.id, id));
@@ -594,19 +724,11 @@ export const updatePageInstance = async (ctx: Context) => {
       })
       .where(eq(pages.id, pageId));
 
-    // Regenerate and write static JSON if page is published
-    if (page.status === 'published') {
-      try {
-        const pageJSON = await generatePageJSON(pageId);
-        const outputDir = await ensureOutputDir();
-        const kebabName = toKebabCase(pageJSON.page.name);
-        const fileName = `${kebabName}.model.json`;
-        const filePath = path.join(outputDir, fileName);
-        await fs.writeFile(filePath, JSON.stringify(pageJSON, null, 2), 'utf8');
-        console.log(`✅ Regenerated static JSON for updated instance: ${fileName}`);
-      } catch (jsonError) {
-        console.error('Error regenerating static JSON:', jsonError);
-      }
+    // Always regenerate model.json so CMS static files stay current
+    try {
+      await writePageModelJSON(pageId);
+    } catch (jsonError) {
+      console.error('Error writing page model JSON:', jsonError);
     }
 
     return ctx.json({ message: 'Instance updated successfully', page: { ...page, metadata: updatedMetadata } });

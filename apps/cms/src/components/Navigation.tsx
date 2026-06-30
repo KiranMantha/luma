@@ -8,6 +8,7 @@ const navigationItems = [
   { href: '/components', label: 'Component Builder' },
   { href: '/templates', label: 'Templates' },
   { href: '/pages', label: 'Pages' },
+  { href: '/settings', label: 'Settings' },
 ];
 
 export function Navigation() {

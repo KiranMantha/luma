@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create *)",
+      "Bash(npx create-next-app@latest wknd-next --typescript --eslint --app --no-tailwind --no-src-dir --no-import-alias --yes)",
+      "Bash(mkdir -p /Users/mankiran/Documents/Kiran/poc/luma/apps/wknd-next/app/preview/\\\\[slug\\\\])",
+      "Bash(node -e ' *)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)\\); print\\(list\\(d.get\\('page',{}\\).keys\\(\\)\\)\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d, indent=2\\)\\)\")"
+    ],
+    "additionalDirectories": [
+      "/Users/mankiran/Documents/Kiran/poc/luma/apps/wknd-next/app/preview"
+    ]
+  }
+}

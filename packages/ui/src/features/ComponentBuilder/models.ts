@@ -83,17 +83,16 @@ export type Template = {
 export type Page = {
   id: string;
   name: string;
+  slug: string;
   description?: string;
   createdAt: string;
   updatedAt: string;
   publishedAt?: string;
   status: PageStatus;
-  folderId?: string; // For organization
-  templateId?: string; // Optional template inheritance
-  // Zone-based system - pages have a single body zone for content
+  folderId?: string;
+  templateId?: string;
   zones: TemplateZone[];
   metadata?: {
-    slug?: string;
     seoTitle?: string;
     seoDescription?: string;
     tags?: string[];

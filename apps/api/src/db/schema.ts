@@ -110,6 +110,13 @@ export const pages = sqliteTable('pages', {
   metadata: text('metadata'), // JSON: { zones: [{ id, type, componentInstances: [...] }], slug, seo, tags, etc. }
 });
 
+// Project-level key-value settings (e.g. preview_url)
+export const projectSettings = sqliteTable('project_settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+});
+
 // Type exports for TypeScript
 export type Component = typeof components.$inferSelect;
 export type NewComponent = typeof components.$inferInsert;
