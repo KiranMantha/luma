@@ -19,7 +19,7 @@ export function Navigation() {
       <ul>
         {navigationItems.map((item) => (
           <li key={item.href}>
-            <Link href={item.href} className={pathname === item.href ? 'active' : undefined}>
+            <Link href={item.href} className={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href)) ? 'active' : undefined}>
               {item.label}
             </Link>
           </li>
