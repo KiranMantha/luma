@@ -7,6 +7,7 @@ import {
   getAllFolders,
   getAllPages,
   getPageById,
+  getPageBySlug,
   publishPage,
   updatePage,
   updatePageInstance,
@@ -16,6 +17,7 @@ const pagesRoute = new Hono();
 
 // Page management
 pagesRoute.get('/', getAllPages);
+pagesRoute.get('/slug/:slug', getPageBySlug);
 pagesRoute.get('/:id', getPageById);
 pagesRoute.post('/', createPage);
 pagesRoute.put('/:id', updatePage);

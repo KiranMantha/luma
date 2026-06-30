@@ -54,7 +54,7 @@ export async function getPageById(id: string): Promise<Page | null> {
 
 export async function createPage(
   name: string,
-  identifier: string,
+  slug: string,
   description?: string,
   templateId?: string,
   folderId?: string,
@@ -67,7 +67,7 @@ export async function createPage(
       },
       body: JSON.stringify({
         name,
-        identifier,
+        slug,
         description,
         templateId,
         folderId,

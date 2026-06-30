@@ -9,7 +9,7 @@ interface AddPageDialogPropsWithTemplates extends AddPageDialogProps {
   templates: Template[];
 }
 
-const generatePageIdentifier = (name: string): string => {
+const generateSlug = (name: string): string => {
   return name
     .toLowerCase()
     .trim()
@@ -25,16 +25,16 @@ export const AddPageDialog = ({ open, onOpenChange, onSave, templates }: AddPage
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
-  const pageIdentifier = generatePageIdentifier(name);
+  const slug = generateSlug(name);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!name.trim() || !pageIdentifier) return;
+    if (!name.trim() || !slug) return;
 
     setLoading(true);
     try {
       const templateId = selectedTemplateId === '' ? null : selectedTemplateId;
-      await onSave(name.trim(), pageIdentifier, description.trim() || undefined, templateId);
+      await onSave(name.trim(), slug, description.trim() || undefined, templateId);
       setName('');
       setDescription('');
       setSelectedTemplateId('');
@@ -68,11 +68,11 @@ export const AddPageDialog = ({ open, onOpenChange, onSave, templates }: AddPage
 
         <Box className="mb-4">
           <Input
-            label="Page Identifier"
-            value={pageIdentifier}
+            label="Page Slug"
+            value={slug}
             readOnly
             placeholder="auto-generated-from-page-name"
-            hint={`API endpoint: ${pageIdentifier ? `${pageIdentifier}.model.json` : 'page-identifier.model.json'}`}
+            hint={`API endpoint: ${slug ? `${slug}.model.json` : 'page-identifier.model.json'}`}
           />
         </Box>
 
@@ -109,7 +109,7 @@ export const AddPageDialog = ({ open, onOpenChange, onSave, templates }: AddPage
           <Button variant="ghost" onClick={handleCancel} disabled={loading}>
             Cancel
           </Button>
-          <Button type="submit" disabled={!name.trim() || !pageIdentifier || loading}>
+          <Button type="submit" disabled={!name.trim() || !slug || loading}>
             {loading ? 'Creating...' : 'Create Page'}
           </Button>
         </Flex>
