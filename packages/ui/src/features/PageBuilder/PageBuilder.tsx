@@ -334,7 +334,7 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
           </Flex>
         </div>
 
-        <div className={showPreview ? styles.workspaceWithPreview : styles.workspace}>
+        <div className={styles.workspace}>
           <div className={styles.palette}>
             <Text size="3" weight="medium" className={styles.paletteTitle}>
               Available Components
@@ -382,19 +382,19 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
             </div>
           </div>
 
-          <div className={styles.zoneWorkspace}>
-            {pageState.zones?.map((zone) => (
-              <ZoneDropArea key={zone.id} zone={zone} />
-            ))}
-          </div>
-
-          {showPreview && (
+          {showPreview ? (
             <div className={styles.previewPane}>
               <div className={styles.previewPaneHeader}>
                 <span>Live Preview</span>
-                <span className={styles.previewPaneUrl}>{previewIframeSrc}</span>
+                <span className={styles.previewPaneUrl}>({previewIframeSrc})</span>
               </div>
               <iframe ref={iframeRef} src={previewIframeSrc} className={styles.previewIframe} title="Live Preview" />
+            </div>
+          ) : (
+            <div className={styles.zoneWorkspace}>
+              {pageState.zones?.map((zone) => (
+                <ZoneDropArea key={zone.id} zone={zone} />
+              ))}
             </div>
           )}
         </div>

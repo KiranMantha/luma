@@ -732,8 +732,8 @@ export const deleteComponentSection = async (ctx: Context) => {
     throw new HTTPException(404, { message: 'Section not found' });
   }
 
-  // Move controls in this section back to component root (sectionId = null)
-  await db.update(componentControls).set({ sectionId: null }).where(eq(componentControls.sectionId, sectionId));
+  // Delete all controls belonging to this section (fieldsets cascade via FK)
+  await db.delete(componentControls).where(eq(componentControls.sectionId, sectionId));
 
   await db.delete(componentSections).where(eq(componentSections.id, sectionId));
 

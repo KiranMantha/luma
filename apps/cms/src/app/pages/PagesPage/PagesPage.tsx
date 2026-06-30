@@ -1,9 +1,10 @@
 'use client';
 
-import { createPage, deletePage, updatePage } from '@/actions';
+import { createPage, deletePage } from '@/actions';
 import type { ProjectSettings } from '@/actions/settings';
 import type { Component, Page, Template } from '@repo/ui';
-import { Box, Button, Card, Flex, PageBuilder, Text } from '@repo/ui';
+import { Box, Button, Card, Flex, Text } from '@repo/ui';
+import { useRouter } from 'next/navigation';
 import { use, useState } from 'react';
 import { AddPageDialog } from './AddPageDialog';
 import styles from './PagesPage.module.scss';
@@ -25,18 +26,16 @@ const getStatusColor = (status: string) => {
 };
 
 export const PagesPage = ({ initialPages, initialTemplates, initialComponents, initialSettings }: PagesPageProps) => {
+  const router = useRouter();
   const initialPagesData = use(initialPages);
   const initialTemplatesData = use(initialTemplates);
-  const initialComponentsData = use(initialComponents);
-  const { previewUrl } = use(initialSettings);
+  // initialComponents and initialSettings are unused here now — edit route fetches fresh
+  use(initialComponents);
+  use(initialSettings);
 
   const [pages, setPages] = useState<Page[]>(initialPagesData);
   const [templates] = useState<Template[]>(initialTemplatesData);
-  const [components] = useState<Component[]>(initialComponentsData);
-  const [selectedPage, setSelectedPage] = useState<Page | null>(null);
-  const [isEditMode, setIsEditMode] = useState(false);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
 
   const handleCreatePage = async (
     name: string,
@@ -55,26 +54,6 @@ export const PagesPage = ({ initialPages, initialTemplates, initialComponents, i
     }
   };
 
-  const handleEditPage = (page: Page) => {
-    setSelectedPage(page);
-    const template = page.templateId ? templates.find((t) => t.id === page.templateId) || null : null;
-    setSelectedTemplate(template);
-    setIsEditMode(true);
-  };
-
-  const handleSavePage = async (updatedPage: Page) => {
-    try {
-      const savedPage = await updatePage(updatedPage.id, updatedPage);
-      setPages((prev) => prev.map((p) => (p.id === savedPage.id ? savedPage : p)));
-      setSelectedPage(null);
-      setSelectedTemplate(null);
-      setIsEditMode(false);
-    } catch (error) {
-      console.error('Failed to save page:', error);
-      alert('Failed to save page');
-    }
-  };
-
   const handleDeletePage = async (pageId: string) => {
     if (!confirm('Are you sure you want to delete this page?')) return;
     try {
@@ -85,25 +64,6 @@ export const PagesPage = ({ initialPages, initialTemplates, initialComponents, i
       alert('Failed to delete page');
     }
   };
-
-  const handleCancelEdit = () => {
-    setSelectedPage(null);
-    setSelectedTemplate(null);
-    setIsEditMode(false);
-  };
-
-  if (isEditMode && selectedPage) {
-    return (
-      <PageBuilder
-        page={selectedPage}
-        components={components}
-        selectedTemplate={selectedTemplate || undefined}
-        onSave={handleSavePage}
-        onCancel={handleCancelEdit}
-        previewUrl={previewUrl || undefined}
-      />
-    );
-  }
 
   return (
     <Box className="p-4">
@@ -141,8 +101,12 @@ export const PagesPage = ({ initialPages, initialTemplates, initialComponents, i
                 </Text>
               </div>
               <Flex gap="2" justify="end">
-                <Button size="sm" variant="primary-outline" onClick={() => handleEditPage(page)}>Edit</Button>
-                <Button size="sm" variant="primary-outline" color="red" onClick={() => handleDeletePage(page.id)}>Delete</Button>
+                <Button size="sm" variant="primary-outline" onClick={() => router.push(`/pages/${page.slug}/edit`)}>
+                  Edit
+                </Button>
+                <Button size="sm" variant="primary-outline" color="red" onClick={() => handleDeletePage(page.id)}>
+                  Delete
+                </Button>
               </Flex>
             </Card>
           );

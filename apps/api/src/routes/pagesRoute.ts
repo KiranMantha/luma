@@ -6,8 +6,8 @@ import {
   deletePage,
   getAllFolders,
   getAllPages,
-  getPageById,
   getPageBySlug,
+  getPageForEdit,
   publishPage,
   updatePage,
   updatePageInstance,
@@ -17,8 +17,8 @@ const pagesRoute = new Hono();
 
 // Page management
 pagesRoute.get('/', getAllPages);
-pagesRoute.get('/slug/:slug', getPageBySlug);
-pagesRoute.get('/:id', getPageById);
+pagesRoute.get('/slug/:slug', getPageBySlug);   // resolved components[] — for remote apps
+pagesRoute.get('/edit/:slug', getPageForEdit);  // raw zones[] — for CMS editor
 pagesRoute.post('/', createPage);
 pagesRoute.put('/:id', updatePage);
 pagesRoute.delete('/:id', deletePage);

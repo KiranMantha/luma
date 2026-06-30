@@ -401,21 +401,29 @@ export const getPageBySlug = async (ctx: Context) => {
   }
 };
 
-export const getPageById = async (ctx: Context) => {
+// Returns raw zones + componentInstances for the CMS page editor
+export const getPageForEdit = async (ctx: Context) => {
   try {
-    const id = ctx.req.param('id');
-    const page = await db.select().from(pages).where(eq(pages.id, id));
+    const slug = ctx.req.param('slug');
+    const allPages = await db.select().from(pages);
+    const matched = allPages.find((p) => {
+      const meta = p.metadata ? JSON.parse(p.metadata) : {};
+      return (meta.slug || toKebabCase(p.name)) === slug;
+    });
 
-    if (page.length === 0) {
+    if (!matched) {
       return ctx.json({ error: 'Page not found' }, 404);
     }
 
-    const pageData = page[0]!;
-    const metadata = pageData.metadata ? JSON.parse(pageData.metadata) : {};
-    const zones = await mergeZones(pageData);
-    return ctx.json(buildPageResponse(pageData, metadata, flattenComponents(zones)));
+    const metadata = matched.metadata ? JSON.parse(matched.metadata) : {};
+    return ctx.json({
+      ...matched,
+      slug: metadata.slug || toKebabCase(matched.name),
+      zones: metadata.zones || [],
+      metadata: metadata.metadata || {},
+    });
   } catch (error) {
-    console.error('Error fetching page:', error);
+    console.error('Error fetching page for edit:', error);
     return ctx.json({ error: 'Failed to fetch page' }, 500);
   }
 };
@@ -514,23 +522,15 @@ export const updatePage = async (ctx: Context) => {
     }
 
     // Return updated page with zone structure
-    const parsedMetadata = page?.metadata ? JSON.parse(page.metadata) : {};
+    const updatedRow = { ...existingPage[0], ...updateData };
+    const parsedMetadata = JSON.parse(updatedRow.metadata ?? '{}');
 
-    const cleanPage = {
-      ...page,
-      zones: parsedMetadata.zones || [
-        {
-          id: 'body',
-          name: 'Body',
-          type: 'content',
-          componentInstances: [],
-          policy: { maxComponents: null, locked: false },
-        },
-      ],
+    return ctx.json({
+      ...updatedRow,
+      slug: parsedMetadata.slug || toKebabCase(updatedRow.name),
+      zones: parsedMetadata.zones || [],
       metadata: parsedMetadata.metadata || {},
-    };
-
-    return ctx.json(cleanPage);
+    });
   } catch (error) {
     console.error('Error updating page:', error);
     return ctx.json({ error: 'Failed to update page' }, 500);

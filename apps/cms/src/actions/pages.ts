@@ -30,24 +30,16 @@ export async function getPages(): Promise<Page[]> {
   }
 }
 
-export async function getPageById(id: string): Promise<Page | null> {
+export async function getPageForEdit(slug: string): Promise<Page | null> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/pages/${id}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
+    const response = await fetch(`${API_BASE_URL}/api/pages/edit/${slug}`, { cache: 'no-store' });
     if (!response.ok) {
       if (response.status === 404) return null;
       throw new Error(`Failed to fetch page: ${response.statusText}`);
     }
-
-    const result = await response.json();
-    return result;
+    return response.json();
   } catch (error) {
-    console.error('Error fetching page:', error);
+    console.error('Error fetching page for edit:', error);
     return null;
   }
 }

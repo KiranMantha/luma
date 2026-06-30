@@ -3,7 +3,7 @@
 import { createContext, useContext, useState } from 'react';
 import { AddComponentDialog } from './AddComponentDialog';
 import { AddControlDialog } from './AddControlDialog';
-import { DeleteConfirmDialog } from './DeleteConfirmDialog';
+import { DeleteComponentDialog } from './DeleteComponentDialog';
 import { EditComponentDialog } from './EditComponentDialog';
 import type { Component, ControlInstance } from './models';
 import { ControlType } from './ComponentPreview/ComponentPreview.model';
@@ -16,6 +16,7 @@ export type ComponentBuilderActions = {
   onUpdateControl: (componentId: string, controlId: string, data: { controlType: ControlType; label: string; config: Record<string, unknown> }) => Promise<unknown>;
   onDeleteControl: (componentId: string, controlId: string) => Promise<void>;
   onAddSection: (componentId: string, sectionName: string) => Promise<{ id: string }>;
+  onDeleteSection: (componentId: string, sectionId: string) => Promise<void>;
   onAddFieldset: (componentId: string, sectionId: string, name: string, description?: string, controls?: ControlInstance[]) => Promise<unknown>;
   onDeleteFieldset: (componentId: string, sectionId: string, fieldsetId: string) => Promise<void>;
   onUpdateFieldset: (componentId: string, sectionId: string, fieldsetId: string, name: string, description?: string, controls?: ControlInstance[]) => Promise<unknown>;
@@ -25,7 +26,6 @@ export type ComponentBuilderActions = {
 export type ComponentBuilderContextValue = {
   components: Component[];
   selectedComponent: Component | null;
-  activeTabId: string;
   pendingFieldsetControls: ControlInstance[];
   onSelectComponent: (component: Component) => void;
   onTriggerAddComponent: () => void;
@@ -34,12 +34,12 @@ export type ComponentBuilderContextValue = {
   onTriggerAddControl: (sectionId?: string) => void;
   onTriggerEditControl: (control: ControlInstance) => void;
   onTriggerDeleteControl: (controlId: string) => void;
-  onAddSection: (sectionName: string) => void;
+  onAddSection: (sectionName: string) => Promise<string>;
+  onDeleteSection: (sectionId: string) => Promise<void>;
   onAddFieldset: (sectionId: string, name: string, description?: string, controls?: ControlInstance[]) => void;
   onDeleteFieldset: (fieldsetId: string) => void;
   onUpdateFieldset: (fieldsetId: string, name: string, description?: string, controls?: ControlInstance[]) => void;
   onRequestAddControlToFieldset: () => void;
-  onActiveTabChange: (tabId: string) => void;
 };
 
 const ComponentBuilderContext = createContext<ComponentBuilderContextValue | null>(null);
@@ -56,17 +56,16 @@ export type ComponentBuilderProps = {
   components: Component[];
   actions: ComponentBuilderActions;
   children: React.ReactNode;
+  componentId?: string;
 };
 
-export const ComponentBuilder = ({ components: initialComponents, actions, children }: ComponentBuilderProps) => {
+export const ComponentBuilder = ({ components: initialComponents, actions, children, componentId }: ComponentBuilderProps) => {
   const [components, setComponents] = useState<Component[]>(initialComponents);
-  const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
-  const [activeTabId, setActiveTabId] = useState<string>('');
+  const [selectedComponent, setSelectedComponent] = useState<Component | null>(
+    componentId ? (initialComponents.find((c) => c.id === componentId) ?? null) : null,
+  );
 
   const selectComponent = (component: Component) => {
-    if (component.id !== selectedComponent?.id) {
-      setActiveTabId('');
-    }
     setSelectedComponent(component);
   };
 
@@ -99,7 +98,6 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
     const newest = allComponents[allComponents.length - 1];
     if (newest) {
       setSelectedComponent(newest);
-      if (newest.sections?.[0]) setActiveTabId(newest.sections[0].id);
     }
   };
 
@@ -114,7 +112,6 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
     setComponents((prev) => prev.filter((c) => c.id !== componentToDelete.id));
     if (selectedComponent?.id === componentToDelete.id) {
       setSelectedComponent(null);
-      setActiveTabId('');
     }
     setIsDeleteConfirmOpen(false);
     setComponentToDelete(null);
@@ -164,11 +161,17 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
     await refreshComponents(selectedComponent.id);
   };
 
-  const handleAddSection = async (sectionName: string) => {
+  const handleDeleteSection = async (sectionId: string) => {
     if (!selectedComponent) return;
+    await actions.onDeleteSection(selectedComponent.id, sectionId);
+    await refreshComponents(selectedComponent.id);
+  };
+
+  const handleAddSection = async (sectionName: string): Promise<string> => {
+    if (!selectedComponent) return '';
     const newSection = await actions.onAddSection(selectedComponent.id, sectionName);
     await refreshComponents(selectedComponent.id);
-    setActiveTabId(newSection.id);
+    return newSection.id;
   };
 
   const handleAddFieldset = async (sectionId: string, name: string, description?: string, controls?: ControlInstance[]) => {
@@ -215,7 +218,6 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
   const contextValue: ComponentBuilderContextValue = {
     components,
     selectedComponent,
-    activeTabId,
     pendingFieldsetControls,
     onSelectComponent: selectComponent,
     onTriggerAddComponent: () => setIsAddComponentOpen(true),
@@ -241,6 +243,7 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
     },
     onTriggerDeleteControl: handleDeleteControl,
     onAddSection: handleAddSection,
+    onDeleteSection: handleDeleteSection,
     onAddFieldset: handleAddFieldset,
     onDeleteFieldset: handleDeleteFieldset,
     onUpdateFieldset: handleUpdateFieldset,
@@ -248,7 +251,6 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
       setIsAddingControlToFieldset(true);
       setIsAddControlOpen(true);
     },
-    onActiveTabChange: setActiveTabId,
   };
 
   return (
@@ -281,7 +283,7 @@ export const ComponentBuilder = ({ components: initialComponents, actions, child
         initialControl={controlToEdit}
         mode="edit"
       />
-      <DeleteConfirmDialog
+      <DeleteComponentDialog
         open={isDeleteConfirmOpen}
         onOpenChange={setIsDeleteConfirmOpen}
         onConfirm={handleConfirmDelete}

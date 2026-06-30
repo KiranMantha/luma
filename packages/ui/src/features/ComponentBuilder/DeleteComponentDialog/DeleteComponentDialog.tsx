@@ -3,7 +3,7 @@
 import { Box, Button, Flex, Text } from '#atoms';
 import { Modal } from '#molecules';
 
-export type DeleteConfirmDialogProps = {
+export type DeleteComponentDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
@@ -11,13 +11,13 @@ export type DeleteConfirmDialogProps = {
   itemType?: 'component' | 'template';
 };
 
-export const DeleteConfirmDialog = ({
+export const DeleteComponentDialog = ({
   open,
   onOpenChange,
   onConfirm,
   componentName,
   itemType = 'component',
-}: DeleteConfirmDialogProps) => {
+}: DeleteComponentDialogProps) => {
   const handleConfirm = () => {
     onConfirm();
     onOpenChange(false);

@@ -7,6 +7,7 @@ import {
   deleteComponent,
   deleteControl,
   deleteFieldsetFromSection,
+  deleteSection,
   getComponents,
   saveComponent,
   updateComponent,
@@ -31,17 +32,18 @@ const actions: ComponentBuilderActions = {
   onUpdateControl: (componentId, controlId, data) => updateControl(componentId, controlId, data),
   onDeleteControl: deleteControl,
   onAddSection: addSectionToComponent,
+  onDeleteSection: deleteSection,
   onAddFieldset: addFieldsetToSection,
   onDeleteFieldset: deleteFieldsetFromSection,
   onUpdateFieldset: updateFieldsetInSection,
   onRefreshComponents: () => getComponents(),
 };
 
-export const ComponentsPage = ({ initialComponents }: ComponentsPageProps) => {
+export const ComponentsPage = ({ initialComponents, componentId }: ComponentsPageProps) => {
   const initialComponentsData = use(initialComponents);
 
   return (
-    <ComponentBuilder components={initialComponentsData} actions={actions}>
+    <ComponentBuilder components={initialComponentsData} actions={actions} componentId={componentId}>
       <div className={styles.componentsPage}>
         <div className={styles.libraryPanel}>
           <ComponentLibrary />
