@@ -22,7 +22,10 @@ export const ZoneDropArea = ({ zone }: Props) => {
   const { components, onZoneDrop, onInstanceDelete, onInstanceClick } = useZoneBuilder();
   const [isDragOver, setIsDragOver] = useState(false);
 
+  const isLocked = zone.policy?.locked ?? false;
+
   const handleDragOver = (e: React.DragEvent) => {
+    if (isLocked) return;
     e.preventDefault();
     setIsDragOver(true);
   };
@@ -33,10 +36,11 @@ export const ZoneDropArea = ({ zone }: Props) => {
 
   const handleDrop = (e: React.DragEvent) => {
     setIsDragOver(false);
+    if (isLocked) return;
     onZoneDrop(zone.id, e);
   };
 
-  const zoneColorClass = zone.policy?.locked && zone.name === 'Body'
+  const zoneColorClass = isLocked
     ? styles.zoneLocked_color
     : ZONE_TYPE_CLASSES[zone.type] ?? styles.zoneCustom_color;
 
@@ -53,8 +57,9 @@ export const ZoneDropArea = ({ zone }: Props) => {
           {zone.name}
         </Text>
         <Text size="1" color="gray">
-          {zone.componentInstances.length} component{zone.componentInstances.length !== 1 ? 's' : ''}
-          {zone.policy?.maxComponents ? ` (max ${zone.policy.maxComponents})` : ''}
+          {isLocked
+            ? 'Read-only'
+            : `${zone.componentInstances.length} component${zone.componentInstances.length !== 1 ? 's' : ''}${zone.policy?.maxComponents ? ` (max ${zone.policy.maxComponents})` : ''}`}
         </Text>
       </div>
 
@@ -62,10 +67,10 @@ export const ZoneDropArea = ({ zone }: Props) => {
         {zone.componentInstances.length === 0 ? (
           <div className={styles.emptyZone}>
             <Text size="2" color="gray">
-              {zone.policy?.locked ? 'Reserved for page content' : 'Drop components here'}
+              {isLocked ? 'Reserved — not editable here' : 'Drop components here'}
             </Text>
             <Text size="1" color="gray">
-              {zone.description || `Add ${zone.type} components`}
+              {zone.description || (isLocked ? '' : `Add ${zone.type} components`)}
             </Text>
           </div>
         ) : (
@@ -77,19 +82,21 @@ export const ZoneDropArea = ({ zone }: Props) => {
                   <div className={styles.instanceInfo}>
                     <Text size="2">{component?.name || 'Unknown'}</Text>
                   </div>
-                  <div className={styles.instanceActions}>
-                    <Button size="sm" variant="primary-outline" onClick={() => onInstanceClick(instance)}>
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="primary-outline"
-                      color="red"
-                      onClick={() => onInstanceDelete(zone.id, instance.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
+                  {!isLocked && (
+                    <div className={styles.instanceActions}>
+                      <Button size="sm" variant="primary-outline" onClick={() => onInstanceClick(instance)}>
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="primary-outline"
+                        color="red"
+                        onClick={() => onInstanceDelete(zone.id, instance.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })}

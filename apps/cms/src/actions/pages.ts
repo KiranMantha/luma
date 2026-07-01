@@ -153,6 +153,28 @@ export async function publishPage(id: string): Promise<Page> {
   }
 }
 
+export type PageModelPayload = {
+  pageId: string;
+  slug: string;
+  zones: Array<{ id: string; name: string; type: string; order: number; maxComponents: number | null; locked: boolean }>;
+  components: Array<{ id: string; componentId: string; type: string; zoneId: string; order: number; config: Record<string, unknown> }>;
+};
+
+export async function addComponentToPage(
+  pageId: string,
+  componentId: string,
+  zoneId: string,
+  afterIndex: number | null,
+): Promise<PageModelPayload> {
+  const response = await fetch(`${API_BASE_URL}/api/pages/${pageId}/instances`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ componentId, zoneId, afterIndex }),
+  });
+  if (!response.ok) throw new Error(`Failed to add component: ${response.statusText}`);
+  return response.json();
+}
+
 // Utility function to get components used in a specific template
 export async function getComponentsUsedInTemplate(templateId: string): Promise<string[]> {
   try {

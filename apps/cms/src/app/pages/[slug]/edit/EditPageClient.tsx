@@ -1,6 +1,7 @@
 'use client';
 
 import { updatePage } from '@/actions';
+import { addComponentToPage } from '@/actions/pages';
 import type { ProjectSettings } from '@/actions/settings';
 import type { Component, Page, Template } from '@repo/ui';
 import { PageBuilder } from '@repo/ui';
@@ -19,7 +20,7 @@ export function EditPageClient({ pagePromise, componentsPromise, templatesPromis
   const page = use(pagePromise);
   const components = use(componentsPromise);
   const templates = use(templatesPromise);
-  const { previewUrl } = use(settingsPromise);
+  const { previewUrl, projectName } = use(settingsPromise);
 
   const selectedTemplate = page.templateId ? templates.find((t) => t.id === page.templateId) ?? null : null;
 
@@ -40,6 +41,8 @@ export function EditPageClient({ pagePromise, componentsPromise, templatesPromis
       onSave={handleSave}
       onCancel={handleCancel}
       previewUrl={previewUrl ?? undefined}
+      projectName={projectName ?? undefined}
+      onAddComponentToPage={addComponentToPage}
     />
   );
 }

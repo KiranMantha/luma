@@ -656,6 +656,92 @@ export const deleteFolder = async (ctx: Context) => {
   }
 };
 
+// Build full pageModel payload in the shape the remote app expects:
+// { pageId, slug, zones: ZoneInfo[], components: ComponentData[] }
+const buildPageModelPayload = async (pageId: string) => {
+  const pageResult = await db.select().from(pages).where(eq(pages.id, pageId));
+  const pageRow = pageResult[0];
+  if (!pageRow) throw new Error('Page not found');
+
+  const metadata = pageRow.metadata ? JSON.parse(pageRow.metadata) : {};
+  const resolvedZones = await mergeZones(pageRow);
+
+  const zoneInfos = resolvedZones.map((z: any) => ({
+    id: z.id,
+    name: z.name,
+    type: z.type,
+    order: z.order ?? 0,
+    maxComponents: z.policy?.maxComponents ?? null,
+    locked: z.policy?.locked ?? false,
+  }));
+
+  const components: any[] = [];
+  resolvedZones.forEach((z: any) => {
+    (z.components || []).forEach((c: any) => {
+      components.push({
+        id: c.id,
+        componentId: c.componentId,
+        type: c.type,
+        zoneId: z.id,
+        order: c.order ?? 0,
+        config: (() => {
+          // Strip non-config keys from the resolved component object
+          const { id: _id, componentId: _cid, type: _t, name: _n, order: _o, ...rest } = c;
+          return rest;
+        })(),
+      });
+    });
+  });
+
+  return {
+    pageId: pageRow.id,
+    slug: metadata.slug || toKebabCase(pageRow.name),
+    zones: zoneInfos,
+    components,
+  };
+};
+
+// Add a new component instance to a page zone and return full pageModel for the iframe.
+export const addPageInstance = async (ctx: Context) => {
+  try {
+    const pageId = ctx.req.param('id');
+    const { componentId, zoneId, afterIndex } = await ctx.req.json();
+
+    const pageResult = await db.select().from(pages).where(eq(pages.id, pageId));
+    const pageRow = pageResult[0];
+    if (!pageRow) return ctx.json({ error: 'Page not found' }, 404);
+
+    const metadata = pageRow.metadata ? JSON.parse(pageRow.metadata) : {};
+    const zones: any[] = metadata.zones || [
+      { id: 'body', name: 'Body', type: 'content', componentInstances: [], policy: { maxComponents: null, locked: false } },
+    ];
+
+    const instanceId = `instance-${Date.now()}-${nanoid(9)}`;
+    const newInstance = { id: instanceId, componentId, config: {}, order: 0 };
+
+    const updatedZones = zones.map((zone: any) => {
+      if (zone.id !== zoneId) return zone;
+      const instances = [...(zone.componentInstances || [])];
+      const insertAt = afterIndex === null || afterIndex === undefined ? instances.length : afterIndex + 1;
+      instances.splice(insertAt, 0, newInstance);
+      return { ...zone, componentInstances: instances.map((inst: any, idx: number) => ({ ...inst, order: idx })) };
+    });
+
+    await db.update(pages).set({
+      metadata: JSON.stringify({ ...metadata, zones: updatedZones }),
+      updatedAt: new Date().toISOString(),
+    }).where(eq(pages.id, pageId));
+
+    try { await writePageModelJSON(pageId); } catch { /* non-fatal */ }
+
+    const payload = await buildPageModelPayload(pageId);
+    return ctx.json(payload, 201);
+  } catch (error) {
+    console.error('Error adding page instance:', error);
+    return ctx.json({ error: 'Failed to add instance' }, 500);
+  }
+};
+
 // Update component instance content within a page
 export const updatePageInstance = async (ctx: Context) => {
   try {

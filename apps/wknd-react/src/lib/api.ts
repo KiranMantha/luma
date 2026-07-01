@@ -1,18 +1,30 @@
 const CMS_BASE_URL = import.meta.env.VITE_CMS_BASE_URL || 'http://localhost:3001';
 
-export type ComponentData = {
+// Zone policy info returned by the API
+export type ZoneInfo = {
   id: string;
-  componentId: string;
-  type: string;
   name: string;
+  type: string;
   order: number;
-  [section: string]: unknown;
+  maxComponents: number | null;
+  locked: boolean;
+};
+
+// A component instance placed on the page
+export type ComponentData = {
+  id: string;           // instance ID (stable, used for postMessage events)
+  componentId: string;  // component definition ID (CMS side)
+  type: string;         // MapTo registry key (e.g. "wknd/components/hero")
+  zoneId: string;       // which zone this instance lives in
+  order: number;
+  config: Record<string, unknown>; // resolved authored content (section → { field: value })
 };
 
 export type PageModel = {
   id: string;
   name: string;
   slug: string;
+  status: string;
   components: ComponentData[];
 };
 

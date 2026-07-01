@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import {
+  addPageInstance,
   createFolder,
   createPage,
   deleteFolder,
@@ -25,6 +26,7 @@ pagesRoute.delete('/:id', deletePage);
 pagesRoute.post('/:id/publish', publishPage);
 
 // Component instance management
+pagesRoute.post('/:id/instances', addPageInstance);
 pagesRoute.put('/:id/instances/:instanceId', updatePageInstance);
 
 // Folder management

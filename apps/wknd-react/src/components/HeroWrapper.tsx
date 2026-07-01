@@ -1,4 +1,4 @@
-import { MapTo, useLumaComponent } from '../lib/luma-preview';
+import { MapTo } from '../lib/luma-preview';
 
 type HeroData = {
   id: string;
@@ -7,10 +7,8 @@ type HeroData = {
 };
 
 function HeroWrapper(props: HeroData) {
-  const live = useLumaComponent<HeroData>(props.id);
-  const data = live ?? props;
-  const title = data.general?.title ?? 'Hero Title';
-  const subtitle = data.general?.subtitle ?? '';
+  const title = props.general?.title ?? 'Hero Title';
+  const subtitle = props.general?.subtitle ?? '';
 
   return (
     <section style={{ padding: '3rem 2rem', background: '#1e3a5f', color: 'white', textAlign: 'center' }}>
@@ -20,4 +18,7 @@ function HeroWrapper(props: HeroData) {
   );
 }
 
-MapTo('wknd/components/hero', HeroWrapper);
+MapTo('wknd/components/hero', HeroWrapper, {
+  displayName: 'Hero',
+  placeholder: 'Hero Section — click Edit to set title and subtitle',
+});

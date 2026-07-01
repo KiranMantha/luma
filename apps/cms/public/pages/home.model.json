@@ -1,0 +1,88 @@
+{
+  "id": "2cI-G2N0XwIKtbXYVcTBQ",
+  "name": "home",
+  "description": null,
+  "slug": "home",
+  "status": "published",
+  "templateId": "GRF6lsf745vfA6KEgm9cg",
+  "publishedAt": null,
+  "updatedAt": "2026-07-01T09:00:33.375Z",
+  "components": [
+    {
+      "id": "instance-1763188213239-mk6kqwc7z",
+      "componentId": "QmhE9PdX5dRtCBPRfGmpg",
+      "type": "wkndreact/components/header",
+      "name": "Header",
+      "order": 0,
+      "general": {
+        "brandName": "Port Authority"
+      },
+      "menu1": {
+        "menuName": "Flights",
+        "subMenu": [
+          {
+            "menuName": "Departures",
+            "url": "/departures",
+            "iconName": "icon-departure"
+          }
+        ]
+      },
+      "menu2": {
+        "menuName": "Transportation",
+        "subMenu": [
+          {
+            "menuName": "Public Transport",
+            "url": "/public-transport",
+            "iconName": "icon-transport"
+          }
+        ]
+      },
+      "menu3": {
+        "subMenu": []
+      }
+    },
+    {
+      "id": "instance-1763302563987",
+      "componentId": "ZzlKpdpucLUcwuqXeMGLs",
+      "type": "wkndreact/components/multiSearch",
+      "name": "Multi Search",
+      "order": 0,
+      "general": {
+        "title": "JFK",
+        "tabs": [
+          {
+            "tabName": "Ask"
+          },
+          {
+            "tabName": "Departures"
+          },
+          {
+            "tabName": "Arivals"
+          }
+        ]
+      }
+    },
+    {
+      "id": "instance-1782370129646",
+      "componentId": "aDiZMv8rSO3nsgjhDDjDD",
+      "type": "wkndreact/components/sample",
+      "name": "sample",
+      "order": 1,
+      "general": {},
+      "sample1": {
+        "cities": "BANGALORE"
+      }
+    },
+    {
+      "id": "instance-1782896408198-uuXtQ2PLX",
+      "componentId": "Wz0GV1gVL41Mzy_Yic0qq",
+      "type": "wkndreact/components/card",
+      "name": "Card",
+      "order": 2,
+      "general": {
+        "title": "Sample Card",
+        "description": "this is the description of the card"
+      }
+    }
+  ]
+}
