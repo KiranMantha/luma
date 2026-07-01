@@ -87,9 +87,16 @@ export const PagesPage = ({ initialPages, initialTemplates, initialComponents, i
               <div>
                 <Flex justify="between" align="start" className="mb-2">
                   <Text size="4" weight="medium">{page.name}</Text>
-                  <span className={`text-sm font-medium ${getStatusColor(page.status || 'draft')}`}>
-                    ● {page.status || 'draft'}
-                  </span>
+                  <Flex gap="2" align="center">
+                    {page.hasDraft && (
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#d97706', background: '#fffbeb', border: '1px solid #fcd34d', padding: '1px 8px', borderRadius: 4 }}>
+                        Draft pending
+                      </span>
+                    )}
+                    <span className={`text-sm font-medium ${getStatusColor(page.status || 'draft')}`}>
+                      ● {page.status || 'draft'}
+                    </span>
+                  </Flex>
                 </Flex>
                 {page.description && (
                   <Text size="2" color="gray" className="mb-2">{page.description}</Text>

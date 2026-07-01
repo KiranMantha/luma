@@ -18,7 +18,7 @@
 .previewFrame {
   flex: 1;
   position: relative;
-  background: white;
+  @apply bg-white;
 
   .previewLoading,
   .previewError {

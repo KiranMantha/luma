@@ -75,8 +75,8 @@ export async function GET(
     // File not yet generated — fall through to live API
   }
 
-  // 2. Fallback: proxy to backend API
-  const res = await fetch(`${API_BASE_URL}/api/pages/slug/${slug}`, { cache: 'no-store' });
+  // 2. Fallback: proxy to backend content API (returns { meta, zones, components })
+  const res = await fetch(`${API_BASE_URL}/api/content/page/${slug}.model.json`, { cache: 'no-store' });
   if (!res.ok) {
     return NextResponse.json({ error: 'Page not found' }, { status: res.status, headers: cors });
   }

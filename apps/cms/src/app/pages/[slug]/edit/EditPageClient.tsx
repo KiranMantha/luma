@@ -1,6 +1,6 @@
 'use client';
 
-import { updatePage } from '@/actions';
+import { addComponentToPage, publishPage, saveDraft } from '@/actions/pages';
 import type { ProjectSettings } from '@/actions/settings';
 import type { Component, Page, Template } from '@repo/ui';
 import { PageBuilder } from '@repo/ui';
@@ -19,13 +19,16 @@ export function EditPageClient({ pagePromise, componentsPromise, templatesPromis
   const page = use(pagePromise);
   const components = use(componentsPromise);
   const templates = use(templatesPromise);
-  const { previewUrl } = use(settingsPromise);
+  const { previewUrl, projectName } = use(settingsPromise);
 
   const selectedTemplate = page.templateId ? templates.find((t) => t.id === page.templateId) ?? null : null;
 
-  const handleSave = async (updatedPage: Page) => {
-    await updatePage(updatedPage.id, updatedPage);
-    router.push('/pages');
+  const handleSaveDraft = async (updatedPage: Page) => {
+    return saveDraft(updatedPage.id, updatedPage.zones);
+  };
+
+  const handlePublishPage = async (pageId: string) => {
+    return publishPage(pageId);
   };
 
   const handleCancel = () => {
@@ -37,9 +40,12 @@ export function EditPageClient({ pagePromise, componentsPromise, templatesPromis
       page={page}
       components={components}
       selectedTemplate={selectedTemplate ?? undefined}
-      onSave={handleSave}
+      onSaveDraft={handleSaveDraft}
+      onPublishPage={handlePublishPage}
       onCancel={handleCancel}
       previewUrl={previewUrl ?? undefined}
+      projectName={projectName ?? undefined}
+      onAddComponentToPage={addComponentToPage}
     />
   );
 }

@@ -8,6 +8,7 @@ import {
   fieldsetFields,
   fieldsets,
   pages,
+  projectSettings,
   templates,
 } from '../db/schema';
 
@@ -337,7 +338,9 @@ const toKebabCase = (str: string): string => {
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 };
 
-// Get page model JSON by kebab-case name for remote apps
+// Get page model JSON by kebab-case slug for remote apps.
+// Returns a flat components[] array (each entry has zoneId) plus zones[] with policies,
+// so the iframe can validate drops and render the correct zone layout.
 export const getPageModel = async (ctx: Context) => {
   try {
     const pageName = ctx.req.param('pageName');
@@ -346,37 +349,30 @@ export const getPageModel = async (ctx: Context) => {
       return ctx.json({ error: 'Invalid page model request. Use format: page-name.model.json' }, 400);
     }
 
-    // Remove .model.json extension to get the page name
-    const pageNameWithoutExt = pageName.replace(/\.model.json$/, '');
+    const slug = pageName.replace(/\.model\.json$/, '');
 
-    // Find published page by matching kebab-case name
-    const allPublishedPages = await db.select().from(pages).where(eq(pages.status, 'published'));
+    // Accept all pages in preview/edit mode (not just published)
+    const allPages = await db.select().from(pages);
 
-    const page = allPublishedPages.find((p) => {
-      // First check if there's a custom slug in metadata
+    const page = allPages.find((p) => {
       if (p.metadata) {
         const metadata = JSON.parse(p.metadata);
-        if (metadata.slug === pageNameWithoutExt) {
-          return true;
-        }
+        if (metadata.slug === slug) return true;
       }
-
-      // Fallback to converting page name to kebab-case
-      const pageKebabName = toKebabCase(p.name);
-      return pageKebabName === pageNameWithoutExt;
+      return toKebabCase(p.name) === slug;
     });
 
     if (!page) {
+      const allPublishedPages = allPages.filter((p) => p.status === 'published');
       return ctx.json(
         {
-          error: 'Page not found or not published',
-          requestedPageName: pageNameWithoutExt,
+          error: 'Page not found',
+          requestedSlug: slug,
           availablePages: allPublishedPages.map((p) => {
             const metadata = p.metadata ? JSON.parse(p.metadata) : {};
             return {
               name: p.name,
-              kebabName: toKebabCase(p.name),
-              slug: metadata.slug,
+              slug: metadata.slug || toKebabCase(p.name),
               endpoint: `/${metadata.slug || toKebabCase(p.name)}.model.json`,
             };
           }),
@@ -385,185 +381,171 @@ export const getPageModel = async (ctx: Context) => {
       );
     }
 
-    // Parse page metadata
+    // Read project_name from settings — same as pagesController does to build registry keys
+    const settingsRows = await db.select().from(projectSettings);
+    const projectName = settingsRows.find((r) => r.key === 'project_name')?.value ?? null;
+
     const pageMetadata = page.metadata ? JSON.parse(page.metadata) : {};
     let mergedZones: any[] = [];
+    // Track which zone IDs originate from the template so they can be marked locked
+    const templateZoneIds = new Set<string>();
 
-    // Get template zones if page uses a template
+    // Inherit template zones first
     if (page.templateId) {
       const templateResult = await db.select().from(templates).where(eq(templates.id, page.templateId));
-      if (templateResult.length > 0) {
-        const template = templateResult[0];
-        if (template && template.metadata) {
-          const templateMetadata = JSON.parse(template.metadata);
-          mergedZones = [...(templateMetadata.zones || [])];
-        }
+      const template = templateResult[0];
+      if (template?.metadata) {
+        const templateMetadata = JSON.parse(template.metadata);
+        mergedZones = [...(templateMetadata.zones || [])];
+        mergedZones.forEach((z: any) => templateZoneIds.add(z.id));
       }
     }
 
-    // Merge page zones with template zones (merge component instances)
-    const pageZones = pageMetadata.zones || [];
-    pageZones.forEach((pageZone: any) => {
-      const existingZoneIndex = mergedZones.findIndex((z) => z.id === pageZone.id);
-      if (existingZoneIndex >= 0) {
-        // Merge template zone components with page zone components
-        const templateZone = mergedZones[existingZoneIndex];
-        mergedZones[existingZoneIndex] = {
+    // Merge page zones on top (page body zone adds/overrides)
+    // Page body zone inherits the order slot from zone-body-placeholder so it renders between header and footer
+    const placeholder = mergedZones.find((z: any) => z.id === 'zone-body-placeholder');
+    const bodySlotOrder: number = placeholder?.order ?? 1;
+
+    const pageZones: any[] = pageMetadata.zones || [];
+    for (const pageZone of pageZones) {
+      const idx = mergedZones.findIndex((z) => z.id === pageZone.id);
+      if (idx >= 0) {
+        const templateZone = mergedZones[idx];
+        mergedZones[idx] = {
           ...pageZone,
-          componentInstances: [...(templateZone.componentInstances || []), ...(pageZone.componentInstances || [])],
+          order: templateZone.order ?? pageZone.order ?? 0,
+          componentInstances: [
+            ...(templateZone.componentInstances || []),
+            ...(pageZone.componentInstances || []),
+          ],
         };
       } else {
-        // Add new page zone
-        mergedZones.push(pageZone);
+        // Page-owned zone (e.g. 'body') slots into the body placeholder position
+        mergedZones.push({ ...pageZone, order: pageZone.order ?? bodySlotOrder });
       }
-    });
-
-    // If no zones exist, add default body zone
-    if (mergedZones.length === 0) {
-      mergedZones = [
-        {
-          id: 'body',
-          name: 'Body',
-          type: 'content',
-          componentInstances: [],
-        },
-      ];
     }
 
-    // Resolve component details for each zone and flatten into content object
-    const content: Record<string, any> = {};
-    const componentNameCount: Record<string, number> = {};
-    const componentsOrder: string[] = [];
+    if (mergedZones.length === 0) {
+      mergedZones = [{ id: 'body', name: 'Body', type: 'content', order: 0, policy: {}, componentInstances: [] }];
+    }
 
-    // Helper to convert string to camelCase
-    const toCamelCase = (str: string): string => {
-      return str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_, chr) => chr.toUpperCase());
-    };
+    // Filter out zone-body-placeholder (template-internal sentinel) and sort by order
+    const visibleZones = mergedZones
+      .filter((z: any) => z.id !== 'zone-body-placeholder')
+      .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
 
-    for (const zone of mergedZones) {
-      for (const instance of zone.componentInstances || []) {
+    const componentsList: any[] = [];
+    const zonesInfo: any[] = [];
+
+    for (const zone of visibleZones) {
+      const policy = zone.policy || {};
+      // Template-owned zones are locked — page editors cannot drop into them
+      const locked = templateZoneIds.has(zone.id) || (policy.locked ?? false);
+      zonesInfo.push({
+        id: zone.id,
+        name: zone.name || zone.id,
+        type: zone.type || 'content',
+        order: zone.order ?? 0,
+        maxComponents: policy.maxComponents ?? null,
+        locked,
+      });
+
+      const instances: any[] = zone.componentInstances || [];
+      // Sort by order field
+      instances.sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+
+      for (const instance of instances) {
         const componentResult = await db.select().from(components).where(eq(components.id, instance.componentId));
         const component = componentResult[0];
+        if (!component) continue;
 
-        if (component) {
-          // Get component sections, controls, and fieldsets (structure from component definition)
-          const sectionsResult = await db
-            .select()
-            .from(componentSections)
-            .where(eq(componentSections.componentId, component.id));
-          const controlsResult = await db
-            .select()
-            .from(componentControls)
-            .where(eq(componentControls.componentId, component.id));
+        // Resolve authored content keyed by section name → { controlLabel: value }
+        const config = typeof instance.config === 'string'
+          ? JSON.parse(instance.config)
+          : instance.config || {};
 
-          const sectionIds = sectionsResult.map((s) => s.id);
-          const fieldsetsResult = sectionIds.length > 0 ? await db.select().from(fieldsets).where(inArray(fieldsets.sectionId, sectionIds)) : [];
-          const fieldsetIds = fieldsetsResult.map((f) => f.id);
-          const fieldsetFieldsResult = fieldsetIds.length > 0 ? await db.select().from(fieldsetFields).where(inArray(fieldsetFields.fieldsetId, fieldsetIds)) : [];
+        const sectionsResult = await db
+          .select()
+          .from(componentSections)
+          .where(eq(componentSections.componentId, component.id));
+        const controlsResult = await db
+          .select()
+          .from(componentControls)
+          .where(eq(componentControls.componentId, component.id));
+        const sectionIds = sectionsResult.map((s) => s.id);
+        const fieldsetsResult = sectionIds.length > 0
+          ? await db.select().from(fieldsets).where(inArray(fieldsets.sectionId, sectionIds))
+          : [];
+        const fieldsetIds = fieldsetsResult.map((f) => f.id);
+        const fieldsetFieldsResult = fieldsetIds.length > 0
+          ? await db.select().from(fieldsetFields).where(inArray(fieldsetFields.fieldsetId, fieldsetIds))
+          : [];
 
-          const componentContent: any = {};
-          // Parse instance config (contains actual values with control IDs as keys)
-          const config = typeof instance.config === 'string' ? JSON.parse(instance.config) : instance.config || {};
+        const toCamelCase = (str: string) =>
+          str.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_: string, chr: string) => chr.toUpperCase());
 
-          console.log('Instance config for', component.name, ':', JSON.stringify(config, null, 2));
+        const resolvedContent: Record<string, any> = {};
+        for (const section of sectionsResult) {
+          const sectionKey = toCamelCase(section.name);
+          const sectionObj: Record<string, any> = {};
 
-          // Build sections as objects
-          for (const section of sectionsResult) {
-            const sectionKey = toCamelCase(section.name);
-            const sectionObject: any = {};
+          for (const control of controlsResult.filter((c) => c.sectionId === section.id)) {
+            const val = config[control.id];
+            if (val !== undefined) sectionObj[toCamelCase(control.label || control.id)] = val;
+          }
 
-            // Get controls for this section and map their values
-            const sectionControls = controlsResult.filter((control) => control.sectionId === section.id);
-
-            for (const control of sectionControls) {
-              const controlValue = config[control.id];
-              if (controlValue !== undefined) {
-                // Use camelCased control label as key
-                const controlKey = toCamelCase(control.label || control.id);
-                sectionObject[controlKey] = controlValue;
-              }
-            }
-
-            // Get fieldsets for this section and map their values
-            const sectionFieldsets = fieldsetsResult.filter((fieldset) => fieldset.sectionId === section.id);
-
-            for (const fieldset of sectionFieldsets) {
-              const fieldsetKey = toCamelCase(fieldset.name);
-              const fieldsetValue = config[fieldset.name];
-
-              if (fieldsetValue !== undefined) {
-                // Fieldsets are arrays of objects with fieldset field IDs as keys
-                if (Array.isArray(fieldsetValue)) {
-                  // Map field IDs to camelCased field labels for each item in the array
-                  const fieldsetFields = fieldsetFieldsResult.filter((field) => field.fieldsetId === fieldset.id);
-
-                  sectionObject[fieldsetKey] = fieldsetValue.map((item: any) => {
-                    const mappedItem: any = {};
-                    for (const field of fieldsetFields) {
-                      if (item[field.id] !== undefined) {
-                        const fieldKey = toCamelCase(field.label);
-                        mappedItem[fieldKey] = item[field.id];
-                      }
-                    }
-                    return mappedItem;
-                  });
-                } else {
-                  sectionObject[fieldsetKey] = [];
+          for (const fieldset of fieldsetsResult.filter((f) => f.sectionId === section.id)) {
+            const fKey = toCamelCase(fieldset.name);
+            const fVal = config[`${section.id}:${fieldset.name}`] ?? config[fieldset.name];
+            if (Array.isArray(fVal)) {
+              const fFields = fieldsetFieldsResult.filter((ff) => ff.fieldsetId === fieldset.id);
+              sectionObj[fKey] = fVal.map((item: any) => {
+                const mapped: Record<string, any> = {};
+                for (const ff of fFields) {
+                  if (item[ff.id] !== undefined) mapped[toCamelCase(ff.label)] = item[ff.id];
                 }
-              } else {
-                sectionObject[fieldsetKey] = [];
-              }
+                return mapped;
+              });
+            } else {
+              sectionObj[fKey] = [];
             }
-
-            componentContent[sectionKey] = sectionObject;
           }
 
-          // Generate unique component key
-          const camelComponentName = toCamelCase(component.name);
-          let componentKey = camelComponentName;
-
-          if (componentNameCount[camelComponentName]) {
-            componentNameCount[camelComponentName]++;
-            const randomSuffix = `_${Math.random().toString(36).substr(2, 6)}`;
-            componentKey = `${camelComponentName}${randomSuffix}`;
-          } else {
-            componentNameCount[camelComponentName] = 1;
-          }
-
-          content[componentKey] = componentContent;
-          componentsOrder.push(componentKey);
+          resolvedContent[sectionKey] = sectionObj;
         }
+
+        const componentType = toCamelCase(component.name);
+        const type = projectName
+          ? `${toKebabCase(projectName)}/components/${componentType}`
+          : componentType;
+
+        componentsList.push({
+          id: instance.id || `instance-${Date.now()}`,
+          componentId: component.id,
+          type,
+          zoneId: zone.id,
+          order: instance.order ?? 0,
+          config: resolvedContent,
+        });
       }
     }
 
-    // Build complete page model
     const pageModel = {
       meta: {
         id: page.id,
         name: page.name,
-        description: page.description,
         slug: pageMetadata.slug || toKebabCase(page.name),
         status: page.status,
-        publishedAt: page.publishedAt,
-        updatedAt: page.updatedAt,
-        templateId: page.templateId,
-        apiEndpoint: `/${pageMetadata.slug || toKebabCase(page.name)}.model.json`,
+        templateId: page.templateId ?? null,
         generatedAt: new Date().toISOString(),
       },
-      seo: {
-        title: pageMetadata.seoTitle || page.name,
-        description: pageMetadata.seoDescription || page.description,
-        tags: pageMetadata.tags || [],
-      },
-      componentsOrder,
-      content,
-      // Include metadata for remote app consumption
-      metadata: pageMetadata.metadata || {},
+      zones: zonesInfo,
+      components: componentsList,
     };
 
-    // Set appropriate headers for JSON model
     ctx.header('Content-Type', 'application/json');
-    ctx.header('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    // No cache in edit mode so authoring changes show immediately
+    ctx.header('Cache-Control', 'no-store');
 
     return ctx.json(pageModel);
   } catch (error) {

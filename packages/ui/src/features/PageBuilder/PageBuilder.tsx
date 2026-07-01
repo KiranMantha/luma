@@ -6,37 +6,176 @@ import type { Component, ComponentInstance, Page, Template } from '../ComponentB
 import { PageStatus } from '../ComponentBuilder/models';
 import { createDefaultPageZones, validateZonePlacement } from '../ComponentBuilder/zones';
 import { ComponentContentAuthoring } from '../ComponentContentAuthoring/ComponentContentAuthoring';
+import { ComponentSelectionDialog } from '../ComponentSelectionDialog/ComponentSelectionDialog';
 import { ZoneBuilderProvider } from '../ZoneBuilder/ZoneBuilderContext';
 import { ZoneDropArea } from '../ZoneBuilder/ZoneDropArea';
 import styles from './PageBuilder.module.scss';
 
-// ── postMessage protocol types ────────────────────────────────────────────────
+// ── postMessage types ─────────────────────────────────────────────────────────
+//
+// CMS → iframe:
+//   pageModel  — full page repaint (zones + flat components[])
+//   component  — single-instance targeted update
+//
+// iframe → CMS:
+//   ready, instance-click, instance-reorder, add-component
 
-type ComponentUpdatePayload = {
+type ZoneInfo = {
+  id: string;
+  name: string;
+  type: string;
+  order: number;
+  maxComponents: number | null;
+  locked: boolean;
+};
+
+type ComponentData = {
+  id: string;
+  componentId: string;
+  type: string;
+  zoneId: string;
+  order: number;
+  config: Record<string, unknown>;
+};
+
+type PageModelPayload = {
+  pageId: string;
+  slug: string;
+  zones: ZoneInfo[];
+  components: ComponentData[];
+};
+
+type ComponentPayload = {
   instanceId: string;
   componentId: string;
-  content: Record<string, unknown>;
+  type: string;
+  zoneId: string;
+  order: number;
+  config: Record<string, unknown>;
 };
 
-type PageUpdatePayload = {
-  pageId: string;
-  instances: ComponentUpdatePayload[];
-};
+type LumaToIframe =
+  | { source: 'luma-cms'; version: 1; type: 'pageModel'; payload: PageModelPayload }
+  | { source: 'luma-cms'; version: 1; type: 'component'; payload: ComponentPayload };
 
-type LumaPreviewMessage =
-  | { source: 'luma-cms'; version: 1; type: 'component-update'; payload: ComponentUpdatePayload }
-  | { source: 'luma-cms'; version: 1; type: 'page-update'; payload: PageUpdatePayload };
+type LumaFromIframe =
+  | { source: 'luma-preview'; type: 'ready' }
+  | { source: 'luma-preview'; type: 'instance-click'; instanceId: string; componentId: string }
+  | { source: 'luma-preview'; type: 'instance-reorder'; fromIndex: number; toIndex: number; zoneId: string }
+  | { source: 'luma-preview'; type: 'add-component'; zoneId: string; afterIndex: number | null };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-function buildPageUpdatePayload(pageId: string, zones: Page['zones']): PageUpdatePayload {
-  const instances: ComponentUpdatePayload[] = [];
-  zones?.forEach((zone) =>
-    zone.componentInstances.forEach((inst) =>
-      instances.push({ instanceId: inst.id!, componentId: inst.componentId, content: inst.config || {} }),
-    ),
-  );
-  return { pageId, instances };
+function makeInstanceId() {
+  return `instance-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+}
+
+const toKebabCase = (s: string) =>
+  s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+const toCamelCase = (s: string) =>
+  s.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_: string, c: string) => c.toUpperCase());
+
+// Mirrors the API's resolveInstanceContent: converts { [controlId]: value } raw config
+// into { [sectionNameCamel]: { [labelCamel]: value } } using the in-memory component definition.
+function resolveConfig(rawConfig: Record<string, unknown>, compDef: Component | undefined): Record<string, unknown> {
+  if (!compDef?.sections?.length) return rawConfig;
+
+  const resolved: Record<string, unknown> = {};
+  for (const section of compDef.sections) {
+    const sectionKey = toCamelCase(section.name);
+    const sectionObj: Record<string, unknown> = {};
+
+    for (const control of section.controls ?? []) {
+      if (rawConfig[control.id] !== undefined) {
+        sectionObj[toCamelCase(control.label || control.id)] = rawConfig[control.id];
+      }
+    }
+
+    for (const fieldset of section.fieldsets ?? []) {
+      const fieldsetKey = toCamelCase(fieldset.name);
+      const scopedKey = `${section.id}:${fieldset.name}`;
+      const raw = rawConfig[scopedKey] ?? rawConfig[fieldset.name];
+      if (Array.isArray(raw)) {
+        sectionObj[fieldsetKey] = raw.map((item: Record<string, unknown>) => {
+          const mapped: Record<string, unknown> = {};
+          for (const field of fieldset.fields ?? []) {
+            if (item[field.id] !== undefined) mapped[toCamelCase(field.label || field.id)] = item[field.id];
+          }
+          return mapped;
+        });
+      } else {
+        sectionObj[fieldsetKey] = [];
+      }
+    }
+
+    resolved[sectionKey] = sectionObj;
+  }
+  return resolved;
+}
+
+function buildPageModelPayload(
+  page: Page,
+  allComponents: Component[],
+  projectName: string | undefined,
+): PageModelPayload {
+  const zones: ZoneInfo[] = (page.zones || []).map((zone, idx) => ({
+    id: zone.id,
+    name: zone.name,
+    type: zone.type,
+    order: idx,
+    maxComponents: zone.policy?.maxComponents ?? null,
+    locked: zone.policy?.locked ?? false,
+  }));
+
+  const components: ComponentData[] = [];
+  (page.zones || []).forEach((zone) => {
+    zone.componentInstances.forEach((inst) => {
+      const compDef = allComponents.find((c) => c.id === inst.componentId);
+      const registryType = compDef
+        ? projectName
+          ? `${toKebabCase(projectName)}/components/${toCamelCase(compDef.name)}`
+          : toCamelCase(compDef.name)
+        : '';
+      components.push({
+        id: inst.id!,
+        componentId: inst.componentId,
+        type: registryType,
+        zoneId: zone.id,
+        order: inst.order ?? 0,
+        config: resolveConfig(inst.config || {}, compDef),
+      });
+    });
+  });
+
+  return { pageId: page.id, slug: page.slug, zones, components };
+}
+
+function buildComponentPayload(
+  inst: ComponentInstance,
+  zoneId: string,
+  allComponents: Component[],
+  projectName: string | undefined,
+): ComponentPayload {
+  const compDef = allComponents.find((c) => c.id === inst.componentId);
+  const registryType = compDef
+    ? projectName
+      ? `${toKebabCase(projectName)}/components/${toCamelCase(compDef.name)}`
+      : toCamelCase(compDef.name)
+    : '';
+  return {
+    instanceId: inst.id!,
+    componentId: inst.componentId,
+    type: registryType,
+    zoneId,
+    order: inst.order ?? 0,
+    config: resolveConfig(inst.config || {}, compDef),
+  };
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
@@ -45,9 +184,20 @@ type PageBuilderProps = {
   page: Page;
   components: Component[];
   selectedTemplate?: Template;
-  onSave: (page: Page) => Promise<void>;
+  /** Save current zones as a draft (persisted, can return later) */
+  onSaveDraft: (page: Page) => Promise<Page>;
+  /** Promote draft → published */
+  onPublishPage: (pageId: string) => Promise<Page>;
   onCancel: () => void;
   previewUrl?: string;
+  projectName?: string;
+  /** Called by the CMS route when user picks a component via ComponentSelectionDialog */
+  onAddComponentToPage?: (
+    pageId: string,
+    componentId: string,
+    zoneId: string,
+    afterIndex: number | null,
+  ) => Promise<PageModelPayload>;
 };
 
 type DraggedComponent = {
@@ -55,66 +205,197 @@ type DraggedComponent = {
   sourceZoneId?: string;
 };
 
-export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCancel, previewUrl }: PageBuilderProps) => {
+type PendingAdd = { zoneId: string; afterIndex: number | null };
+
+export const PageBuilder = ({
+  page,
+  components,
+  selectedTemplate,
+  onSaveDraft,
+  onPublishPage,
+  onCancel,
+  previewUrl,
+  projectName,
+  onAddComponentToPage,
+}: PageBuilderProps) => {
   const zonesWithIds = (page.zones || createDefaultPageZones()).map((zone) => ({
     ...zone,
     componentInstances: zone.componentInstances.map((instance) => ({
       ...instance,
-      id: instance.id || `instance-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+      id: instance.id || makeInstanceId(),
     })),
   }));
 
   const [pageState, setPageState] = useState<Page>({ ...page, zones: zonesWithIds });
+  // isDraft: true when there are unsaved local changes OR when the API reports a stored draft
+  const [isDraft, setIsDraft] = useState(!!page.hasDraft);
   const [draggedComponent, setDraggedComponent] = useState<DraggedComponent | null>(null);
   const [editingInstance, setEditingInstance] = useState<ComponentInstance | null>(null);
   const [isAuthoringOpen, setIsAuthoringOpen] = useState(false);
-  const [previewVisible, setPreviewVisible] = useState(false);
+  const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null);
+  const [isSelectionOpen, setIsSelectionOpen] = useState(false);
 
-  // Build iframe src: {previewUrl}/{page.slug} so remote apps use clean route params
-  const previewIframeSrc = previewUrl ? `${previewUrl.replace(/\/$/, '')}/${page.slug}` : undefined;
+  const previewIframeSrc = previewUrl ? `${previewUrl.replace(/\/$/, '')}/${page.slug}?mode=edit` : undefined;
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const iframeReadyRef = useRef(false);
-  // Always-current snapshot of pageState for use inside the message handler closure
   const pageStateRef = useRef(pageState);
   pageStateRef.current = pageState;
 
   const broadcastToIframe = useCallback(
-    (msg: LumaPreviewMessage) => {
+    (msg: LumaToIframe) => {
       if (!previewUrl || !iframeReadyRef.current || !iframeRef.current?.contentWindow) return;
       try {
         iframeRef.current.contentWindow.postMessage(msg, new URL(previewUrl).origin);
       } catch {
-        // invalid URL — silently ignore
+        /* invalid URL */
       }
     },
     [previewUrl],
   );
 
-  // Ready handshake: when iframe signals ready, respond with full current page state
+  const sendPageModel = useCallback(
+    (state: Page) => {
+      broadcastToIframe({
+        source: 'luma-cms',
+        version: 1,
+        type: 'pageModel',
+        payload: buildPageModelPayload(state, components, projectName),
+      });
+    },
+    [broadcastToIframe, components, projectName],
+  );
+
+  const markDraft = () => setIsDraft(true);
+
+  // Listen for messages from the iframe
   useEffect(() => {
     if (!previewUrl) return;
-    const handler = (event: MessageEvent) => {
-      if (event.data?.source !== 'luma-preview' || event.data?.type !== 'ready') return;
-      iframeReadyRef.current = true;
-      const payload = buildPageUpdatePayload(pageStateRef.current.id, pageStateRef.current.zones);
-      try {
-        iframeRef.current?.contentWindow?.postMessage(
-          { source: 'luma-cms', version: 1, type: 'page-update', payload } satisfies LumaPreviewMessage,
-          new URL(previewUrl).origin,
-        );
-      } catch {
-        // invalid URL
+
+    const handler = async (event: MessageEvent) => {
+      const msg = event.data as LumaFromIframe;
+      if (msg?.source !== 'luma-preview') return;
+
+      if (msg.type === 'ready') {
+        iframeReadyRef.current = true;
+        sendPageModel(pageStateRef.current);
+        return;
+      }
+
+      if (msg.type === 'instance-click') {
+        let found: ComponentInstance | null = null;
+        for (const zone of pageStateRef.current.zones ?? []) {
+          const inst = zone.componentInstances.find((i) => i.id === msg.instanceId);
+          if (inst) {
+            found = { ...inst, componentId: msg.componentId || inst.componentId };
+            break;
+          }
+        }
+        if (found) {
+          setEditingInstance(found);
+          setIsAuthoringOpen(true);
+        }
+        return;
+      }
+
+      if (msg.type === 'instance-reorder') {
+        markDraft();
+        setPageState((prev) => {
+          const newState = {
+            ...prev,
+            zones:
+              prev.zones?.map((zone) => {
+                if (zone.id !== msg.zoneId) return zone;
+                const instances = [...zone.componentInstances];
+                const [moved] = instances.splice(msg.fromIndex, 1);
+                if (!moved) return zone;
+                instances.splice(msg.toIndex, 0, moved);
+                return { ...zone, componentInstances: instances.map((inst, order) => ({ ...inst, order })) };
+              }) ?? [],
+          };
+          setTimeout(() => sendPageModel(newState), 0);
+          return newState;
+        });
+        return;
+      }
+
+      if (msg.type === 'add-component') {
+        // CMS opens ComponentSelectionDialog; record where to insert
+        setPendingAdd({ zoneId: msg.zoneId, afterIndex: msg.afterIndex });
+        setIsSelectionOpen(true);
       }
     };
+
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [previewUrl]);
+  }, [previewUrl, sendPageModel]);
 
-  // Reset ready state when previewUrl changes (new iframe load)
   useEffect(() => {
     iframeReadyRef.current = false;
   }, [previewUrl]);
+
+  // Called when user picks a component from ComponentSelectionDialog
+  const handleComponentSelected = async (component: Component) => {
+    if (!pendingAdd) return;
+    const { zoneId, afterIndex } = pendingAdd;
+    setPendingAdd(null);
+
+    if (onAddComponentToPage) {
+      markDraft();
+      try {
+        const pageModel = await onAddComponentToPage(pageState.id, component.id, zoneId, afterIndex);
+        // Sync local state from the API response so CMS zone panel stays consistent
+        setPageState((prev) => {
+          const updatedZones =
+            prev.zones?.map((zone) => {
+              const zoneComponents = pageModel.components.filter((c) => c.zoneId === zone.id);
+              return {
+                ...zone,
+                componentInstances: zoneComponents.map((c) => ({
+                  id: c.id,
+                  componentId: c.componentId,
+                  config: c.config,
+                  order: c.order,
+                  position: { x: 0, y: 0 },
+                  size: { width: 200, height: 50 },
+                })),
+              };
+            }) ?? [];
+          return { ...prev, zones: updatedZones };
+        });
+        broadcastToIframe({ source: 'luma-cms', version: 1, type: 'pageModel', payload: pageModel });
+      } catch (err) {
+        console.error('Failed to add component:', err);
+      }
+    } else {
+      markDraft();
+      setPageState((prev) => {
+        const newState = {
+          ...prev,
+          zones:
+            prev.zones?.map((zone) => {
+              if (zone.id !== zoneId) return zone;
+              const validation = validateZonePlacement(zone.type, component.id, zone.componentInstances.length);
+              if (!validation.valid) return zone;
+              const newInstance: ComponentInstance = {
+                id: makeInstanceId(),
+                componentId: component.id,
+                position: { x: 0, y: 0 },
+                size: { width: 200, height: 50 },
+                config: {},
+                order: afterIndex === null ? 0 : afterIndex + 1,
+              };
+              const instances = [...zone.componentInstances];
+              const insertAt = afterIndex === null ? 0 : afterIndex + 1;
+              instances.splice(insertAt, 0, newInstance);
+              return { ...zone, componentInstances: instances.map((inst, order) => ({ ...inst, order })) };
+            }) ?? [],
+        };
+        setTimeout(() => sendPageModel(newState), 0);
+        return newState;
+      });
+    }
+  };
 
   const getTemplateComponentIds = (): Set<string> => {
     const ids = new Set<string>();
@@ -137,6 +418,10 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
     setDraggedComponent({ component, sourceZoneId });
   };
 
+  const handleDragEnd = () => {
+    setDraggedComponent(null);
+  };
+
   const handleZoneDrop = (targetZoneId: string, e: DragEvent) => {
     e.preventDefault();
     if (!draggedComponent) return;
@@ -146,9 +431,7 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
 
     const usedComponents = getUsedComponents();
     if (usedComponents.has(draggedComponent.component.id) && !draggedComponent.sourceZoneId) {
-      alert(
-        `Component "${draggedComponent.component.name}" has already been used. Remove it first if you want to place it elsewhere.`,
-      );
+      alert(`Component "${draggedComponent.component.name}" has already been used. Remove it first.`);
       return;
     }
 
@@ -162,6 +445,7 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
       return;
     }
 
+    markDraft();
     setPageState((prev) => {
       const newState = {
         ...prev,
@@ -169,7 +453,7 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
           prev.zones?.map((zone) => {
             if (zone.id === targetZoneId) {
               const newInstance: ComponentInstance = {
-                id: `instance-${Date.now()}`,
+                id: makeInstanceId(),
                 componentId: draggedComponent.component.id,
                 position: { x: 0, y: zone.componentInstances.length * 60 },
                 size: { width: 200, height: 50 },
@@ -189,12 +473,7 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
             return zone;
           }) || [],
       };
-      broadcastToIframe({
-        source: 'luma-cms',
-        version: 1,
-        type: 'page-update',
-        payload: buildPageUpdatePayload(newState.id, newState.zones),
-      });
+      setTimeout(() => sendPageModel(newState), 0);
       return newState;
     });
 
@@ -202,6 +481,7 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
   };
 
   const handleInstanceDelete = (zoneId: string, instanceId: string) => {
+    markDraft();
     setPageState((prev) => {
       const newState = {
         ...prev,
@@ -212,12 +492,7 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
               : zone,
           ) || [],
       };
-      broadcastToIframe({
-        source: 'luma-cms',
-        version: 1,
-        type: 'page-update',
-        payload: buildPageUpdatePayload(newState.id, newState.zones),
-      });
+      setTimeout(() => sendPageModel(newState), 0);
       return newState;
     });
   };
@@ -228,8 +503,18 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
   };
 
   const handleContentSave = async (instanceId: string, content: Record<string, unknown>) => {
-    // Find componentId before state update (still in current state)
-    const inst = pageState.zones?.flatMap((z) => z.componentInstances).find((i) => i.id === instanceId);
+    markDraft();
+    // Find the instance's zone so we can build the component payload
+    let savedZoneId = '';
+    let savedInst: ComponentInstance | null = null;
+    for (const zone of pageState.zones ?? []) {
+      const inst = zone.componentInstances.find((i) => i.id === instanceId);
+      if (inst) {
+        savedZoneId = zone.id;
+        savedInst = inst;
+        break;
+      }
+    }
 
     setPageState((prev) => ({
       ...prev,
@@ -239,12 +524,14 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
       })),
     }));
 
-    if (inst) {
+    // Send targeted component event so only that EditableWrapper re-renders
+    if (savedInst) {
+      const updatedInst = { ...savedInst, config: content };
       broadcastToIframe({
         source: 'luma-cms',
         version: 1,
-        type: 'component-update',
-        payload: { instanceId, componentId: inst.componentId, content },
+        type: 'component',
+        payload: buildComponentPayload(updatedInst, savedZoneId, components, projectName),
       });
     }
 
@@ -252,32 +539,51 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
     setIsAuthoringOpen(false);
   };
 
-  const handleStatusChange = (newStatus: PageStatus) => {
-    setPageState((prev) => ({ ...prev, status: newStatus }));
+  const buildCleanPage = (): Page => ({
+    ...pageState,
+    zones: (pageState.zones ?? []).map((zone) => ({
+      ...zone,
+      componentInstances: zone.componentInstances.map((inst) => ({
+        id: inst.id,
+        componentId: inst.componentId,
+        position: inst.position ?? { x: 0, y: 0 },
+        config: { ...inst.config },
+        order: inst.order,
+      })),
+    })),
+  });
+
+  const handleSaveDraft = async () => {
+    try {
+      const saved = await onSaveDraft(buildCleanPage());
+      setPageState((prev) => ({ ...prev, status: saved.status }));
+      setIsDraft(true); // still a draft — not published
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      alert(`Failed to save draft: ${msg}`);
+    }
   };
 
-  const handleSave = async () => {
+  const handlePublish = async () => {
     try {
-      const cleanZones =
-        pageState.zones?.map((zone) => ({
-          ...zone,
-          componentInstances: zone.componentInstances.map((inst) => ({
-            id: inst.id,
-            componentId: inst.componentId,
-            config: { ...inst.config },
-            order: inst.order,
-          })),
-        })) || [];
-
-      await onSave({ ...pageState, zones: cleanZones } as Page);
+      const published = await onPublishPage(pageState.id);
+      setPageState((prev) => ({ ...prev, status: published.status }));
+      setIsDraft(false);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      alert(`Failed to save page: ${errorMessage}`);
+      const msg = error instanceof Error ? error.message : String(error);
+      alert(`Failed to publish page: ${msg}`);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (newStatus === PageStatus.PUBLISHED) {
+      await handlePublish();
+    } else if (newStatus === PageStatus.DRAFT) {
+      await handleSaveDraft();
     }
   };
 
   const availableComponents = getAvailableComponents();
-  const showPreview = !!previewUrl && previewVisible;
 
   return (
     <ZoneBuilderProvider
@@ -306,35 +612,34 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
                 Status:
               </Text>
               <select
-                value={pageState.status}
-                onChange={(e) => handleStatusChange(e.target.value as PageStatus)}
+                value={isDraft ? PageStatus.DRAFT : pageState.status}
+                onChange={(e) => handleStatusChange(e.target.value)}
                 className={styles.statusSelect}
               >
                 <option value={PageStatus.DRAFT}>Draft</option>
                 <option value={PageStatus.PUBLISHED}>Published</option>
-                <option value={PageStatus.ARCHIVED}>Archived</option>
               </select>
+              {isDraft && (
+                <Text size="1" color="gray">
+                  (unsaved changes)
+                </Text>
+              )}
             </Flex>
             <Text size="2" color="gray">
               {selectedTemplate ? `Using template: ${selectedTemplate.name}` : 'Blank page with body content only'}
             </Text>
           </div>
           <Flex gap="3" align="center">
-            {previewUrl && (
-              <Button variant="ghost" onClick={() => setPreviewVisible((v) => !v)}>
-                {previewVisible ? 'Hide Preview' : 'Show Preview'}
-              </Button>
-            )}
             <Button variant="ghost" onClick={onCancel}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleSave}>
-              Save Page
+            <Button variant="primary" onClick={handleSaveDraft}>
+              Save Draft
             </Button>
           </Flex>
         </div>
 
-        <div className={styles.workspace}>
+        <div className={previewUrl ? styles.workspaceWithPreview : styles.workspace}>
           <div className={styles.palette}>
             <Text size="3" weight="medium" className={styles.paletteTitle}>
               Available Components
@@ -361,11 +666,8 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
                       className={`${styles.componentCard} ${isUsed ? styles.componentUsed : ''}`}
                       draggable={!isUsed}
                       onDragStart={() => !isUsed && handleDragStart(component)}
-                      title={
-                        isUsed
-                          ? 'Component already used - remove it first to reuse'
-                          : 'Drag to body zone to add to page content'
-                      }
+                      onDragEnd={handleDragEnd}
+                      title={isUsed ? 'Already used — remove first to reuse' : 'Drag to zone'}
                     >
                       <Text size="2" weight="medium" color={isUsed ? 'gray' : undefined}>
                         {component.name} {isUsed && '✓'}
@@ -382,19 +684,26 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
             </div>
           </div>
 
-          {showPreview ? (
-            <div className={styles.previewPane}>
-              <div className={styles.previewPaneHeader}>
-                <span>Live Preview</span>
-                <span className={styles.previewPaneUrl}>({previewIframeSrc})</span>
-              </div>
-              <iframe ref={iframeRef} src={previewIframeSrc} className={styles.previewIframe} title="Live Preview" />
-            </div>
-          ) : (
+          {!previewUrl && (
             <div className={styles.zoneWorkspace}>
               {pageState.zones?.map((zone) => (
                 <ZoneDropArea key={zone.id} zone={zone} />
               ))}
+            </div>
+          )}
+
+          {previewUrl && (
+            <div className={styles.previewPane}>
+              <div className={styles.previewPaneHeader}>
+                <span>Live Edit Preview</span>
+                <span className={styles.previewPaneUrl}>({previewIframeSrc})</span>
+              </div>
+              <iframe
+                ref={iframeRef}
+                src={previewIframeSrc}
+                className={styles.previewIframe}
+                title="Live Edit Preview"
+              />
             </div>
           )}
         </div>
@@ -406,6 +715,13 @@ export const PageBuilder = ({ page, components, selectedTemplate, onSave, onCanc
           component={editingInstance ? components.find((c) => c.id === editingInstance.componentId) || null : null}
           page={pageState}
           onSave={handleContentSave}
+        />
+
+        <ComponentSelectionDialog
+          open={isSelectionOpen}
+          onOpenChange={setIsSelectionOpen}
+          components={availableComponents}
+          onSelect={handleComponentSelected}
         />
       </div>
     </ZoneBuilderProvider>

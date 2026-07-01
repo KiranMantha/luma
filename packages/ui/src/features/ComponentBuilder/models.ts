@@ -92,6 +92,7 @@ export type Page = {
   folderId?: string;
   templateId?: string;
   zones: TemplateZone[];
+  hasDraft?: boolean;
   metadata?: {
     seoTitle?: string;
     seoDescription?: string;

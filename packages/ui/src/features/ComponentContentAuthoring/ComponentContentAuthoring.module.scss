@@ -194,14 +194,14 @@
   color: #6b7280;
   border: 2px dashed #d1d5db;
   border-radius: 6px;
-  background: white;
+  @apply bg-white;
 }
 
 .structureInstance {
   border: 1px solid #d1d5db;
   border-radius: 6px;
   padding: 12px;
-  background: white;
+  @apply bg-white;
   @apply shadow-none;
 }
 

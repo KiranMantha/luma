@@ -1,4 +1,4 @@
-import { MapTo, useLumaComponent } from '../lib/luma-preview';
+import { MapTo } from '../lib/luma-preview';
 
 type RichTextData = {
   id: string;
@@ -7,9 +7,7 @@ type RichTextData = {
 };
 
 function RichTextWrapper(props: RichTextData) {
-  const live = useLumaComponent<RichTextData>(props.id);
-  const data = live ?? props;
-  const body = data.general?.body ?? '<p>Rich text content</p>';
+  const body = props.general?.body ?? '<p>Rich text content</p>';
 
   return (
     <section style={{ padding: '2rem', maxWidth: '760px', margin: '0 auto' }}>
@@ -18,4 +16,7 @@ function RichTextWrapper(props: RichTextData) {
   );
 }
 
-MapTo('wknd/components/richText', RichTextWrapper);
+MapTo('wknd/components/richText', RichTextWrapper, {
+  displayName: 'Rich Text',
+  placeholder: 'Rich Text — click Edit to enter content',
+});

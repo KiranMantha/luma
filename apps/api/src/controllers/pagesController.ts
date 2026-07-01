@@ -4,7 +4,7 @@ import { Context } from 'hono';
 import { nanoid } from 'nanoid';
 import * as path from 'path';
 import { db } from '../db';
-import { componentControls, components, componentSections, fieldsetFields, fieldsets, folders, pages, projectSettings, templates } from '../db/schema';
+import { componentControls, components, componentSections, draftPages, fieldsetFields, fieldsets, folders, pages, projectSettings, templates } from '../db/schema';
 
 // Utility function to convert page name to kebab-case
 const toKebabCase = (str: string): string => {
@@ -315,8 +315,9 @@ const generatePageJSON = async (pageId: string) => {
 export const getAllPages = async (ctx: Context) => {
   try {
     const allPages = await db.select().from(pages);
+    const allDrafts = await db.select().from(draftPages);
+    const draftPageIds = new Set(allDrafts.map((d) => d.pageId));
 
-    // Parse metadata for each page to get zones
     const cleanPages = allPages.map((page) => {
       const metadata = page?.metadata ? JSON.parse(page.metadata) : {};
 
@@ -333,6 +334,7 @@ export const getAllPages = async (ctx: Context) => {
           },
         ],
         metadata: metadata.metadata || {},
+        hasDraft: draftPageIds.has(page.id),
       };
     });
 
@@ -401,7 +403,8 @@ export const getPageBySlug = async (ctx: Context) => {
   }
 };
 
-// Returns raw zones + componentInstances for the CMS page editor
+// Returns raw zones + componentInstances for the CMS page editor.
+// Checks draft_pages first; if a draft exists for this page, returns that data.
 export const getPageForEdit = async (ctx: Context) => {
   try {
     const slug = ctx.req.param('slug');
@@ -415,12 +418,24 @@ export const getPageForEdit = async (ctx: Context) => {
       return ctx.json({ error: 'Page not found' }, 404);
     }
 
-    const metadata = matched.metadata ? JSON.parse(matched.metadata) : {};
+    // Check if a draft exists for this page
+    const draftResult = await db.select().from(draftPages).where(eq(draftPages.pageId, matched.id));
+    const draft = draftResult[0];
+    const hasDraft = !!draft;
+
+    // Use draft data if available, otherwise fall back to published page data
+    const activeRow = draft ?? matched;
+    const activeMetadata = activeRow.metadata ? JSON.parse(activeRow.metadata) : {};
+
     return ctx.json({
-      ...matched,
-      slug: metadata.slug || toKebabCase(matched.name),
-      zones: metadata.zones || [],
-      metadata: metadata.metadata || {},
+      ...matched,           // base page fields (id, templateId, folderId, etc.)
+      name: activeRow.name,
+      description: activeRow.description,
+      status: activeRow.status,
+      slug: activeMetadata.slug || toKebabCase(activeRow.name),
+      zones: activeMetadata.zones || [],
+      metadata: activeMetadata.metadata || {},
+      hasDraft,
     });
   } catch (error) {
     console.error('Error fetching page for edit:', error);
@@ -570,22 +585,92 @@ export const deletePage = async (ctx: Context) => {
   }
 };
 
+// Upsert a draft row into draft_pages. Published pages row is never touched.
+export const saveDraft = async (ctx: Context) => {
+  try {
+    const id = ctx.req.param('id');
+    const { zones, metadata: extraMeta } = await ctx.req.json();
+
+    const pageResult = await db.select().from(pages).where(eq(pages.id, id));
+    const pageRow = pageResult[0];
+    if (!pageRow) return ctx.json({ error: 'Page not found' }, 404);
+
+    // Merge with published metadata so slug and other non-zone fields are preserved
+    const publishedMeta = pageRow.metadata ? JSON.parse(pageRow.metadata) : {};
+    const draftMeta: Record<string, unknown> = { ...publishedMeta };
+    if (zones !== undefined) draftMeta.zones = zones;
+    if (extraMeta !== undefined) draftMeta.metadata = extraMeta;
+
+    // Upsert: remove any existing draft for this page, then insert the new one
+    await db.delete(draftPages).where(eq(draftPages.pageId, id));
+    await db.insert(draftPages).values({
+      id: nanoid(),
+      pageId: id,
+      name: pageRow.name,
+      description: pageRow.description,
+      status: 'draft',
+      folderId: pageRow.folderId,
+      templateId: pageRow.templateId,
+      metadata: JSON.stringify(draftMeta),
+      updatedAt: new Date().toISOString(),
+    });
+
+    return ctx.json({
+      ...pageRow,
+      slug: draftMeta.slug as string || toKebabCase(pageRow.name),
+      zones: (draftMeta.zones as any[]) || [],
+      metadata: (draftMeta.metadata as object) || {},
+      hasDraft: true,
+    });
+  } catch (error) {
+    console.error('Error saving draft:', error);
+    return ctx.json({ error: 'Failed to save draft' }, 500);
+  }
+};
+
+// Promote draft → published using the 3-step atomic swap:
+// 1. Delete existing pages row
+// 2. Insert new pages row from draftPages data
+// 3. Delete the draftPages row
+// Falls back to publishing current pages row as-is when no draft exists.
 export const publishPage = async (ctx: Context) => {
   try {
     const id = ctx.req.param('id');
 
-    const existingPage = await db.select().from(pages).where(eq(pages.id, id));
-    if (existingPage.length === 0 || !existingPage[0]) {
-      return ctx.json({ error: 'Page not found' }, 404);
+    const pageResult = await db.select().from(pages).where(eq(pages.id, id));
+    const pageRow = pageResult[0];
+    if (!pageRow) return ctx.json({ error: 'Page not found' }, 404);
+
+    const draftResult = await db.select().from(draftPages).where(eq(draftPages.pageId, id));
+    const draft = draftResult[0];
+
+    if (draft) {
+      const now = new Date().toISOString();
+      // Step 1 — remove the existing published row
+      await db.delete(pages).where(eq(pages.id, id));
+      // Step 2 — insert a fresh published row from the draft's data
+      await db.insert(pages).values({
+        id,                           // keep the same page id
+        name: draft.name,
+        description: draft.description,
+        status: 'published',
+        folderId: draft.folderId,
+        templateId: draft.templateId,
+        createdAt: pageRow.createdAt,  // preserve original creation date
+        updatedAt: now,
+        publishedAt: now,
+        metadata: draft.metadata,
+      });
+      // Step 3 — delete the draft row
+      await db.delete(draftPages).where(eq(draftPages.pageId, id));
+    } else {
+      // No draft — just flip status on the existing row
+      await db.update(pages).set({
+        status: 'published',
+        publishedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }).where(eq(pages.id, id));
     }
-
-    const updateData = {
-      status: 'published' as const,
-      publishedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    await db.update(pages).set(updateData).where(eq(pages.id, id));
 
     try {
       await writePageModelJSON(id);
@@ -594,10 +679,14 @@ export const publishPage = async (ctx: Context) => {
     }
 
     const updatedPage = await db.select().from(pages).where(eq(pages.id, id));
-    if (!updatedPage[0]) {
-      return ctx.json({ error: 'Page not found' }, 404);
-    }
-    return ctx.json(updatedPage[0]);
+    if (!updatedPage[0]) return ctx.json({ error: 'Page not found' }, 404);
+    const meta = updatedPage[0].metadata ? JSON.parse(updatedPage[0].metadata) : {};
+    return ctx.json({
+      ...updatedPage[0],
+      slug: meta.slug || toKebabCase(updatedPage[0].name),
+      zones: meta.zones || [],
+      hasDraft: false,
+    });
   } catch (error) {
     console.error('Error publishing page:', error);
     return ctx.json({ error: 'Failed to publish page' }, 500);
@@ -656,37 +745,139 @@ export const deleteFolder = async (ctx: Context) => {
   }
 };
 
-// Update component instance content within a page
+// Build full pageModel payload in the shape the remote app expects:
+// { pageId, slug, zones: ZoneInfo[], components: ComponentData[] }
+// Prefers draft_pages data when a draft exists for this pageId.
+const buildPageModelPayload = async (pageId: string) => {
+  const pageResult = await db.select().from(pages).where(eq(pages.id, pageId));
+  const pageRow = pageResult[0];
+  if (!pageRow) throw new Error('Page not found');
+
+  // Check for an active draft
+  const draftResult = await db.select().from(draftPages).where(eq(draftPages.pageId, pageId));
+  const draft = draftResult[0];
+
+  // Use draft metadata when available; mergeZones expects a row with metadata field
+  const rowForMerge = draft
+    ? { ...pageRow, metadata: draft.metadata, templateId: draft.templateId }
+    : pageRow;
+  const metadata = rowForMerge.metadata ? JSON.parse(rowForMerge.metadata) : {};
+  const resolvedZones = await mergeZones(rowForMerge);
+
+  const zoneInfos = resolvedZones.map((z: any) => ({
+    id: z.id,
+    name: z.name,
+    type: z.type,
+    order: z.order ?? 0,
+    maxComponents: z.policy?.maxComponents ?? null,
+    locked: z.policy?.locked ?? false,
+  }));
+
+  const components: any[] = [];
+  resolvedZones.forEach((z: any) => {
+    (z.components || []).forEach((c: any) => {
+      components.push({
+        id: c.id,
+        componentId: c.componentId,
+        type: c.type,
+        zoneId: z.id,
+        order: c.order ?? 0,
+        config: (() => {
+          // Strip non-config keys from the resolved component object
+          const { id: _id, componentId: _cid, type: _t, name: _n, order: _o, ...rest } = c;
+          return rest;
+        })(),
+      });
+    });
+  });
+
+  return {
+    pageId: pageRow.id,
+    slug: metadata.slug || toKebabCase(pageRow.name),
+    zones: zoneInfos,
+    components,
+  };
+};
+
+// Helper: upsert a draft row for pageId with updated metadata JSON string.
+const upsertDraft = async (pageRow: any, newMetadataJson: string) => {
+  await db.delete(draftPages).where(eq(draftPages.pageId, pageRow.id));
+  await db.insert(draftPages).values({
+    id: nanoid(),
+    pageId: pageRow.id,
+    name: pageRow.name,
+    description: pageRow.description,
+    status: 'draft',
+    folderId: pageRow.folderId,
+    templateId: pageRow.templateId,
+    metadata: newMetadataJson,
+    updatedAt: new Date().toISOString(),
+  });
+};
+
+// Add a new component instance to a page zone.
+// Always writes into draft_pages so the published pages row stays intact.
+export const addPageInstance = async (ctx: Context) => {
+  try {
+    const pageId = ctx.req.param('id');
+    const { componentId, zoneId, afterIndex } = await ctx.req.json();
+
+    const pageResult = await db.select().from(pages).where(eq(pages.id, pageId));
+    const pageRow = pageResult[0];
+    if (!pageRow) return ctx.json({ error: 'Page not found' }, 404);
+
+    // Start from existing draft if present, else from published metadata
+    const draftResult = await db.select().from(draftPages).where(eq(draftPages.pageId, pageId));
+    const existingDraft = draftResult[0];
+    const activeRaw = existingDraft?.metadata ?? pageRow.metadata;
+    const metadata = activeRaw ? JSON.parse(activeRaw) : {};
+    const zones: any[] = metadata.zones || [
+      { id: 'body', name: 'Body', type: 'content', componentInstances: [], policy: { maxComponents: null, locked: false } },
+    ];
+
+    const instanceId = `instance-${Date.now()}-${nanoid(9)}`;
+    const newInstance = { id: instanceId, componentId, config: {}, order: 0 };
+
+    const updatedZones = zones.map((zone: any) => {
+      if (zone.id !== zoneId) return zone;
+      const instances = [...(zone.componentInstances || [])];
+      const insertAt = afterIndex === null || afterIndex === undefined ? instances.length : afterIndex + 1;
+      instances.splice(insertAt, 0, newInstance);
+      return { ...zone, componentInstances: instances.map((inst: any, idx: number) => ({ ...inst, order: idx })) };
+    });
+
+    await upsertDraft(pageRow, JSON.stringify({ ...metadata, zones: updatedZones }));
+
+    const payload = await buildPageModelPayload(pageId);
+    return ctx.json(payload, 201);
+  } catch (error) {
+    console.error('Error adding page instance:', error);
+    return ctx.json({ error: 'Failed to add instance' }, 500);
+  }
+};
+
+// Update component instance content — always writes into draft_pages.
 export const updatePageInstance = async (ctx: Context) => {
   try {
     const pageId = ctx.req.param('id');
     const instanceId = ctx.req.param('instanceId');
     const { content } = await ctx.req.json();
 
-    // Get the page
     const pageResult = await db.select().from(pages).where(eq(pages.id, pageId));
-    if (pageResult.length === 0) {
-      return ctx.json({ error: 'Page not found' }, 404);
-    }
+    const pageRow = pageResult[0];
+    if (!pageRow) return ctx.json({ error: 'Page not found' }, 404);
 
-    const page = pageResult[0];
-    if (!page) {
-      return ctx.json({ error: 'Page not found' }, 404);
-    }
-
-    // Parse metadata
-    const metadata = page.metadata ? JSON.parse(page.metadata) : {};
+    // Read from existing draft if present, else from published
+    const draftResult = await db.select().from(draftPages).where(eq(draftPages.pageId, pageId));
+    const existingDraft = draftResult[0];
+    const activeRaw = existingDraft?.metadata ?? pageRow.metadata;
+    const metadata = activeRaw ? JSON.parse(activeRaw) : {};
     const zones = metadata.zones || [];
 
-    console.log('Looking for instance:', instanceId);
-    console.log('Page zones:', JSON.stringify(zones, null, 2));
-
-    // Find and update the component instance
     let instanceFound = false;
     const updatedZones = zones.map((zone: any) => ({
       ...zone,
       componentInstances: (zone.componentInstances || []).map((instance: any) => {
-        console.log('Checking instance:', instance.id || instance);
         if (instance.id === instanceId) {
           instanceFound = true;
           return { ...instance, config: content };
@@ -696,13 +887,9 @@ export const updatePageInstance = async (ctx: Context) => {
     }));
 
     if (!instanceFound) {
-      console.log(
-        'Instance not found. Available instances:',
-        zones.flatMap((z: any) => (z.componentInstances || []).map((i: any) => i.id || 'no-id')),
-      );
       return ctx.json(
         {
-          error: 'Component instance not found. Please save the page first before editing component content.',
+          error: 'Component instance not found.',
           instanceId,
           availableInstances: zones.flatMap((z: any) => (z.componentInstances || []).map((i: any) => i.id || 'no-id')),
         },
@@ -710,28 +897,9 @@ export const updatePageInstance = async (ctx: Context) => {
       );
     }
 
-    // Update page metadata
-    const updatedMetadata = {
-      ...metadata,
-      zones: updatedZones,
-    };
+    await upsertDraft(pageRow, JSON.stringify({ ...metadata, zones: updatedZones }));
 
-    await db
-      .update(pages)
-      .set({
-        metadata: JSON.stringify(updatedMetadata),
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(pages.id, pageId));
-
-    // Always regenerate model.json so CMS static files stay current
-    try {
-      await writePageModelJSON(pageId);
-    } catch (jsonError) {
-      console.error('Error writing page model JSON:', jsonError);
-    }
-
-    return ctx.json({ message: 'Instance updated successfully', page: { ...page, metadata: updatedMetadata } });
+    return ctx.json({ message: 'Instance updated successfully' });
   } catch (error) {
     console.error('Error updating page instance:', error);
     return ctx.json({ error: 'Failed to update instance' }, 500);

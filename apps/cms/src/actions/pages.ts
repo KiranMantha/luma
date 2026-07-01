@@ -128,13 +128,22 @@ export async function deletePage(id: string): Promise<void> {
   }
 }
 
+export async function saveDraft(id: string, zones: Page['zones'], metadata?: Record<string, unknown>): Promise<Page> {
+  const response = await fetch(`${API_BASE_URL}/api/pages/${id}/draft`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ zones, metadata }),
+  });
+  if (!response.ok) throw new Error(`Failed to save draft: ${response.statusText}`);
+  revalidatePath('/pages');
+  return response.json();
+}
+
 export async function publishPage(id: string): Promise<Page> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/pages/${id}/publish`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {
@@ -142,15 +151,34 @@ export async function publishPage(id: string): Promise<Page> {
     }
 
     const result = await response.json();
-
-    // Revalidate the page to show fresh data
     revalidatePath('/pages');
-
     return result;
   } catch (error) {
     console.error('Error publishing page:', error);
     throw new Error('Failed to publish page');
   }
+}
+
+export type PageModelPayload = {
+  pageId: string;
+  slug: string;
+  zones: Array<{ id: string; name: string; type: string; order: number; maxComponents: number | null; locked: boolean }>;
+  components: Array<{ id: string; componentId: string; type: string; zoneId: string; order: number; config: Record<string, unknown> }>;
+};
+
+export async function addComponentToPage(
+  pageId: string,
+  componentId: string,
+  zoneId: string,
+  afterIndex: number | null,
+): Promise<PageModelPayload> {
+  const response = await fetch(`${API_BASE_URL}/api/pages/${pageId}/instances`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ componentId, zoneId, afterIndex }),
+  });
+  if (!response.ok) throw new Error(`Failed to add component: ${response.statusText}`);
+  return response.json();
 }
 
 // Utility function to get components used in a specific template
