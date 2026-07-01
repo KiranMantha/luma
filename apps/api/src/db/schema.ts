@@ -107,7 +107,28 @@ export const pages = sqliteTable('pages', {
   createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
   publishedAt: text('published_at'),
-  metadata: text('metadata'), // JSON: { zones: [{ id, type, componentInstances: [...] }], slug, seo, tags, etc. }
+  metadata: text('metadata'), // JSON: { zones: [...], slug, seo, tags, etc. }
+});
+
+// Draft pages — same shape as pages plus a foreign key back to the published page.
+// A row exists here only while there is an unpublished draft for that page.
+// On publish: (1) delete existing pages row, (2) insert new pages row from this data, (3) delete this row.
+export const draftPages = sqliteTable('draft_pages', {
+  id: text('id').primaryKey(),       // own PK (nanoid) — not the same as pageId
+  pageId: text('page_id')
+    .notNull()
+    .references(() => pages.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  description: text('description'),
+  status: text('status', { enum: ['draft', 'published', 'archived'] })
+    .notNull()
+    .default('draft'),
+  folderId: text('folder_id'),
+  templateId: text('template_id'),
+  createdAt: text('created_at').default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text('updated_at').default(sql`CURRENT_TIMESTAMP`),
+  publishedAt: text('published_at'),
+  metadata: text('metadata'), // JSON: same shape as pages.metadata
 });
 
 // Project-level key-value settings (e.g. preview_url)
@@ -136,3 +157,5 @@ export type Template = typeof templates.$inferSelect;
 export type NewTemplate = typeof templates.$inferInsert;
 export type Page = typeof pages.$inferSelect;
 export type NewPage = typeof pages.$inferInsert;
+export type DraftPage = typeof draftPages.$inferSelect;
+export type NewDraftPage = typeof draftPages.$inferInsert;

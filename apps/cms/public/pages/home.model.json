@@ -5,8 +5,8 @@
   "slug": "home",
   "status": "published",
   "templateId": "GRF6lsf745vfA6KEgm9cg",
-  "publishedAt": null,
-  "updatedAt": "2026-07-01T09:54:03.865Z",
+  "publishedAt": "2026-07-01T11:15:40.271Z",
+  "updatedAt": "2026-07-01T11:15:40.271Z",
   "components": [
     {
       "id": "instance-1763188213239-mk6kqwc7z",
@@ -81,7 +81,7 @@
       "order": 2,
       "general": {
         "title": "Sample Card",
-        "description": "this is the description of the card"
+        "description": "this is the description of the card. this is draft"
       }
     }
   ]

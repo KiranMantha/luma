@@ -71,16 +71,19 @@ function makeInstanceId() {
 }
 
 const toKebabCase = (s: string) =>
-  s.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 const toCamelCase = (s: string) =>
   s.toLowerCase().replace(/[^a-zA-Z0-9]+(.)/g, (_: string, c: string) => c.toUpperCase());
 
 // Mirrors the API's resolveInstanceContent: converts { [controlId]: value } raw config
 // into { [sectionNameCamel]: { [labelCamel]: value } } using the in-memory component definition.
-function resolveConfig(
-  rawConfig: Record<string, unknown>,
-  compDef: Component | undefined,
-): Record<string, unknown> {
+function resolveConfig(rawConfig: Record<string, unknown>, compDef: Component | undefined): Record<string, unknown> {
   if (!compDef?.sections?.length) return rawConfig;
 
   const resolved: Record<string, unknown> = {};
@@ -181,7 +184,10 @@ type PageBuilderProps = {
   page: Page;
   components: Component[];
   selectedTemplate?: Template;
-  onSave: (page: Page) => Promise<void>;
+  /** Save current zones as a draft (persisted, can return later) */
+  onSaveDraft: (page: Page) => Promise<Page>;
+  /** Promote draft → published */
+  onPublishPage: (pageId: string) => Promise<Page>;
   onCancel: () => void;
   previewUrl?: string;
   projectName?: string;
@@ -205,7 +211,8 @@ export const PageBuilder = ({
   page,
   components,
   selectedTemplate,
-  onSave,
+  onSaveDraft,
+  onPublishPage,
   onCancel,
   previewUrl,
   projectName,
@@ -220,15 +227,15 @@ export const PageBuilder = ({
   }));
 
   const [pageState, setPageState] = useState<Page>({ ...page, zones: zonesWithIds });
+  // isDraft: true when there are unsaved local changes OR when the API reports a stored draft
+  const [isDraft, setIsDraft] = useState(!!page.hasDraft);
   const [draggedComponent, setDraggedComponent] = useState<DraggedComponent | null>(null);
   const [editingInstance, setEditingInstance] = useState<ComponentInstance | null>(null);
   const [isAuthoringOpen, setIsAuthoringOpen] = useState(false);
   const [pendingAdd, setPendingAdd] = useState<PendingAdd | null>(null);
   const [isSelectionOpen, setIsSelectionOpen] = useState(false);
 
-  const previewIframeSrc = previewUrl
-    ? `${previewUrl.replace(/\/$/, '')}/${page.slug}?mode=edit`
-    : undefined;
+  const previewIframeSrc = previewUrl ? `${previewUrl.replace(/\/$/, '')}/${page.slug}?mode=edit` : undefined;
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const iframeReadyRef = useRef(false);
@@ -240,7 +247,9 @@ export const PageBuilder = ({
       if (!previewUrl || !iframeReadyRef.current || !iframeRef.current?.contentWindow) return;
       try {
         iframeRef.current.contentWindow.postMessage(msg, new URL(previewUrl).origin);
-      } catch { /* invalid URL */ }
+      } catch {
+        /* invalid URL */
+      }
     },
     [previewUrl],
   );
@@ -256,6 +265,8 @@ export const PageBuilder = ({
     },
     [broadcastToIframe, components, projectName],
   );
+
+  const markDraft = () => setIsDraft(true);
 
   // Listen for messages from the iframe
   useEffect(() => {
@@ -288,19 +299,20 @@ export const PageBuilder = ({
       }
 
       if (msg.type === 'instance-reorder') {
+        markDraft();
         setPageState((prev) => {
           const newState = {
             ...prev,
-            zones: prev.zones?.map((zone) => {
-              if (zone.id !== msg.zoneId) return zone;
-              const instances = [...zone.componentInstances];
-              const [moved] = instances.splice(msg.fromIndex, 1);
-              if (!moved) return zone;
-              instances.splice(msg.toIndex, 0, moved);
-              return { ...zone, componentInstances: instances.map((inst, order) => ({ ...inst, order })) };
-            }) ?? [],
+            zones:
+              prev.zones?.map((zone) => {
+                if (zone.id !== msg.zoneId) return zone;
+                const instances = [...zone.componentInstances];
+                const [moved] = instances.splice(msg.fromIndex, 1);
+                if (!moved) return zone;
+                instances.splice(msg.toIndex, 0, moved);
+                return { ...zone, componentInstances: instances.map((inst, order) => ({ ...inst, order })) };
+              }) ?? [],
           };
-          // Send updated pageModel so iframe repaints in correct order
           setTimeout(() => sendPageModel(newState), 0);
           return newState;
         });
@@ -329,25 +341,26 @@ export const PageBuilder = ({
     setPendingAdd(null);
 
     if (onAddComponentToPage) {
-      // CMS makes the API call → gets back full pageModel → broadcast to iframe
+      markDraft();
       try {
         const pageModel = await onAddComponentToPage(pageState.id, component.id, zoneId, afterIndex);
         // Sync local state from the API response so CMS zone panel stays consistent
         setPageState((prev) => {
-          const updatedZones = prev.zones?.map((zone) => {
-            const zoneComponents = pageModel.components.filter((c) => c.zoneId === zone.id);
-            return {
-              ...zone,
-              componentInstances: zoneComponents.map((c) => ({
-                id: c.id,
-                componentId: c.componentId,
-                config: c.config,
-                order: c.order,
-                position: { x: 0, y: 0 },
-                size: { width: 200, height: 50 },
-              })),
-            };
-          }) ?? [];
+          const updatedZones =
+            prev.zones?.map((zone) => {
+              const zoneComponents = pageModel.components.filter((c) => c.zoneId === zone.id);
+              return {
+                ...zone,
+                componentInstances: zoneComponents.map((c) => ({
+                  id: c.id,
+                  componentId: c.componentId,
+                  config: c.config,
+                  order: c.order,
+                  position: { x: 0, y: 0 },
+                  size: { width: 200, height: 50 },
+                })),
+              };
+            }) ?? [];
           return { ...prev, zones: updatedZones };
         });
         broadcastToIframe({ source: 'luma-cms', version: 1, type: 'pageModel', payload: pageModel });
@@ -355,27 +368,28 @@ export const PageBuilder = ({
         console.error('Failed to add component:', err);
       }
     } else {
-      // Fallback: local-only insertion (no previewUrl / API callback)
+      markDraft();
       setPageState((prev) => {
         const newState = {
           ...prev,
-          zones: prev.zones?.map((zone) => {
-            if (zone.id !== zoneId) return zone;
-            const validation = validateZonePlacement(zone.type, component.id, zone.componentInstances.length);
-            if (!validation.valid) return zone;
-            const newInstance: ComponentInstance = {
-              id: makeInstanceId(),
-              componentId: component.id,
-              position: { x: 0, y: 0 },
-              size: { width: 200, height: 50 },
-              config: {},
-              order: afterIndex === null ? 0 : afterIndex + 1,
-            };
-            const instances = [...zone.componentInstances];
-            const insertAt = afterIndex === null ? 0 : afterIndex + 1;
-            instances.splice(insertAt, 0, newInstance);
-            return { ...zone, componentInstances: instances.map((inst, order) => ({ ...inst, order })) };
-          }) ?? [],
+          zones:
+            prev.zones?.map((zone) => {
+              if (zone.id !== zoneId) return zone;
+              const validation = validateZonePlacement(zone.type, component.id, zone.componentInstances.length);
+              if (!validation.valid) return zone;
+              const newInstance: ComponentInstance = {
+                id: makeInstanceId(),
+                componentId: component.id,
+                position: { x: 0, y: 0 },
+                size: { width: 200, height: 50 },
+                config: {},
+                order: afterIndex === null ? 0 : afterIndex + 1,
+              };
+              const instances = [...zone.componentInstances];
+              const insertAt = afterIndex === null ? 0 : afterIndex + 1;
+              instances.splice(insertAt, 0, newInstance);
+              return { ...zone, componentInstances: instances.map((inst, order) => ({ ...inst, order })) };
+            }) ?? [],
         };
         setTimeout(() => sendPageModel(newState), 0);
         return newState;
@@ -431,31 +445,33 @@ export const PageBuilder = ({
       return;
     }
 
+    markDraft();
     setPageState((prev) => {
       const newState = {
         ...prev,
-        zones: prev.zones?.map((zone) => {
-          if (zone.id === targetZoneId) {
-            const newInstance: ComponentInstance = {
-              id: makeInstanceId(),
-              componentId: draggedComponent.component.id,
-              position: { x: 0, y: zone.componentInstances.length * 60 },
-              size: { width: 200, height: 50 },
-              config: {},
-              order: zone.componentInstances.length,
-            };
-            return { ...zone, componentInstances: [...zone.componentInstances, newInstance] };
-          }
-          if (zone.id === draggedComponent.sourceZoneId) {
-            return {
-              ...zone,
-              componentInstances: zone.componentInstances.filter(
-                (inst) => inst.componentId !== draggedComponent.component.id,
-              ),
-            };
-          }
-          return zone;
-        }) || [],
+        zones:
+          prev.zones?.map((zone) => {
+            if (zone.id === targetZoneId) {
+              const newInstance: ComponentInstance = {
+                id: makeInstanceId(),
+                componentId: draggedComponent.component.id,
+                position: { x: 0, y: zone.componentInstances.length * 60 },
+                size: { width: 200, height: 50 },
+                config: {},
+                order: zone.componentInstances.length,
+              };
+              return { ...zone, componentInstances: [...zone.componentInstances, newInstance] };
+            }
+            if (zone.id === draggedComponent.sourceZoneId) {
+              return {
+                ...zone,
+                componentInstances: zone.componentInstances.filter(
+                  (inst) => inst.componentId !== draggedComponent.component.id,
+                ),
+              };
+            }
+            return zone;
+          }) || [],
       };
       setTimeout(() => sendPageModel(newState), 0);
       return newState;
@@ -465,14 +481,16 @@ export const PageBuilder = ({
   };
 
   const handleInstanceDelete = (zoneId: string, instanceId: string) => {
+    markDraft();
     setPageState((prev) => {
       const newState = {
         ...prev,
-        zones: prev.zones?.map((zone) =>
-          zone.id === zoneId
-            ? { ...zone, componentInstances: zone.componentInstances.filter((i) => i.id !== instanceId) }
-            : zone,
-        ) || [],
+        zones:
+          prev.zones?.map((zone) =>
+            zone.id === zoneId
+              ? { ...zone, componentInstances: zone.componentInstances.filter((i) => i.id !== instanceId) }
+              : zone,
+          ) || [],
       };
       setTimeout(() => sendPageModel(newState), 0);
       return newState;
@@ -485,21 +503,24 @@ export const PageBuilder = ({
   };
 
   const handleContentSave = async (instanceId: string, content: Record<string, unknown>) => {
+    markDraft();
     // Find the instance's zone so we can build the component payload
     let savedZoneId = '';
     let savedInst: ComponentInstance | null = null;
     for (const zone of pageState.zones ?? []) {
       const inst = zone.componentInstances.find((i) => i.id === instanceId);
-      if (inst) { savedZoneId = zone.id; savedInst = inst; break; }
+      if (inst) {
+        savedZoneId = zone.id;
+        savedInst = inst;
+        break;
+      }
     }
 
     setPageState((prev) => ({
       ...prev,
       zones: prev.zones.map((zone) => ({
         ...zone,
-        componentInstances: zone.componentInstances.map((i) =>
-          i.id === instanceId ? { ...i, config: content } : i,
-        ),
+        componentInstances: zone.componentInstances.map((i) => (i.id === instanceId ? { ...i, config: content } : i)),
       })),
     }));
 
@@ -518,25 +539,47 @@ export const PageBuilder = ({
     setIsAuthoringOpen(false);
   };
 
-  const handleStatusChange = (newStatus: PageStatus) => {
-    setPageState((prev) => ({ ...prev, status: newStatus }));
-  };
+  const buildCleanPage = (): Page => ({
+    ...pageState,
+    zones: (pageState.zones ?? []).map((zone) => ({
+      ...zone,
+      componentInstances: zone.componentInstances.map((inst) => ({
+        id: inst.id,
+        componentId: inst.componentId,
+        position: inst.position ?? { x: 0, y: 0 },
+        config: { ...inst.config },
+        order: inst.order,
+      })),
+    })),
+  });
 
-  const handleSave = async () => {
+  const handleSaveDraft = async () => {
     try {
-      const cleanZones = pageState.zones?.map((zone) => ({
-        ...zone,
-        componentInstances: zone.componentInstances.map((inst) => ({
-          id: inst.id,
-          componentId: inst.componentId,
-          config: { ...inst.config },
-          order: inst.order,
-        })),
-      })) || [];
-      await onSave({ ...pageState, zones: cleanZones } as Page);
+      const saved = await onSaveDraft(buildCleanPage());
+      setPageState((prev) => ({ ...prev, status: saved.status }));
+      setIsDraft(true); // still a draft — not published
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
-      alert(`Failed to save page: ${msg}`);
+      alert(`Failed to save draft: ${msg}`);
+    }
+  };
+
+  const handlePublish = async () => {
+    try {
+      const published = await onPublishPage(pageState.id);
+      setPageState((prev) => ({ ...prev, status: published.status }));
+      setIsDraft(false);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      alert(`Failed to publish page: ${msg}`);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: string) => {
+    if (newStatus === PageStatus.PUBLISHED) {
+      await handlePublish();
+    } else if (newStatus === PageStatus.DRAFT) {
+      await handleSaveDraft();
     }
   };
 
@@ -565,24 +608,34 @@ export const PageBuilder = ({
               Page Builder: {page.name}
             </Text>
             <Flex gap="2" align="center" className="mb-1">
-              <Text size="2" color="gray">Status:</Text>
+              <Text size="2" color="gray">
+                Status:
+              </Text>
               <select
-                value={pageState.status}
-                onChange={(e) => handleStatusChange(e.target.value as PageStatus)}
+                value={isDraft ? PageStatus.DRAFT : pageState.status}
+                onChange={(e) => handleStatusChange(e.target.value)}
                 className={styles.statusSelect}
               >
                 <option value={PageStatus.DRAFT}>Draft</option>
                 <option value={PageStatus.PUBLISHED}>Published</option>
-                <option value={PageStatus.ARCHIVED}>Archived</option>
               </select>
+              {isDraft && (
+                <Text size="1" color="gray">
+                  (unsaved changes)
+                </Text>
+              )}
             </Flex>
             <Text size="2" color="gray">
               {selectedTemplate ? `Using template: ${selectedTemplate.name}` : 'Blank page with body content only'}
             </Text>
           </div>
           <Flex gap="3" align="center">
-            <Button variant="ghost" onClick={onCancel}>Cancel</Button>
-            <Button variant="primary" onClick={handleSave}>Save Page</Button>
+            <Button variant="ghost" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleSaveDraft}>
+              Save Draft
+            </Button>
           </Flex>
         </div>
 
@@ -620,7 +673,9 @@ export const PageBuilder = ({
                         {component.name} {isUsed && '✓'}
                       </Text>
                       {component.description && (
-                        <Text size="1" color="gray">{component.description}</Text>
+                        <Text size="1" color="gray">
+                          {component.description}
+                        </Text>
                       )}
                     </div>
                   );
@@ -643,7 +698,12 @@ export const PageBuilder = ({
                 <span>Live Edit Preview</span>
                 <span className={styles.previewPaneUrl}>({previewIframeSrc})</span>
               </div>
-              <iframe ref={iframeRef} src={previewIframeSrc} className={styles.previewIframe} title="Live Edit Preview" />
+              <iframe
+                ref={iframeRef}
+                src={previewIframeSrc}
+                className={styles.previewIframe}
+                title="Live Edit Preview"
+              />
             </div>
           )}
         </div>

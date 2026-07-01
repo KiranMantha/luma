@@ -128,13 +128,22 @@ export async function deletePage(id: string): Promise<void> {
   }
 }
 
+export async function saveDraft(id: string, zones: Page['zones'], metadata?: Record<string, unknown>): Promise<Page> {
+  const response = await fetch(`${API_BASE_URL}/api/pages/${id}/draft`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ zones, metadata }),
+  });
+  if (!response.ok) throw new Error(`Failed to save draft: ${response.statusText}`);
+  revalidatePath('/pages');
+  return response.json();
+}
+
 export async function publishPage(id: string): Promise<Page> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/pages/${id}/publish`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!response.ok) {
@@ -142,10 +151,7 @@ export async function publishPage(id: string): Promise<Page> {
     }
 
     const result = await response.json();
-
-    // Revalidate the page to show fresh data
     revalidatePath('/pages');
-
     return result;
   } catch (error) {
     console.error('Error publishing page:', error);
