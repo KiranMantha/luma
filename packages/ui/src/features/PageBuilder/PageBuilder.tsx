@@ -8,7 +8,6 @@ import { createDefaultPageZones, validateZonePlacement } from '../ComponentBuild
 import { ComponentContentAuthoring } from '../ComponentContentAuthoring/ComponentContentAuthoring';
 import { ComponentSelectionDialog } from '../ComponentSelectionDialog/ComponentSelectionDialog';
 import { ZoneBuilderProvider } from '../ZoneBuilder/ZoneBuilderContext';
-import { ZoneDropArea } from '../ZoneBuilder/ZoneDropArea';
 import styles from './PageBuilder.module.scss';
 
 // ── postMessage types ─────────────────────────────────────────────────────────
@@ -418,10 +417,6 @@ export const PageBuilder = ({
     setDraggedComponent({ component, sourceZoneId });
   };
 
-  const handleDragEnd = () => {
-    setDraggedComponent(null);
-  };
-
   const handleZoneDrop = (targetZoneId: string, e: DragEvent) => {
     e.preventDefault();
     if (!draggedComponent) return;
@@ -604,10 +599,10 @@ export const PageBuilder = ({
       <div className={styles.pageBuilder}>
         <div className={styles.header}>
           <div>
-            <Text size="5" weight="bold">
-              Page Builder: {page.name}
-            </Text>
             <Flex gap="2" align="center" className="mb-1">
+              <Text size="5" weight="bold">
+                Page Builder: {page.name}
+              </Text>
               <Text size="2" color="gray">
                 Status:
               </Text>
@@ -640,72 +635,13 @@ export const PageBuilder = ({
         </div>
 
         <div className={previewUrl ? styles.workspaceWithPreview : styles.workspace}>
-          <div className={styles.palette}>
-            <Text size="3" weight="medium" className={styles.paletteTitle}>
-              Available Components
-            </Text>
-            {selectedTemplate && (
-              <Text size="1" color="gray" className="mb-3">
-                Components used in template are excluded
-              </Text>
-            )}
-            <div className={styles.componentList}>
-              {availableComponents.length === 0 ? (
-                <Text size="2" color="gray">
-                  No components available.
-                  {selectedTemplate
-                    ? ' All components are used in the selected template.'
-                    : ' Create components first.'}
-                </Text>
-              ) : (
-                availableComponents.map((component) => {
-                  const isUsed = getUsedComponents().has(component.id);
-                  return (
-                    <div
-                      key={component.id}
-                      className={`${styles.componentCard} ${isUsed ? styles.componentUsed : ''}`}
-                      draggable={!isUsed}
-                      onDragStart={() => !isUsed && handleDragStart(component)}
-                      onDragEnd={handleDragEnd}
-                      title={isUsed ? 'Already used — remove first to reuse' : 'Drag to zone'}
-                    >
-                      <Text size="2" weight="medium" color={isUsed ? 'gray' : undefined}>
-                        {component.name} {isUsed && '✓'}
-                      </Text>
-                      {component.description && (
-                        <Text size="1" color="gray">
-                          {component.description}
-                        </Text>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+          <div className={styles.previewPane}>
+            <div className={styles.previewPaneHeader}>
+              <span>Live Edit Preview</span>
+              <span className={styles.previewPaneUrl}>({previewIframeSrc})</span>
             </div>
+            <iframe ref={iframeRef} src={previewIframeSrc} className={styles.previewIframe} title="Live Edit Preview" />
           </div>
-
-          {!previewUrl && (
-            <div className={styles.zoneWorkspace}>
-              {pageState.zones?.map((zone) => (
-                <ZoneDropArea key={zone.id} zone={zone} />
-              ))}
-            </div>
-          )}
-
-          {previewUrl && (
-            <div className={styles.previewPane}>
-              <div className={styles.previewPaneHeader}>
-                <span>Live Edit Preview</span>
-                <span className={styles.previewPaneUrl}>({previewIframeSrc})</span>
-              </div>
-              <iframe
-                ref={iframeRef}
-                src={previewIframeSrc}
-                className={styles.previewIframe}
-                title="Live Edit Preview"
-              />
-            </div>
-          )}
         </div>
 
         <ComponentContentAuthoring

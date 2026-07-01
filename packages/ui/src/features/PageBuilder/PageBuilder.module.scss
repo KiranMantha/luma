@@ -25,92 +25,45 @@
 
 .workspaceWithPreview {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 1fr;
   flex: 1;
   overflow: hidden;
 }
 
 .previewPane {
+  @apply bg-white;
   border-left: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   flex: 1;
-}
 
-.previewPaneHeader {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 0.4rem 0.75rem;
-  @apply bg-white;
-  border-bottom: 1px solid #e2e8f0;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #374151;
-  gap: 0.5rem;
-}
-
-.previewPaneUrl {
-  font-size: 0.7rem;
-  color: #94a3b8;
-  font-family: monospace;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.previewIframe {
-  flex: 1;
-  width: 100%;
-  border: none;
-}
-
-.palette {
-  @apply bg-white;
-  @apply bg-white;
-  padding: 1rem;
-  overflow-y: auto;
-}
-
-.paletteTitle {
-  margin-bottom: 1rem;
-  color: #374151;
-}
-
-.componentList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.componentCard {
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  @apply bg-white;
-  cursor: grab;
-  transition: all 0.2s;
-
-  &:hover {
-    border-color: #3b82f6;
-    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+  .previewPaneHeader {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 0.4rem 0.75rem;
+    @apply mb-4;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #374151;
+    gap: 0.5rem;
   }
 
-  &:active {
-    cursor: grabbing;
+  .previewPaneUrl {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    font-family: monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
-}
 
-.componentUsed {
-  opacity: 0.6;
-  cursor: not-allowed;
-  border-color: #9ca3af;
-}
-
-.zoneWorkspace {
-  flex: 1;
-  padding: 20px;
-  overflow: auto;
+  .previewIframe {
+    flex: 1;
+    width: 100%;
+    border: none;
+  }
 }
 
 .statusSelect {

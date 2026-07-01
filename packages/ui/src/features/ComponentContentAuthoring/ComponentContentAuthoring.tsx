@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { Box, Button, Input, Select, Tabs, Text, Textarea } from '../../atoms';
 import { Card, Modal } from '../../molecules';
@@ -269,7 +268,7 @@ export const ComponentContentAuthoring = ({
             />
             {currentValue && (
               <div className={styles.mediaPreview}>
-                <Image
+                <img
                   src={currentValue as string}
                   alt="Preview"
                   className={styles.previewImage}
