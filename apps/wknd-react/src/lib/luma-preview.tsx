@@ -9,15 +9,6 @@
 
 import type { CSSProperties, ComponentType } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import type { ComponentData, ZoneInfo } from './api';
-
-// ── Mode detection ────────────────────────────────────────────────────────────
-
-const MODE = new URLSearchParams(window.location.search).get('mode') as 'edit' | 'preview' | null;
-
-export function useLumaMode(): 'edit' | 'preview' {
-  return MODE === 'edit' ? 'edit' : 'preview';
-}
 
 // ── Component registry ────────────────────────────────────────────────────────
 
@@ -31,13 +22,6 @@ type RegistryEntry = {
   Component: ComponentType<any>;
   config: MapToConfig;
 };
-
-const componentRegistry: Record<string, RegistryEntry> = {};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function MapTo(namespace: string, component: ComponentType<any>, config: MapToConfig = {}) {
-  componentRegistry[namespace] = { Component: component, config };
-}
 
 // ── postMessage protocol ──────────────────────────────────────────────────────
 //
@@ -78,7 +62,43 @@ type OutboundMsg =
   | { source: 'luma-preview'; type: 'instance-reorder'; fromIndex: number; toIndex: number; zoneId: string }
   | { source: 'luma-preview'; type: 'add-component'; zoneId: string; afterIndex: number | null };
 
-function sendToParent(msg: OutboundMsg) {
+type DragState = { type: 'instance'; instanceId: string; index: number; zoneId: string } | null;
+type DragListener = (dragging: boolean) => void;
+
+// Zone policy info returned by the API
+type ZoneInfo = {
+  id: string;
+  name: string;
+  type: string;
+  order: number;
+  maxComponents: number | null;
+  locked: boolean;
+};
+
+// A component instance placed on the page.
+// In edit mode (postMessage): sections live under `config` as resolved by the CMS.
+// In preview mode (public API): sections are spread directly on the object alongside meta keys.
+type ComponentData = {
+  id: string;
+  componentId: string;
+  type: string;
+  zoneId: string;
+  order: number;
+  config: Record<string, unknown>; // edit mode: resolved section data
+  [key: string]: unknown;          // preview mode: section data spread at top level
+};
+
+type PageModel = {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  components: ComponentData[];
+};
+
+const componentRegistry: Record<string, RegistryEntry> = {};
+
+function postMessageToCMS(msg: OutboundMsg) {
   window.parent?.postMessage(msg, '*');
 }
 
@@ -87,7 +107,7 @@ function sendToParent(msg: OutboundMsg) {
 // This is the single place that receives postMessage and re-emits CustomEvents.
 // Everything else (PageRenderer, EditableWrapper) subscribes to window events only.
 
-function initLumaReceiver() {
+function initPostMessageBridge() {
   const handler = (event: MessageEvent) => {
     const msg = event.data as InboundMsg;
     if (msg?.source !== 'luma-cms') return;
@@ -102,24 +122,33 @@ function initLumaReceiver() {
   };
 
   window.addEventListener('message', handler);
-  sendToParent({ source: 'luma-preview', type: 'ready' });
+  postMessageToCMS({ source: 'luma-preview', type: 'ready' });
   return () => window.removeEventListener('message', handler);
+}
+
+// ── Mode detection ────────────────────────────────────────────────────────────
+// Computed once at module load — the URL never changes while the app is running.
+
+const MODE = new URLSearchParams(window.location.search).get('mode');
+
+export function useLumaMode(): 'edit' | 'preview' {
+  return MODE === 'edit' ? 'edit' : 'preview';
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function MapTo(namespace: string, component: ComponentType<any>, config: MapToConfig = {}) {
+  componentRegistry[namespace] = { Component: component, config };
 }
 
 // ── LumaProvider ──────────────────────────────────────────────────────────────
 
 export function LumaProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => initLumaReceiver(), []);
+  useEffect(() => initPostMessageBridge(), []);
   return <>{children}</>;
 }
 
 // ── Drag state (module-level) ─────────────────────────────────────────────────
-
-type DragState = { type: 'instance'; instanceId: string; index: number; zoneId: string } | null;
-
 let currentDrag: DragState = null;
-
-type DragListener = (dragging: boolean) => void;
 const dragListeners = new Set<DragListener>();
 
 function setCurrentDrag(val: DragState) {
@@ -251,7 +280,7 @@ function DropBar({
     if (currentDrag.type === 'instance') {
       const toIndex = afterIndex === null ? 0 : afterIndex + 1;
       if (currentDrag.index !== toIndex) {
-        sendToParent({
+        postMessageToCMS({
           source: 'luma-preview',
           type: 'instance-reorder',
           fromIndex: currentDrag.index,
@@ -371,7 +400,7 @@ function EditableWrapper({
           onDragEnd={handleDragEnd}
           onClick={(e) => {
             e.stopPropagation();
-            sendToParent({
+            postMessageToCMS({
               source: 'luma-preview',
               type: 'instance-click',
               instanceId: instance.id,
@@ -384,7 +413,7 @@ function EditableWrapper({
             style={EDIT_BADGE}
             onClick={(e) => {
               e.stopPropagation();
-              sendToParent({
+              postMessageToCMS({
                 source: 'luma-preview',
                 type: 'instance-click',
                 instanceId: instance.id,
@@ -403,11 +432,9 @@ function EditableWrapper({
 // ── EmptyZoneDropTarget ────────────────────────────────────────────────────────
 
 function EmptyZoneDropTarget({
-  zoneId: _zoneId,
   zoneName,
   locked,
 }: {
-  zoneId: string;
   zoneName: string;
   locked: boolean;
 }) {
@@ -457,7 +484,7 @@ function AddComponentButton({ zoneId, afterIndex }: { zoneId: string; afterIndex
   return (
     <button
       style={ADD_BTN}
-      onClick={() => sendToParent({ source: 'luma-preview', type: 'add-component', zoneId, afterIndex })}
+      onClick={() => postMessageToCMS({ source: 'luma-preview', type: 'add-component', zoneId, afterIndex })}
     >
       + Add Component
     </button>
@@ -473,7 +500,7 @@ type PageRendererProps = {
   zones?: ZoneInfo[];
 };
 
-export function PageRenderer({ components: initialComponents, zones: initialZones }: PageRendererProps) {
+function PageRenderer({ components: initialComponents, zones: initialZones }: PageRendererProps) {
   const mode = useLumaMode();
 
   // Edit mode state — populated entirely via postMessage from CMS
@@ -493,14 +520,18 @@ export function PageRenderer({ components: initialComponents, zones: initialZone
   }, [mode]);
 
   // ── Preview mode: flat render, no zone awareness ──────────────────────────
+  // The public API returns resolved section data spread directly on the component
+  // object: { id, componentId, type, name, order, zoneId, general: {...}, ... }
+  // Strip the known meta keys and pass the rest (section data) as props.
   if (mode !== 'edit') {
     const ordered = [...initialComponents].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     return (
       <>
         {ordered.map((comp) => {
           const entry = componentRegistry[comp.type];
-          const { id, componentId, order, type, ...rest } = comp || {};
-          return entry ? <entry.Component key={id} {...rest} /> : null;
+          if (!entry) return null;
+          const { id, componentId: _cid, type: _t, name: _n, order: _o, zoneId: _z, config: _c, ...sectionData } = comp as any;
+          return <entry.Component key={id} id={id} {...sectionData} />;
         })}
       </>
     );
@@ -521,10 +552,10 @@ export function PageRenderer({ components: initialComponents, zones: initialZone
           <div key={zone.id} style={{ flex: zone.type === 'content' ? 1 : undefined }}>
             {zoneComponents.length === 0 ? (
               zone.locked ? (
-                <EmptyZoneDropTarget zoneId={zone.id} zoneName={zone.name} locked={true} />
+                <EmptyZoneDropTarget zoneName={zone.name} locked={true} />
               ) : (
                 <>
-                  <EmptyZoneDropTarget zoneId={zone.id} zoneName={zone.name} locked={false} />
+                  <EmptyZoneDropTarget zoneName={zone.name} locked={false} />
                   <AddComponentButton zoneId={zone.id} afterIndex={null} />
                 </>
               )
@@ -555,6 +586,45 @@ export function PageRenderer({ components: initialComponents, zones: initialZone
       })}
     </>
   );
+}
+
+const CMS_BASE_URL = import.meta.env.VITE_CMS_BASE_URL;
+
+async function fetchPageBySlug(slug: string): Promise<PageModel> {
+  const res = await fetch(`${CMS_BASE_URL}/pages/${slug}.model.json`);
+  if (!res.ok) throw new Error(`Failed to fetch page: ${res.statusText}`);
+  return res.json();
+}
+
+export function Page() {
+  const mode = useLumaMode();
+  const [page, setPage] = useState<PageModel | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // In edit mode the CMS pushes the full page model via postMessage — no API call needed.
+    if (mode === 'edit') return;
+
+    const slug = window.location.pathname.split('/').filter(Boolean).at(-1);
+    if (!slug) {
+      setError('No page slug in URL path');
+      return;
+    }
+
+    fetchPageBySlug(slug)
+      .then(setPage)
+      .catch((err) => setError(err.message));
+  }, [mode]);
+
+  if (mode === 'edit') {
+    // Render immediately with empty state; PageRenderer repaints when CMS sends pageModel event.
+    return <PageRenderer components={[]} />;
+  }
+
+  if (error) return <div style={{ padding: '2rem', color: '#dc2626' }}>Error: {error}</div>;
+  if (!page) return <div style={{ padding: '2rem', color: '#94a3b8' }}>Loading…</div>;
+
+  return <PageRenderer components={page.components} />;
 }
 
 export type { ComponentData, ZoneInfo };
