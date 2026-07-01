@@ -40,3 +40,4 @@ apps/wknd-*
 !apps/wknd-react
 !apps/wknd-vue
 !apps/wknd-svelte
+!apps/wknd-angular

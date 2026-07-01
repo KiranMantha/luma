@@ -5,13 +5,13 @@
   "slug": "home",
   "status": "published",
   "templateId": "GRF6lsf745vfA6KEgm9cg",
-  "publishedAt": "2026-07-01T13:21:50.108Z",
-  "updatedAt": "2026-07-01T13:21:50.108Z",
+  "publishedAt": "2026-07-01T13:45:07.620Z",
+  "updatedAt": "2026-07-01T13:45:07.620Z",
   "components": [
     {
       "id": "instance-1763188213239-mk6kqwc7z",
       "componentId": "QmhE9PdX5dRtCBPRfGmpg",
-      "type": "wkndsvelte/components/header",
+      "type": "wkndangular/components/header",
       "name": "Header",
       "order": 0,
       "general": {
@@ -44,7 +44,7 @@
     {
       "id": "instance-1763302563987",
       "componentId": "ZzlKpdpucLUcwuqXeMGLs",
-      "type": "wkndsvelte/components/multiSearch",
+      "type": "wkndangular/components/multiSearch",
       "name": "Multi Search",
       "order": 0,
       "general": {
@@ -65,7 +65,7 @@
     {
       "id": "instance-1782370129646",
       "componentId": "aDiZMv8rSO3nsgjhDDjDD",
-      "type": "wkndsvelte/components/sample",
+      "type": "wkndangular/components/sample",
       "name": "sample",
       "order": 1,
       "general": {},
@@ -76,12 +76,12 @@
     {
       "id": "instance-1782896408198-uuXtQ2PLX",
       "componentId": "Wz0GV1gVL41Mzy_Yic0qq",
-      "type": "wkndsvelte/components/card",
+      "type": "wkndangular/components/card",
       "name": "Card",
       "order": 2,
       "general": {
         "title": "Sample Card",
-        "description": "this is the description of the card..",
+        "description": "this is the description of the card.",
         "image": "https://images.unsplash.com/photo-1781276798473-258ee0e096d8?q=80&w=1740&auto=format&fit=crop"
       }
     }
