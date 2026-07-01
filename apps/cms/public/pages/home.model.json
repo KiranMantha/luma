@@ -5,13 +5,13 @@
   "slug": "home",
   "status": "published",
   "templateId": "GRF6lsf745vfA6KEgm9cg",
-  "publishedAt": "2026-07-01T12:47:33.852Z",
-  "updatedAt": "2026-07-01T12:47:33.852Z",
+  "publishedAt": "2026-07-01T13:02:03.686Z",
+  "updatedAt": "2026-07-01T13:02:03.686Z",
   "components": [
     {
       "id": "instance-1763188213239-mk6kqwc7z",
       "componentId": "QmhE9PdX5dRtCBPRfGmpg",
-      "type": "wkndreact/components/header",
+      "type": "wkndvue/components/header",
       "name": "Header",
       "order": 0,
       "general": {
@@ -44,7 +44,7 @@
     {
       "id": "instance-1763302563987",
       "componentId": "ZzlKpdpucLUcwuqXeMGLs",
-      "type": "wkndreact/components/multiSearch",
+      "type": "wkndvue/components/multiSearch",
       "name": "Multi Search",
       "order": 0,
       "general": {
@@ -65,7 +65,7 @@
     {
       "id": "instance-1782370129646",
       "componentId": "aDiZMv8rSO3nsgjhDDjDD",
-      "type": "wkndreact/components/sample",
+      "type": "wkndvue/components/sample",
       "name": "sample",
       "order": 1,
       "general": {},
@@ -76,12 +76,12 @@
     {
       "id": "instance-1782896408198-uuXtQ2PLX",
       "componentId": "Wz0GV1gVL41Mzy_Yic0qq",
-      "type": "wkndreact/components/card",
+      "type": "wkndvue/components/card",
       "name": "Card",
       "order": 2,
       "general": {
         "title": "Sample Card",
-        "description": "this is the description of the card. this is draft",
+        "description": "this is the description of the card.",
         "image": "https://images.unsplash.com/photo-1781276798473-258ee0e096d8?q=80&w=1740&auto=format&fit=crop"
       }
     }
