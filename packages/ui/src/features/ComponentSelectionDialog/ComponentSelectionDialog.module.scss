@@ -1,0 +1,19 @@
+@reference 'tailwindcss';
+
+.componentCard {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  @apply bg-white cursor-pointer;
+  transition: all 0.2s;
+  margin-bottom: 0.5rem;
+
+  &:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}

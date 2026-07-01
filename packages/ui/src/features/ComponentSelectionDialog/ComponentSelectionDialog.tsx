@@ -1,21 +1,22 @@
 'use client';
 
-import { Button, Flex, Text } from '../../atoms';
+import { Box, Button, Flex, Text } from '../../atoms';
 import { Modal } from '../../molecules';
 import type { Component } from '../ComponentBuilder/models';
+import styles from './ComponentSelectionDialog.module.scss';
 
 export type ComponentSelectionDialogProps = {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
   components: Component[];
   onSelect: (component: Component) => void;
+  onOpenChange: (open: boolean) => void;
 };
 
 export const ComponentSelectionDialog = ({
   open,
-  onOpenChange,
   components,
   onSelect,
+  onOpenChange,
 }: ComponentSelectionDialogProps) => {
   const handleSelect = (component: Component) => {
     onOpenChange(false);
@@ -25,28 +26,24 @@ export const ComponentSelectionDialog = ({
   return (
     <Modal open={open} onOpenChange={onOpenChange} title="Add Component">
       {components.length === 0 ? (
-        <Text size="2" color="gray">No components available.</Text>
+        <Text size="2" color="gray">
+          No components available.
+        </Text>
       ) : (
-        <Flex direction="column" gap="2">
+        <Box>
           {components.map((c) => (
-            <Button
-              key={c.id}
-              variant="primary-outline"
-              onClick={() => handleSelect(c)}
-              style={{ justifyContent: 'flex-start' }}
-            >
-              <div>
-                <Text size="2" weight="medium">{c.name}</Text>
-                {c.description && (
-                  <Text size="1" color="gray">{c.description}</Text>
-                )}
-              </div>
-            </Button>
+            <Box key={c.id} className={styles.componentCard} onClick={() => handleSelect(c)}>
+              <Text size="2" weight="medium">
+                {c.name}
+              </Text>
+            </Box>
           ))}
-        </Flex>
+        </Box>
       )}
       <Flex justify="end" className="mt-4">
-        <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+        <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          Cancel
+        </Button>
       </Flex>
     </Modal>
   );
